@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏆 Tournament Dashboard - 8-Team Bracket</title>
+
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .status.connected {
+            background: #10b981;
+            color: white;
+        }
+
+        .status.disconnected {
+            background: #ef4444;
+            color: white;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .series-score {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 30px 0;
+        }
+
+        .team-score {
+            text-align: center;
+        }
+
+        .team-label {
+            font-size: 1.2rem;
+            color: #6b7280;
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .wins-display {
+            font-size: 4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .star-display {
+            font-size: 2.5rem;
+            margin-top: 10px;
+        }
+
+        .vs {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #9ca3af;
+        }
+
+        .bracket {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        .bracket-header {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #1f2937;
+        }
+
+        .battle-result {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .battle-result.creator-win {
+            border-left: 4px solid #667eea;
+        }
+
+        .battle-result.opponent-win {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .momentum-indicator {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .momentum-bar {
+            height: 30px;
+            background: #e5e7eb;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            margin: 15px 0;
+        }
+
+        .momentum-fill {
+            height: 100%;
+            position: absolute;
+            transition: all 0.5s ease;
+        }
+
+        .momentum-fill.creator {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            left: 50%;
+        }
+
+        .momentum-fill.opponent {
+            background: linear-gradient(90deg, #ea580c 0%, #f59e0b 100%);
+            right: 50%;
+        }
+
+        .pressure-display {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+        }
+
+        .pressure-item {
+            text-align: center;
+        }
+
+        .pressure-emoji {
+            font-size: 2rem;
+        }
+
+        .pressure-label {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 30px 0;
+        }
+
+        .score {
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .score-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .progress-bar {
+            height: 40px;
+            background: #e5e7eb;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .event-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .event {
+            padding: 12px;
+            border-left: 4px solid #f59e0b;
+            background: #f9fafb;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .event-time {
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-bottom: 4px;
+        }
+
+        .event-content {
+            font-size: 0.95rem;
+        }
+
+        .no-tournament {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+
+        .no-tournament-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .live-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        .tournament-info {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .tournament-format {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #92400e;
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .nav-tab {
+            padding: 8px 20px;
+            border-radius: 20px;
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .nav-tab:hover, .nav-tab.active {
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            color: white;
+        }
+
+        /* 8-Team Bracket Display */
+        .bracket-container {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        .bracket-8team {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-width: 900px;
+            padding: 20px;
+        }
+
+        .bracket-round {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            min-width: 200px;
+        }
+
+        .bracket-round-title {
+            text-align: center;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 15px;
+            padding: 8px;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-radius: 8px;
+        }
+
+        .bracket-match {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-radius: 10px;
+            padding: 10px;
+            margin: 10px 0;
+            min-width: 180px;
+        }
+
+        .bracket-match.completed {
+            border-left: 4px solid #10b981;
+        }
+
+        .bracket-match.current {
+            border-left: 4px solid #f59e0b;
+            animation: currentPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes currentPulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.6); }
+        }
+
+        .bracket-team {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            margin: 4px 0;
+            border-radius: 6px;
+            background: white;
+        }
+
+        .bracket-team.winner {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            font-weight: 600;
+        }
+
+        .bracket-team.loser {
+            opacity: 0.5;
+        }
+
+        .team-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .team-seed {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .team-score {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .bracket-connector {
+            width: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .connector-line {
+            border-top: 2px solid #d1d5db;
+            width: 100%;
+        }
+
+        /* Standings Table */
+        .standings-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .standings-table th {
+            text-align: left;
+            padding: 12px;
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            color: white;
+        }
+
+        .standings-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .standings-table tr:hover {
+            background: #fef3c7;
+        }
+
+        .rank-1 { color: #f59e0b; font-size: 1.2rem; }
+        .rank-2 { color: #9ca3af; font-size: 1.1rem; }
+        .rank-3 { color: #b45309; font-size: 1rem; }
+
+        .team-eliminated {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        .champion-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏆 Tournament Dashboard</h1>
+            <p style="margin: 10px 0;">8-Team Elimination Bracket System</p>
+            <div id="connection-status" class="status disconnected">
+                🔴 Connecting...
+            </div>
+            <div class="nav-tabs">
+                <a href="/" class="nav-tab">🎮 Battle</a>
+                <a href="/tournament" class="nav-tab active">🏆 Tournament</a>
+                <a href="/strategic-battle" class="nav-tab">⚔️ Strategic</a>
+            </div>
+        </header>
+
+        <!-- 8-Team Bracket Visualization -->
+        <div class="bracket-container" id="bracket-container">
+            <h2 style="margin-bottom: 20px;">🏆 8-Team Single Elimination Bracket</h2>
+            <div class="bracket-8team" id="bracket-8team">
+                <!-- Quarterfinals -->
+                <div class="bracket-round">
+                    <div class="bracket-round-title">QUARTERFINALS</div>
+                    <div class="bracket-match" id="match-1">
+                        <div class="bracket-team" id="match-1-team1">
+                            <div class="team-info">
+                                <span class="team-seed">#1</span>
+                                <span>🔫 Kinetik Snipers</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                        <div class="bracket-team" id="match-1-team2">
+                            <div class="team-info">
+                                <span class="team-seed">#8</span>
+                                <span>🃏 Wild Cards</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                    </div>
+                    <div class="bracket-match" id="match-2">
+                        <div class="bracket-team" id="match-2-team1">
+                            <div class="team-info">
+                                <span class="team-seed">#4</span>
+                                <span>💰 Budget Masters</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                        <div class="bracket-team" id="match-2-team2">
+                            <div class="team-info">
+                                <span class="team-seed">#5</span>
+                                <span>🎯 Synergy Squad</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                    </div>
+                    <div class="bracket-match" id="match-3">
+                        <div class="bracket-team" id="match-3-team1">
+                            <div class="team-info">
+                                <span class="team-seed">#3</span>
+                                <span>🛡️ Defense Force</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                        <div class="bracket-team" id="match-3-team2">
+                            <div class="team-info">
+                                <span class="team-seed">#6</span>
+                                <span>🌹 Rose Spammers</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                    </div>
+                    <div class="bracket-match" id="match-4">
+                        <div class="bracket-team" id="match-4-team1">
+                            <div class="team-info">
+                                <span class="team-seed">#2</span>
+                                <span>🎭 Chaos Legion</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                        <div class="bracket-team" id="match-4-team2">
+                            <div class="team-info">
+                                <span class="team-seed">#7</span>
+                                <span>🐋 Whale Watchers</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Connector -->
+                <div class="bracket-connector">
+                    <div class="connector-line"></div>
+                </div>
+
+                <!-- Semifinals -->
+                <div class="bracket-round">
+                    <div class="bracket-round-title">SEMIFINALS</div>
+                    <div class="bracket-match" id="match-5" style="margin: 40px 0;">
+                        <div class="bracket-team" id="match-5-team1">
+                            <div class="team-info">
+                                <span>Winner Match 1</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                        <div class="bracket-team" id="match-5-team2">
+                            <div class="team-info">
+                                <span>Winner Match 2</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                    </div>
+                    <div class="bracket-match" id="match-6" style="margin: 40px 0;">
+                        <div class="bracket-team" id="match-6-team1">
+                            <div class="team-info">
+                                <span>Winner Match 3</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                        <div class="bracket-team" id="match-6-team2">
+                            <div class="team-info">
+                                <span>Winner Match 4</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Connector -->
+                <div class="bracket-connector">
+                    <div class="connector-line"></div>
+                </div>
+
+                <!-- Finals -->
+                <div class="bracket-round">
+                    <div class="bracket-round-title">🏆 GRAND FINALS</div>
+                    <div class="bracket-match" id="match-7" style="margin: 80px 0;">
+                        <div class="bracket-team" id="match-7-team1">
+                            <div class="team-info">
+                                <span>Winner Semi 1</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                        <div class="bracket-team" id="match-7-team2">
+                            <div class="team-info">
+                                <span>Winner Semi 2</span>
+                            </div>
+                            <span class="team-score">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Champion -->
+                <div class="bracket-round" style="min-width: 150px;">
+                    <div class="bracket-round-title">👑 CHAMPION</div>
+                    <div id="champion-display" style="text-align: center; padding: 20px;">
+                        <div style="font-size: 3rem;">🏆</div>
+                        <div style="font-weight: 600; color: #6b7280;">TBD</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Standings Table -->
+        <div class="card" style="margin-bottom: 20px;">
+            <h2>📊 Tournament Standings</h2>
+            <table class="standings-table" id="standings-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Team</th>
+                        <th>W-L</th>
+                        <th>Point Diff</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="standings-body">
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #9ca3af;">
+                            Waiting for tournament to start...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="tournament-view">
+            <div class="no-tournament">
+                <div class="no-tournament-icon">⏳</div>
+                <h2>Waiting for Tournament...</h2>
+                <p>Start a tournament with streaming enabled to see it here!</p>
+                <p style="margin-top: 15px; font-size: 0.9rem; color: #9ca3af;">
+                    Run: <code style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">python demo_tournament.py --bracket</code>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Connect to SocketIO server
+        const socket = io('http://localhost:5000');
+
+        let currentTournament = null;
+        let currentBattle = null;
+        let bracketData = [];
+        let momentumData = null;
+
+        // Connection handlers
+        socket.on('connect', () => {
+            console.log('Connected to tournament server!');
+            document.getElementById('connection-status').className = 'status connected';
+            document.getElementById('connection-status').innerHTML = '🟢 Connected';
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            document.getElementById('connection-status').className = 'status disconnected';
+            document.getElementById('connection-status').innerHTML = '🔴 Disconnected';
+        });
+
+        // Tournament events
+        socket.on('tournament_start', (data) => {
+            console.log('✅ Tournament started:', data);
+            currentTournament = data;
+            bracketData = [];
+            renderTournament();
+        });
+
+        socket.on('tournament_series_update', (data) => {
+            console.log('📊 Series update:', data);
+            if (currentTournament) {
+                currentTournament.creator_wins = data.creator_wins;
+                currentTournament.opponent_wins = data.opponent_wins;
+                updateSeriesScore();
+            }
+        });
+
+        socket.on('tournament_bracket_update', (data) => {
+            console.log('🏆 Bracket update:', data);
+            bracketData = data.battles || [];
+            updateBracket();
+        });
+
+        socket.on('tournament_momentum_update', (data) => {
+            console.log('⚡ Momentum update:', data);
+            momentumData = data;
+            updateMomentum();
+        });
+
+        socket.on('battle_start', (data) => {
+            console.log('⚔️ Battle started in tournament:', data);
+            currentBattle = data;
+            updateCurrentBattle();
+        });
+
+        socket.on('battle_tick', (data) => {
+            if (!currentBattle || data.battle_id !== currentBattle.id) return;
+
+            currentBattle.current_time = data.time;
+            currentBattle.scores = data.scores;
+            updateCurrentBattle();
+        });
+
+        socket.on('battle_end', (data) => {
+            console.log('✅ Battle ended:', data);
+            currentBattle = null;
+            // Keep tournament view but clear current battle
+            const battleCard = document.getElementById('current-battle-card');
+            if (battleCard) {
+                battleCard.innerHTML = `
+                    <h2>⏸️ Between Battles</h2>
+                    <p style="text-align: center; padding: 40px; color: #9ca3af;">
+                        Preparing next battle...
+                    </p>
+                `;
+            }
+        });
+
+        socket.on('tournament_end', (data) => {
+            console.log('🏆 Tournament ended:', data);
+            if (currentTournament) {
+                currentTournament.status = 'completed';
+                currentTournament.result = data;
+                renderTournamentEnd();
+            }
+        });
+
+        function renderTournament() {
+            const view = document.getElementById('tournament-view');
+
+            view.innerHTML = `
+                <div class="card full-width">
+                    <div class="tournament-info">
+                        <div class="tournament-format">
+                            ${currentTournament.format} Tournament
+                        </div>
+                        <div style="margin-top: 5px; color: #92400e;">
+                            First to ${currentTournament.battles_to_win} wins
+                        </div>
+                    </div>
+
+                    <h2>
+                        <span class="live-indicator"></span>
+                        Tournament Series
+                    </h2>
+
+                    <div class="series-score">
+                        <div class="team-score">
+                            <div class="team-label">Creator</div>
+                            <div class="wins-display" id="creator-wins">0</div>
+                            <div class="star-display" id="creator-stars"></div>
+                        </div>
+                        <div class="vs">VS</div>
+                        <div class="team-score">
+                            <div class="team-label">Opponent</div>
+                            <div class="wins-display" id="opponent-wins">0</div>
+                            <div class="star-display" id="opponent-stars"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid">
+                    <div class="card">
+                        <h2>📊 Series Momentum</h2>
+                        <div id="momentum-display">
+                            <div class="momentum-indicator">
+                                <div style="font-size: 1.2rem; margin-bottom: 10px;">⚪ Balanced</div>
+                                <div class="momentum-bar">
+                                    <div class="momentum-fill creator" style="width: 0%"></div>
+                                    <div class="momentum-fill opponent" style="width: 0%"></div>
+                                </div>
+                                <div class="pressure-display">
+                                    <div class="pressure-item">
+                                        <div class="pressure-emoji">😌</div>
+                                        <div class="pressure-label">Creator</div>
+                                    </div>
+                                    <div class="pressure-item">
+                                        <div class="pressure-emoji">😌</div>
+                                        <div class="pressure-label">Opponent</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>🏆 Bracket</h2>
+                        <div id="bracket-display">
+                            <div class="bracket">
+                                <div class="bracket-header">No battles yet</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card full-width" id="current-battle-card">
+                    <h2>⏸️ Waiting for First Battle</h2>
+                    <p style="text-align: center; padding: 40px; color: #9ca3af;">
+                        Tournament will begin shortly...
+                    </p>
+                </div>
+
+                <div class="card full-width">
+                    <h2>📋 Tournament Events</h2>
+                    <div class="event-feed" id="event-feed"></div>
+                </div>
+            `;
+
+            updateSeriesScore();
+        }
+
+        function updateSeriesScore() {
+            const creatorWins = currentTournament.creator_wins || 0;
+            const opponentWins = currentTournament.opponent_wins || 0;
+            const battlesToWin = currentTournament.battles_to_win || 2;
+
+            document.getElementById('creator-wins').textContent = creatorWins;
+            document.getElementById('opponent-wins').textContent = opponentWins;
+
+            // Update stars
+            const creatorStars = '⭐'.repeat(creatorWins) + '☆'.repeat(battlesToWin - creatorWins);
+            const opponentStars = '⭐'.repeat(opponentWins) + '☆'.repeat(battlesToWin - opponentWins);
+
+            document.getElementById('creator-stars').textContent = creatorStars;
+            document.getElementById('opponent-stars').textContent = opponentStars;
+
+            addTournamentEvent(`Series Score: Creator ${creatorWins} - ${opponentWins} Opponent`);
+        }
+
+        function updateBracket() {
+            const display = document.getElementById('bracket-display');
+            if (!bracketData || bracketData.length === 0) return;
+
+            let html = '<div class="bracket">';
+            html += '<div class="bracket-header">Battle Results</div>';
+
+            bracketData.forEach((battle, index) => {
+                const winClass = battle.winner === 'creator' ? 'creator-win' : 'opponent-win';
+                html += `
+                    <div class="battle-result ${winClass}">
+                        <div>
+                            Battle ${battle.battle_num}:
+                            ${battle.winner === 'creator' ? '✅' : '❌'} Creator ${battle.creator_score.toLocaleString()} |
+                            ${battle.winner === 'opponent' ? '✅' : '❌'} Opponent ${battle.opponent_score.toLocaleString()}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            display.innerHTML = html;
+        }
+
+        function updateMomentum() {
+            if (!momentumData) return;
+
+            const momentumMap = {
+                'strong_creator': { text: '🔵🔵🔵 STRONG CREATOR', creator: 100, opponent: 0 },
+                'moderate_creator': { text: '🔵🔵 Favoring Creator', creator: 70, opponent: 0 },
+                'neutral': { text: '⚪ Balanced', creator: 0, opponent: 0 },
+                'moderate_opponent': { text: '🔴🔴 Favoring Opponent', creator: 0, opponent: 70 },
+                'strong_opponent': { text: '🔴🔴🔴 STRONG OPPONENT', creator: 0, opponent: 100 }
+            };
+
+            const pressureMap = {
+                0: '😌', // NONE
+                1: '🙂', // LOW
+                2: '😐', // MODERATE
+                3: '😰', // HIGH
+                4: '💀'  // ELIMINATION
+            };
+
+            const momentum = momentumMap[momentumData.momentum] || momentumMap['neutral'];
+
+            const display = document.getElementById('momentum-display');
+            display.innerHTML = `
+                <div class="momentum-indicator">
+                    <div style="font-size: 1.2rem; margin-bottom: 10px;">${momentum.text}</div>
+                    <div class="momentum-bar">
+                        <div class="momentum-fill creator" style="width: ${momentum.creator}%"></div>
+                        <div class="momentum-fill opponent" style="width: ${momentum.opponent}%"></div>
+                    </div>
+                    <div class="pressure-display">
+                        <div class="pressure-item">
+                            <div class="pressure-emoji">${pressureMap[momentumData.creator_pressure]}</div>
+                            <div class="pressure-label">Creator</div>
+                        </div>
+                        <div class="pressure-item">
+                            <div class="pressure-emoji">${pressureMap[momentumData.opponent_pressure]}</div>
+                            <div class="pressure-label">Opponent</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add streak notifications
+            if (momentumData.creator_win_streak >= 2) {
+                addTournamentEvent(`🔥 Creator on ${momentumData.creator_win_streak}-battle win streak!`);
+            } else if (momentumData.opponent_win_streak >= 2) {
+                addTournamentEvent(`🔥 Opponent on ${momentumData.opponent_win_streak}-battle win streak!`);
+            }
+        }
+
+        function updateCurrentBattle() {
+            if (!currentBattle) return;
+
+            const battleCard = document.getElementById('current-battle-card');
+            battleCard.innerHTML = `
+                <h2>
+                    <span class="live-indicator"></span>
+                    Current Battle
+                </h2>
+
+                <div class="scoreboard">
+                    <div class="score">
+                        <div class="score-label">Creator</div>
+                        <div class="score-value">${(currentBattle.scores?.creator || 0).toLocaleString()}</div>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="score">
+                        <div class="score-label">Opponent</div>
+                        <div class="score-value">${(currentBattle.scores?.opponent || 0).toLocaleString()}</div>
+                    </div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${(currentBattle.current_time / currentBattle.duration * 100) || 0}%">
+                        <span>${currentBattle.current_time || 0}s / ${currentBattle.duration}s</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTournamentEnd() {
+            const winner = currentTournament.result.winner;
+            const winnerText = winner === 'creator' ? 'CREATOR WINS!' : 'OPPONENT WINS!';
+
+            addTournamentEvent(`🏆 TOURNAMENT COMPLETE: ${winnerText}`);
+
+            const battleCard = document.getElementById('current-battle-card');
+            battleCard.innerHTML = `
+                <h2>🏆 Tournament Complete</h2>
+                <div style="text-align: center; padding: 40px;">
+                    <div style="font-size: 3rem; margin-bottom: 20px;">
+                        ${winner === 'creator' ? '🔵' : '🔴'}
+                    </div>
+                    <div style="font-size: 2rem; font-weight: 700; color: #1f2937;">
+                        ${winnerText}
+                    </div>
+                    <div style="margin-top: 20px; font-size: 1.2rem; color: #6b7280;">
+                        Final Score: ${currentTournament.creator_wins} - ${currentTournament.opponent_wins}
+                    </div>
+                </div>
+            `;
+        }
+
+        function addTournamentEvent(message) {
+            const feed = document.getElementById('event-feed');
+            if (!feed) return;
+
+            const event = document.createElement('div');
+            event.className = 'event';
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+
+            event.innerHTML = `
+                <div class="event-time">${timeStr}</div>
+                <div class="event-content">${message}</div>
+            `;
+
+            feed.insertBefore(event, feed.firstChild);
+
+            // Keep only last 30 events
+            while (feed.children.length > 30) {
+                feed.removeChild(feed.lastChild);
+            }
+        }
+    </script>
+</body>
+</html>

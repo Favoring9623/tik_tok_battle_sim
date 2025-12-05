@@ -1,0 +1,95 @@
+{
+  "tournament_count": 2,
+  "creator": {
+    "team_name": "Creator",
+    "tournaments_played": 2,
+    "tournaments_won": 1,
+    "tournaments_lost": 1,
+    "total_battles": 4,
+    "battles_won": 2,
+    "battles_lost": 2,
+    "total_points_scored": 19360,
+    "total_points_spent": 0,
+    "rating": 1501.4695015289756,
+    "highest_rating": 1501.4695015289756,
+    "lowest_rating": 1484.0,
+    "win_streak": 1,
+    "longest_win_streak": 1,
+    "tournaments": [
+      {
+        "tournament_id": "T0001",
+        "date": "2025-11-23 20:29",
+        "format": "BEST_OF_3",
+        "winner": "opponent",
+        "final_score": "2-0",
+        "creator_wins": 0,
+        "opponent_wins": 2,
+        "total_battles": 2,
+        "average_score_per_battle": 8474.0,
+        "total_points_spent": 0,
+        "mvp_agent": "NovaWhale",
+        "mvp_contribution": 1800
+      },
+      {
+        "tournament_id": "T0002",
+        "date": "2025-11-23 20:30",
+        "format": "BEST_OF_3",
+        "winner": "creator",
+        "final_score": "2-0",
+        "creator_wins": 2,
+        "opponent_wins": 0,
+        "total_battles": 2,
+        "average_score_per_battle": 11437.5,
+        "total_points_spent": 0,
+        "mvp_agent": "NovaWhale",
+        "mvp_contribution": 5400
+      }
+    ]
+  },
+  "opponent": {
+    "team_name": "Opponent",
+    "tournaments_played": 2,
+    "tournaments_won": 1,
+    "tournaments_lost": 1,
+    "total_battles": 4,
+    "battles_won": 2,
+    "battles_lost": 2,
+    "total_points_scored": 20463,
+    "total_points_spent": 0,
+    "rating": 1498.5304984710244,
+    "highest_rating": 1516.0,
+    "lowest_rating": 1498.5304984710244,
+    "win_streak": 0,
+    "longest_win_streak": 1,
+    "tournaments": [
+      {
+        "tournament_id": "T0001",
+        "date": "2025-11-23 20:29",
+        "format": "BEST_OF_3",
+        "winner": "opponent",
+        "final_score": "2-0",
+        "creator_wins": 0,
+        "opponent_wins": 2,
+        "total_battles": 2,
+        "average_score_per_battle": 8474.0,
+        "total_points_spent": 0,
+        "mvp_agent": "NovaWhale",
+        "mvp_contribution": 1800
+      },
+      {
+        "tournament_id": "T0002",
+        "date": "2025-11-23 20:30",
+        "format": "BEST_OF_3",
+        "winner": "creator",
+        "final_score": "2-0",
+        "creator_wins": 2,
+        "opponent_wins": 0,
+        "total_battles": 2,
+        "average_score_per_battle": 11437.5,
+        "total_points_spent": 0,
+        "mvp_agent": "NovaWhale",
+        "mvp_contribution": 5400
+      }
+    ]
+  }
+}

@@ -1,0 +1,3355 @@
+{
+  "test_suite_run": "2025-11-30T20:28:28.737565",
+  "total_battles": 17,
+  "battles": [
+    {
+      "battle_id": "Full Squad (All 5 Agents)_battle_1",
+      "timestamp": "2025-11-30T20:27:40.550072",
+      "config": {
+        "scenario": "Full Squad (All 5 Agents)",
+        "agents": [
+          "NovaWhale",
+          "PixelPixie",
+          "GlitchMancer",
+          "ShadowPatron",
+          "Dramatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 1,
+        "winner": "creator",
+        "creator_score": 4728,
+        "opponent_score": 3345,
+        "margin": 1383,
+        "duration_seconds": 3.01,
+        "agent_contributions": {
+          "NovaWhale": 0,
+          "PixelPixie": 0,
+          "GlitchMancer": 0,
+          "ShadowPatron": 1200,
+          "Dramatron": 656
+        }
+      },
+      "statistics": {
+        "total_gifts": 12,
+        "total_messages": 16,
+        "emotion_changes": 54,
+        "total_events": 147
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 7,
+            "agent": "Dramatron",
+            "points": 56,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 10,
+            "agent": "Dramatron",
+            "points": 94,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 25,
+            "agent": "Dramatron",
+            "points": 61,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 28,
+            "agent": "Dramatron",
+            "points": 87,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 35,
+            "agent": "Dramatron",
+            "points": 88,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 46,
+            "agent": "Dramatron",
+            "points": 90,
+            "emotion": "CALM"
+          },
+          {
+            "time": 49,
+            "agent": "Dramatron",
+            "points": 55,
+            "emotion": "CALM"
+          },
+          {
+            "time": 51,
+            "agent": "Dramatron",
+            "points": 53,
+            "emotion": "CALM"
+          },
+          {
+            "time": 57,
+            "agent": "Dramatron",
+            "points": 72,
+            "emotion": "CALM"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552457.537685,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552457.5376914,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552457.5376964,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552457.5377004,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552457.5377038,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552457.738168,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552457.7381787,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552457.738184,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552457.738188,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552457.738192,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552457.8886642,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552457.8886728,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552457.8886793,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552457.8886843,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552457.8886898,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552457.9889884,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552457.9890037,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552457.9890134,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552457.9890218,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552457.9890306,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552458.0392878,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552458.0393012,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552458.0393221,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552458.0393305,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552458.0393384,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552458.490708,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552458.4907491,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552458.49076,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552458.4907644,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552458.490769,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552458.7917473,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552458.791759,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552458.791775,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552458.7917812,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552458.7917886,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552458.992473,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552458.99248,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552458.992485,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552458.992489,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552458.9924934,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552459.2934651,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552459.2934787,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552459.2934875,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552459.2934957,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552459.293503,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552459.4942205,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552459.4942276,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552459.4942334,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552459.4942372,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552459.5447998,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552459.544809,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552459.544817,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552459.5448236,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552459.5448308,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          }
+        ],
+        "dialogue": [
+          "Dramatron \u2192 ALL: ACT I: The curtain rises upon our tale!",
+          "Dramatron \u2192 ALL: Let it be known!",
+          "NovaWhale \u2192 ALL: Watching... \ud83c\udf0a",
+          "Dramatron \u2192 ALL: ACT II: The plot thickens!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: THE WINDS OF FATE SHIFT!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "ShadowPatron \u2192 ALL: You thought you'd won.",
+          "ShadowPatron \u2192 ALL: The shadows always prevail.",
+          "Dramatron \u2192 ALL: THE WINDS OF FATE SHIFT!",
+          "Dramatron \u2192 ALL: I bestow upon thee this gift!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: ACT III: The climax approaches!",
+          "Dramatron \u2192 ALL: I bestow upon thee this gift!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: FINAL ACT: The denouement is nigh!"
+        ]
+      }
+    },
+    {
+      "battle_id": "Full Squad (All 5 Agents)_battle_2",
+      "timestamp": "2025-11-30T20:27:43.565629",
+      "config": {
+        "scenario": "Full Squad (All 5 Agents)",
+        "agents": [
+          "NovaWhale",
+          "PixelPixie",
+          "GlitchMancer",
+          "ShadowPatron",
+          "Dramatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 2,
+        "winner": "opponent",
+        "creator_score": 4046,
+        "opponent_score": 5483,
+        "margin": 1437,
+        "duration_seconds": 3.02,
+        "agent_contributions": {
+          "NovaWhale": 1800,
+          "PixelPixie": 0,
+          "GlitchMancer": 0,
+          "ShadowPatron": 1200,
+          "Dramatron": 608
+        }
+      },
+      "statistics": {
+        "total_gifts": 12,
+        "total_messages": 17,
+        "emotion_changes": 47,
+        "total_events": 148
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 5,
+            "agent": "Dramatron",
+            "points": 69,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 12,
+            "agent": "Dramatron",
+            "points": 70,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 32,
+            "agent": "Dramatron",
+            "points": 58,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 35,
+            "agent": "Dramatron",
+            "points": 100,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 39,
+            "agent": "Dramatron",
+            "points": 61,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "Dramatron",
+            "points": 87,
+            "emotion": "CALM"
+          },
+          {
+            "time": 41,
+            "agent": "Dramatron",
+            "points": 78,
+            "emotion": "CALM"
+          },
+          {
+            "time": 45,
+            "agent": "NovaWhale",
+            "points": 1800,
+            "emotion": "CALM"
+          },
+          {
+            "time": 55,
+            "agent": "Dramatron",
+            "points": 85,
+            "emotion": "CALM"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552460.550427,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552460.5504336,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552460.550439,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552460.5504448,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552460.55045,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552460.7514422,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552460.7514856,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552460.751503,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552460.751518,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552460.751532,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552460.8019187,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552460.801944,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552460.8019607,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552460.802,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552460.8020167,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552461.002915,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552461.0029233,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552461.002929,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552461.002934,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552461.0029404,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552461.1535072,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552461.1535156,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552461.1535206,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552461.1535242,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552461.1535344,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552461.2539105,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552461.253922,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552461.2539291,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552461.2539353,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552461.253942,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552462.5093598,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552462.5596244,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552462.559651,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552462.5596685,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552462.5596843,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552462.6101267,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552462.8112051,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552463.0624924,
+            "agent": "NovaWhale",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552463.0625138,
+            "agent": "PixelPixie",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552463.0625284,
+            "agent": "GlitchMancer",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552463.0625412,
+            "agent": "ShadowPatron",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552463.0625548,
+            "agent": "Dramatron",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552463.2637484,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552463.263774,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552463.2637916,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552463.2638068,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552463.2638247,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          }
+        ],
+        "dialogue": [
+          "Dramatron \u2192 ALL: ACT I: The curtain rises upon our tale!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "NovaWhale \u2192 ALL: Watching... \ud83c\udf0a",
+          "Dramatron \u2192 ALL: ACT II: The plot thickens!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: I bestow upon thee this gift!",
+          "ShadowPatron \u2192 ALL: *steps from the shadows*",
+          "ShadowPatron \u2192 ALL: The shadows always prevail.",
+          "Dramatron \u2192 ALL: Observe mine generosity!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: THE WINDS OF FATE SHIFT!",
+          "NovaWhale \u2192 ALL: *emerges from the depths*",
+          "Dramatron \u2192 ALL: ACT III: The climax approaches!",
+          "Dramatron \u2192 ALL: The final moments! ALL HANDS TO BATTLE!",
+          "Dramatron \u2192 ALL: I bestow upon thee this gift!",
+          "Dramatron \u2192 ALL: FINAL ACT: The denouement is nigh!"
+        ]
+      }
+    },
+    {
+      "battle_id": "Full Squad (All 5 Agents)_battle_3",
+      "timestamp": "2025-11-30T20:27:46.581635",
+      "config": {
+        "scenario": "Full Squad (All 5 Agents)",
+        "agents": [
+          "NovaWhale",
+          "PixelPixie",
+          "GlitchMancer",
+          "ShadowPatron",
+          "Dramatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 3,
+        "winner": "creator",
+        "creator_score": 5956,
+        "opponent_score": 5611,
+        "margin": 345,
+        "duration_seconds": 3.02,
+        "agent_contributions": {
+          "NovaWhale": 1800,
+          "PixelPixie": 0,
+          "GlitchMancer": 0,
+          "ShadowPatron": 1600,
+          "Dramatron": 747
+        }
+      },
+      "statistics": {
+        "total_gifts": 16,
+        "total_messages": 21,
+        "emotion_changes": 43,
+        "total_events": 159
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 3,
+            "agent": "Dramatron",
+            "points": 73,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 4,
+            "agent": "Dramatron",
+            "points": 51,
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 8,
+            "agent": "Dramatron",
+            "points": 61,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 9,
+            "agent": "Dramatron",
+            "points": 55,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 11,
+            "agent": "Dramatron",
+            "points": 58,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 24,
+            "agent": "Dramatron",
+            "points": 77,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 26,
+            "agent": "Dramatron",
+            "points": 82,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "Dramatron",
+            "points": 50,
+            "emotion": "CALM"
+          },
+          {
+            "time": 44,
+            "agent": "Dramatron",
+            "points": 91,
+            "emotion": "CALM"
+          },
+          {
+            "time": 55,
+            "agent": "NovaWhale",
+            "points": 1800,
+            "emotion": "CALM"
+          },
+          {
+            "time": 57,
+            "agent": "Dramatron",
+            "points": 90,
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 60,
+            "agent": "Dramatron",
+            "points": 59,
+            "emotion": "ANXIOUS"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552463.5661113,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552463.566116,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552463.5661194,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552463.5661228,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552463.5661259,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552463.7169397,
+            "agent": "NovaWhale",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552463.716966,
+            "agent": "PixelPixie",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552463.7169816,
+            "agent": "GlitchMancer",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552463.7169976,
+            "agent": "ShadowPatron",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552463.7170124,
+            "agent": "Dramatron",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552463.767368,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552463.7673788,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552463.7673848,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552463.767452,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552463.7674572,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552464.2703578,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552464.2704043,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552464.2704225,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552464.2704384,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552464.2704546,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552464.3207393,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552464.8741436,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552464.8741643,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552464.8741794,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552464.8741915,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552464.874203,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552465.0249982,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552465.0250232,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552465.0250454,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552465.0250604,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552465.0250752,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552465.5274456,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552465.5776534,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552465.5776658,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552465.577674,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552465.5776803,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552465.5776887,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552466.0793982,
+            "agent": "NovaWhale",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552466.0794077,
+            "agent": "PixelPixie",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552466.0794137,
+            "agent": "GlitchMancer",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552466.0794268,
+            "agent": "ShadowPatron",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552466.2801354,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552466.3303788,
+            "agent": "NovaWhale",
+            "emotion": "ANXIOUS"
+          }
+        ],
+        "dialogue": [
+          "Dramatron \u2192 ALL: ACT I: The curtain rises upon our tale!",
+          "Dramatron \u2192 ALL: Let it be known!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: I bestow upon thee this gift!",
+          "Dramatron \u2192 ALL: THE WINDS OF FATE SHIFT!",
+          "Dramatron \u2192 ALL: ACT II: The plot thickens!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "ShadowPatron \u2192 ALL: *steps from the shadows*",
+          "ShadowPatron \u2192 ALL: The shadows always prevail.",
+          "Dramatron \u2192 ALL: THE WINDS OF FATE SHIFT!",
+          "Dramatron \u2192 ALL: I bestow upon thee this gift!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: ACT III: The climax approaches!",
+          "Dramatron \u2192 ALL: The final moments! ALL HANDS TO BATTLE!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: FINAL ACT: The denouement is nigh!",
+          "Dramatron \u2192 ALL: Let it be known!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: The final moments! ALL HANDS TO BATTLE!"
+        ]
+      }
+    },
+    {
+      "battle_id": "Full Squad (All 5 Agents)_battle_4",
+      "timestamp": "2025-11-30T20:27:49.594706",
+      "config": {
+        "scenario": "Full Squad (All 5 Agents)",
+        "agents": [
+          "NovaWhale",
+          "PixelPixie",
+          "GlitchMancer",
+          "ShadowPatron",
+          "Dramatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 4,
+        "winner": "creator",
+        "creator_score": 6055,
+        "opponent_score": 4132,
+        "margin": 1923,
+        "duration_seconds": 3.01,
+        "agent_contributions": {
+          "NovaWhale": 0,
+          "PixelPixie": 0,
+          "GlitchMancer": 0,
+          "ShadowPatron": 1600,
+          "Dramatron": 575
+        }
+      },
+      "statistics": {
+        "total_gifts": 11,
+        "total_messages": 17,
+        "emotion_changes": 23,
+        "total_events": 116
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 4,
+            "agent": "Dramatron",
+            "points": 70,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 29,
+            "agent": "Dramatron",
+            "points": 100,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 30,
+            "agent": "Dramatron",
+            "points": 91,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 39,
+            "agent": "Dramatron",
+            "points": 88,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 41,
+            "agent": "Dramatron",
+            "points": 61,
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 52,
+            "agent": "Dramatron",
+            "points": 97,
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 60,
+            "agent": "Dramatron",
+            "points": 68,
+            "emotion": "CALM"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552466.5818183,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552466.5818233,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552466.5818262,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552466.5818307,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552466.5818338,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552467.0334923,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552467.033505,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552467.0335138,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552467.0335205,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552467.0335274,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552467.0837455,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552468.5392962,
+            "agent": "Dramatron",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552468.5894673,
+            "agent": "NovaWhale",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552468.5894825,
+            "agent": "PixelPixie",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552468.5894933,
+            "agent": "GlitchMancer",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552468.5895061,
+            "agent": "ShadowPatron",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552468.5895119,
+            "agent": "Dramatron",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552469.0917408,
+            "agent": "Dramatron",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552469.2930207,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552469.2930458,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552469.2930622,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552469.293077,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552469.2930932,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          }
+        ],
+        "dialogue": [
+          "Dramatron \u2192 ALL: ACT I: The curtain rises upon our tale!",
+          "Dramatron \u2192 ALL: THE WINDS OF FATE SHIFT!",
+          "NovaWhale \u2192 ALL: Watching... \ud83c\udf0a",
+          "Dramatron \u2192 ALL: ACT II: The plot thickens!",
+          "Dramatron \u2192 ALL: Observe mine generosity!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "ShadowPatron \u2192 ALL: I've seen enough.",
+          "ShadowPatron \u2192 ALL: The shadows always prevail.",
+          "Dramatron \u2192 ALL: THE WINDS OF FATE SHIFT!",
+          "Dramatron \u2192 ALL: I bestow upon thee this gift!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: ACT III: The climax approaches!",
+          "Dramatron \u2192 ALL: Victory is within our grasp! \ud83c\udfad",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: FINAL ACT: The denouement is nigh!"
+        ]
+      }
+    },
+    {
+      "battle_id": "Full Squad (All 5 Agents)_battle_5",
+      "timestamp": "2025-11-30T20:27:52.610949",
+      "config": {
+        "scenario": "Full Squad (All 5 Agents)",
+        "agents": [
+          "NovaWhale",
+          "PixelPixie",
+          "GlitchMancer",
+          "ShadowPatron",
+          "Dramatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 5,
+        "winner": "creator",
+        "creator_score": 4823,
+        "opponent_score": 4284,
+        "margin": 539,
+        "duration_seconds": 3.02,
+        "agent_contributions": {
+          "NovaWhale": 0,
+          "PixelPixie": 0,
+          "GlitchMancer": 0,
+          "ShadowPatron": 1200,
+          "Dramatron": 687
+        }
+      },
+      "statistics": {
+        "total_gifts": 13,
+        "total_messages": 14,
+        "emotion_changes": 50,
+        "total_events": 143
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 3,
+            "agent": "Dramatron",
+            "points": 57,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 5,
+            "agent": "Dramatron",
+            "points": 66,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 19,
+            "agent": "Dramatron",
+            "points": 62,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 25,
+            "agent": "Dramatron",
+            "points": 67,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 31,
+            "agent": "Dramatron",
+            "points": 53,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 35,
+            "agent": "Dramatron",
+            "points": 86,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 44,
+            "agent": "Dramatron",
+            "points": 69,
+            "emotion": "CALM"
+          },
+          {
+            "time": 47,
+            "agent": "Dramatron",
+            "points": 86,
+            "emotion": "CALM"
+          },
+          {
+            "time": 50,
+            "agent": "Dramatron",
+            "points": 67,
+            "emotion": "CALM"
+          },
+          {
+            "time": 57,
+            "agent": "Dramatron",
+            "points": 74,
+            "emotion": "CALM"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552469.5952237,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552469.5952466,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552469.5952635,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552469.5952778,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552469.5952919,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552469.7461562,
+            "agent": "NovaWhale",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552469.7461808,
+            "agent": "PixelPixie",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552469.7461975,
+            "agent": "GlitchMancer",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552469.7462122,
+            "agent": "ShadowPatron",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552469.7462277,
+            "agent": "Dramatron",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552469.7964838,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552469.7965293,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552469.7965465,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552469.796561,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552469.7965755,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552469.8469806,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552469.847007,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552469.8470244,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552469.847039,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552469.847054,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552470.2992723,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552470.299297,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552470.299314,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552470.2993288,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552470.2993433,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552470.8527024,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552470.852711,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552470.852727,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552470.8527322,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552470.852738,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552471.0537875,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552471.0537932,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552471.0537977,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552471.0538013,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552471.0538056,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552471.3548822,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552471.3548923,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552471.3549006,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552471.354906,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552471.354912,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552471.5553932,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552471.5554042,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552471.5554123,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552471.5554183,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552471.6057987,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552471.6058116,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552471.6058204,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552471.6058285,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552471.6058354,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552472.108541,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          }
+        ],
+        "dialogue": [
+          "Dramatron \u2192 ALL: ACT I: The curtain rises upon our tale!",
+          "Dramatron \u2192 ALL: Let it be known!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: ACT II: The plot thickens!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "ShadowPatron \u2192 ALL: You thought you'd won.",
+          "ShadowPatron \u2192 ALL: The shadows always prevail.",
+          "Dramatron \u2192 ALL: THE WINDS OF FATE SHIFT!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: ACT III: The climax approaches!",
+          "Dramatron \u2192 ALL: Victory is within our grasp! \ud83c\udfad",
+          "Dramatron \u2192 ALL: FINAL ACT: The denouement is nigh!"
+        ]
+      }
+    },
+    {
+      "battle_id": "Budget Team (PixelPixie Only)_battle_1",
+      "timestamp": "2025-11-30T20:27:55.619128",
+      "config": {
+        "scenario": "Budget Team (PixelPixie Only)",
+        "agents": [
+          "PixelPixie",
+          "PixelPixie"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 1,
+        "winner": "opponent",
+        "creator_score": 0,
+        "opponent_score": 4766,
+        "margin": 4766,
+        "duration_seconds": 3.01,
+        "agent_contributions": {
+          "PixelPixie": 0
+        }
+      },
+      "statistics": {
+        "total_gifts": 0,
+        "total_messages": 0,
+        "emotion_changes": 4,
+        "total_events": 70
+      },
+      "timeline": {
+        "gifts": [],
+        "emotional_arc": [
+          {
+            "time": 1764552472.6112227,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552472.6112325,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552472.811738,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552472.8117466,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          }
+        ],
+        "dialogue": []
+      }
+    },
+    {
+      "battle_id": "Budget Team (PixelPixie Only)_battle_2",
+      "timestamp": "2025-11-30T20:27:58.626793",
+      "config": {
+        "scenario": "Budget Team (PixelPixie Only)",
+        "agents": [
+          "PixelPixie",
+          "PixelPixie"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 2,
+        "winner": "opponent",
+        "creator_score": 0,
+        "opponent_score": 4128,
+        "margin": 4128,
+        "duration_seconds": 3.01,
+        "agent_contributions": {
+          "PixelPixie": 0
+        }
+      },
+      "statistics": {
+        "total_gifts": 0,
+        "total_messages": 0,
+        "emotion_changes": 4,
+        "total_events": 69
+      },
+      "timeline": {
+        "gifts": [],
+        "emotional_arc": [
+          {
+            "time": 1764552475.6193464,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552475.619355,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552475.819835,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552475.8198407,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          }
+        ],
+        "dialogue": []
+      }
+    },
+    {
+      "battle_id": "Budget Team (PixelPixie Only)_battle_3",
+      "timestamp": "2025-11-30T20:28:01.634732",
+      "config": {
+        "scenario": "Budget Team (PixelPixie Only)",
+        "agents": [
+          "PixelPixie",
+          "PixelPixie"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 3,
+        "winner": "opponent",
+        "creator_score": 0,
+        "opponent_score": 4774,
+        "margin": 4774,
+        "duration_seconds": 3.01,
+        "agent_contributions": {
+          "PixelPixie": 0
+        }
+      },
+      "statistics": {
+        "total_gifts": 0,
+        "total_messages": 0,
+        "emotion_changes": 4,
+        "total_events": 69
+      },
+      "timeline": {
+        "gifts": [],
+        "emotional_arc": [
+          {
+            "time": 1764552478.626997,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552478.627005,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552478.8274336,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552478.8274407,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          }
+        ],
+        "dialogue": []
+      }
+    },
+    {
+      "battle_id": "Whale Team (NovaWhale + ShadowPatron)_battle_1",
+      "timestamp": "2025-11-30T20:28:04.643111",
+      "config": {
+        "scenario": "Whale Team (NovaWhale + ShadowPatron)",
+        "agents": [
+          "NovaWhale",
+          "ShadowPatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 1,
+        "winner": "opponent",
+        "creator_score": 3400,
+        "opponent_score": 4179,
+        "margin": 779,
+        "duration_seconds": 3.01,
+        "agent_contributions": {
+          "NovaWhale": 1800,
+          "ShadowPatron": 1600
+        }
+      },
+      "statistics": {
+        "total_gifts": 5,
+        "total_messages": 3,
+        "emotion_changes": 7,
+        "total_events": 82
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 45,
+            "agent": "NovaWhale",
+            "points": 1800,
+            "emotion": "CALM"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552481.6349263,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552481.6349328,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552481.8354352,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552481.8354425,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552483.640446,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552483.6404593,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552483.8911939,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          }
+        ],
+        "dialogue": [
+          "NovaWhale \u2192 ALL: Watching... \ud83c\udf0a",
+          "ShadowPatron \u2192 ALL: Enough.",
+          "ShadowPatron \u2192 ALL: The shadows always prevail."
+        ]
+      }
+    },
+    {
+      "battle_id": "Whale Team (NovaWhale + ShadowPatron)_battle_2",
+      "timestamp": "2025-11-30T20:28:07.650990",
+      "config": {
+        "scenario": "Whale Team (NovaWhale + ShadowPatron)",
+        "agents": [
+          "NovaWhale",
+          "ShadowPatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 2,
+        "winner": "creator",
+        "creator_score": 3200,
+        "opponent_score": 2199,
+        "margin": 1001,
+        "duration_seconds": 3.01,
+        "agent_contributions": {
+          "NovaWhale": 0,
+          "ShadowPatron": 1600
+        }
+      },
+      "statistics": {
+        "total_gifts": 4,
+        "total_messages": 3,
+        "emotion_changes": 6,
+        "total_events": 77
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552484.6432223,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552484.6432269,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552484.8436503,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552484.8436577,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552486.6484091,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552486.648415,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          }
+        ],
+        "dialogue": [
+          "NovaWhale \u2192 ALL: Watching... \ud83c\udf0a",
+          "ShadowPatron \u2192 ALL: Enough.",
+          "ShadowPatron \u2192 ALL: The shadows always prevail."
+        ]
+      }
+    },
+    {
+      "battle_id": "Whale Team (NovaWhale + ShadowPatron)_battle_3",
+      "timestamp": "2025-11-30T20:28:10.660026",
+      "config": {
+        "scenario": "Whale Team (NovaWhale + ShadowPatron)",
+        "agents": [
+          "NovaWhale",
+          "ShadowPatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 3,
+        "winner": "opponent",
+        "creator_score": 3400,
+        "opponent_score": 5094,
+        "margin": 1694,
+        "duration_seconds": 3.01,
+        "agent_contributions": {
+          "NovaWhale": 1800,
+          "ShadowPatron": 1600
+        }
+      },
+      "statistics": {
+        "total_gifts": 5,
+        "total_messages": 3,
+        "emotion_changes": 11,
+        "total_events": 91
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 45,
+            "agent": "NovaWhale",
+            "points": 1800,
+            "emotion": "CALM"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552487.6511025,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552487.6511064,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552487.8515518,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552487.851558,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552489.6565328,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552489.6565466,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552489.9072652,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552490.1579337,
+            "agent": "NovaWhale",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552490.157948,
+            "agent": "ShadowPatron",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552490.358576,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552490.3586013,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          }
+        ],
+        "dialogue": [
+          "NovaWhale \u2192 ALL: Watching... \ud83c\udf0a",
+          "ShadowPatron \u2192 ALL: You thought you'd won.",
+          "ShadowPatron \u2192 ALL: The shadows always prevail."
+        ]
+      }
+    },
+    {
+      "battle_id": "Chaos Squad (GlitchMancer + Dramatron)_battle_1",
+      "timestamp": "2025-11-30T20:28:13.676421",
+      "config": {
+        "scenario": "Chaos Squad (GlitchMancer + Dramatron)",
+        "agents": [
+          "GlitchMancer",
+          "Dramatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 1,
+        "winner": "opponent",
+        "creator_score": 2019,
+        "opponent_score": 2757,
+        "margin": 738,
+        "duration_seconds": 3.02,
+        "agent_contributions": {
+          "GlitchMancer": 0,
+          "Dramatron": 1323
+        }
+      },
+      "statistics": {
+        "total_gifts": 18,
+        "total_messages": 21,
+        "emotion_changes": 24,
+        "total_events": 135
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 6,
+            "agent": "Dramatron",
+            "points": 50,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 8,
+            "agent": "Dramatron",
+            "points": 87,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 11,
+            "agent": "Dramatron",
+            "points": 64,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 16,
+            "agent": "Dramatron",
+            "points": 75,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 17,
+            "agent": "Dramatron",
+            "points": 69,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 19,
+            "agent": "Dramatron",
+            "points": 78,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 21,
+            "agent": "Dramatron",
+            "points": 91,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 22,
+            "agent": "Dramatron",
+            "points": 77,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 27,
+            "agent": "Dramatron",
+            "points": 86,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 29,
+            "agent": "Dramatron",
+            "points": 75,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 31,
+            "agent": "Dramatron",
+            "points": 64,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 33,
+            "agent": "Dramatron",
+            "points": 81,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 44,
+            "agent": "Dramatron",
+            "points": 54,
+            "emotion": "CALM"
+          },
+          {
+            "time": 45,
+            "agent": "Dramatron",
+            "points": 98,
+            "emotion": "CALM"
+          },
+          {
+            "time": 48,
+            "agent": "Dramatron",
+            "points": 59,
+            "emotion": "CALM"
+          },
+          {
+            "time": 50,
+            "agent": "Dramatron",
+            "points": 68,
+            "emotion": "CALM"
+          },
+          {
+            "time": 59,
+            "agent": "Dramatron",
+            "points": 90,
+            "emotion": "CALM"
+          },
+          {
+            "time": 60,
+            "agent": "Dramatron",
+            "points": 57,
+            "emotion": "CALM"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552490.660579,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552490.6606,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552490.8618538,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552490.8618793,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552490.962473,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552490.9624963,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552491.063036,
+            "agent": "GlitchMancer",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552491.0630584,
+            "agent": "Dramatron",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552491.1132984,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552491.1133218,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552491.213989,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552491.3648138,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552491.364844,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552491.4655197,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552491.4655404,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552492.321429,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552492.321449,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552492.3717265,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552492.3717527,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552492.6230385,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552492.6230612,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552493.174916,
+            "agent": "GlitchMancer",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552493.3755774,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552493.3755894,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          }
+        ],
+        "dialogue": [
+          "Dramatron \u2192 ALL: ACT I: The curtain rises upon our tale!",
+          "Dramatron \u2192 ALL: Let it be known!",
+          "Dramatron \u2192 ALL: Observe mine generosity!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: Victory is within our grasp! \ud83c\udfad",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: ACT II: The plot thickens!",
+          "Dramatron \u2192 ALL: Let it be known!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: THE WINDS OF FATE SHIFT!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: I bestow upon thee this gift!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: ACT III: The climax approaches!",
+          "Dramatron \u2192 ALL: I bestow upon thee this gift!",
+          "Dramatron \u2192 ALL: The final moments! ALL HANDS TO BATTLE!",
+          "Dramatron \u2192 ALL: FINAL ACT: The denouement is nigh!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: Let it be known!"
+        ]
+      }
+    },
+    {
+      "battle_id": "Chaos Squad (GlitchMancer + Dramatron)_battle_2",
+      "timestamp": "2025-11-30T20:28:16.687344",
+      "config": {
+        "scenario": "Chaos Squad (GlitchMancer + Dramatron)",
+        "agents": [
+          "GlitchMancer",
+          "Dramatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 2,
+        "winner": "opponent",
+        "creator_score": 1635,
+        "opponent_score": 4596,
+        "margin": 2961,
+        "duration_seconds": 3.01,
+        "agent_contributions": {
+          "GlitchMancer": 0,
+          "Dramatron": 703
+        }
+      },
+      "statistics": {
+        "total_gifts": 9,
+        "total_messages": 13,
+        "emotion_changes": 18,
+        "total_events": 106
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 9,
+            "agent": "Dramatron",
+            "points": 92,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 20,
+            "agent": "Dramatron",
+            "points": 78,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 24,
+            "agent": "Dramatron",
+            "points": 91,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 28,
+            "agent": "Dramatron",
+            "points": 53,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 33,
+            "agent": "Dramatron",
+            "points": 51,
+            "emotion": "CALM"
+          },
+          {
+            "time": 34,
+            "agent": "Dramatron",
+            "points": 97,
+            "emotion": "CALM"
+          },
+          {
+            "time": 36,
+            "agent": "Dramatron",
+            "points": 96,
+            "emotion": "CALM"
+          },
+          {
+            "time": 39,
+            "agent": "Dramatron",
+            "points": 75,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 50,
+            "agent": "Dramatron",
+            "points": 70,
+            "emotion": "CALM"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552493.676616,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552493.6766243,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552493.877165,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552493.8771727,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552494.1278307,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552494.1278422,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552494.378643,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552494.3786535,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552494.8802347,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552494.8802447,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552495.1310658,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552495.1310718,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552495.482295,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552495.4823008,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552495.6327975,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552495.6328049,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552496.3859437,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552496.385967,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          }
+        ],
+        "dialogue": [
+          "Dramatron \u2192 ALL: ACT I: The curtain rises upon our tale!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: ACT II: The plot thickens!",
+          "Dramatron \u2192 ALL: I bestow upon thee this gift!",
+          "Dramatron \u2192 ALL: Observe mine generosity!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: Let it be known!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: ACT III: The climax approaches!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: FINAL ACT: The denouement is nigh!"
+        ]
+      }
+    },
+    {
+      "battle_id": "Chaos Squad (GlitchMancer + Dramatron)_battle_3",
+      "timestamp": "2025-11-30T20:28:19.700073",
+      "config": {
+        "scenario": "Chaos Squad (GlitchMancer + Dramatron)",
+        "agents": [
+          "GlitchMancer",
+          "Dramatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 3,
+        "winner": "opponent",
+        "creator_score": 1165,
+        "opponent_score": 3006,
+        "margin": 1841,
+        "duration_seconds": 3.01,
+        "agent_contributions": {
+          "GlitchMancer": 0,
+          "Dramatron": 791
+        }
+      },
+      "statistics": {
+        "total_gifts": 10,
+        "total_messages": 13,
+        "emotion_changes": 12,
+        "total_events": 104
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 3,
+            "agent": "Dramatron",
+            "points": 90,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 8,
+            "agent": "Dramatron",
+            "points": 73,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 13,
+            "agent": "Dramatron",
+            "points": 97,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 21,
+            "agent": "Dramatron",
+            "points": 100,
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 30,
+            "agent": "Dramatron",
+            "points": 87,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 45,
+            "agent": "Dramatron",
+            "points": 88,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 51,
+            "agent": "Dramatron",
+            "points": 63,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 56,
+            "agent": "Dramatron",
+            "points": 80,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 58,
+            "agent": "Dramatron",
+            "points": 51,
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 60,
+            "agent": "Dramatron",
+            "points": 62,
+            "emotion": "FRUSTRATED"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552496.6876383,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552496.6876485,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552496.8384585,
+            "agent": "GlitchMancer",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552496.838481,
+            "agent": "Dramatron",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552496.888657,
+            "agent": "GlitchMancer",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552496.888667,
+            "agent": "Dramatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552498.1442633,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552498.1442742,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552498.1945183,
+            "agent": "GlitchMancer",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552498.19453,
+            "agent": "Dramatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552498.8969915,
+            "agent": "GlitchMancer",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552498.8970056,
+            "agent": "Dramatron",
+            "emotion": "FRUSTRATED"
+          }
+        ],
+        "dialogue": [
+          "Dramatron \u2192 ALL: ACT I: The curtain rises upon our tale!",
+          "Dramatron \u2192 ALL: THE WINDS OF FATE SHIFT!",
+          "Dramatron \u2192 ALL: Let it be known!",
+          "Dramatron \u2192 ALL: ACT II: The plot thickens!",
+          "Dramatron \u2192 ALL: Observe mine generosity!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: THE WINDS OF FATE SHIFT!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: ACT III: The climax approaches!",
+          "Dramatron \u2192 ALL: Observe mine generosity!",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: *flourishes cape dramatically*",
+          "Dramatron \u2192 ALL: FINAL ACT: The denouement is nigh!"
+        ]
+      }
+    },
+    {
+      "battle_id": "Strategic Team (NovaWhale + PixelPixie + ShadowPatron)_battle_1",
+      "timestamp": "2025-11-30T20:28:22.710099",
+      "config": {
+        "scenario": "Strategic Team (NovaWhale + PixelPixie + ShadowPatron)",
+        "agents": [
+          "NovaWhale",
+          "PixelPixie",
+          "ShadowPatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 1,
+        "winner": "opponent",
+        "creator_score": 3400,
+        "opponent_score": 4814,
+        "margin": 1414,
+        "duration_seconds": 3.01,
+        "agent_contributions": {
+          "NovaWhale": 1800,
+          "PixelPixie": 0,
+          "ShadowPatron": 1600
+        }
+      },
+      "statistics": {
+        "total_gifts": 5,
+        "total_messages": 2,
+        "emotion_changes": 16,
+        "total_events": 96
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 45,
+            "agent": "NovaWhale",
+            "points": 1800,
+            "emotion": "CALM"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552499.7002509,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552499.7002563,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552499.7002602,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552499.9009182,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552499.9009302,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552499.9009376,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552501.7068706,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552501.7068822,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552501.7068903,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552501.9577327,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552502.2085998,
+            "agent": "NovaWhale",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552502.2086134,
+            "agent": "PixelPixie",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552502.208625,
+            "agent": "ShadowPatron",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552502.4092457,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552502.4092534,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552502.40926,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          }
+        ],
+        "dialogue": [
+          "ShadowPatron \u2192 ALL: *steps from the shadows*",
+          "ShadowPatron \u2192 ALL: The shadows always prevail."
+        ]
+      }
+    },
+    {
+      "battle_id": "Strategic Team (NovaWhale + PixelPixie + ShadowPatron)_battle_2",
+      "timestamp": "2025-11-30T20:28:25.722280",
+      "config": {
+        "scenario": "Strategic Team (NovaWhale + PixelPixie + ShadowPatron)",
+        "agents": [
+          "NovaWhale",
+          "PixelPixie",
+          "ShadowPatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 2,
+        "winner": "creator",
+        "creator_score": 3400,
+        "opponent_score": 2782,
+        "margin": 618,
+        "duration_seconds": 3.01,
+        "agent_contributions": {
+          "NovaWhale": 1800,
+          "PixelPixie": 0,
+          "ShadowPatron": 1600
+        }
+      },
+      "statistics": {
+        "total_gifts": 5,
+        "total_messages": 2,
+        "emotion_changes": 16,
+        "total_events": 93
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 55,
+            "agent": "NovaWhale",
+            "points": 1800,
+            "emotion": "CALM"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552502.7103136,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552502.710323,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552502.7103293,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552502.910962,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552502.910974,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552502.9109824,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552504.717921,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552504.7179382,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552504.717962,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552505.219976,
+            "agent": "NovaWhale",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552505.2200012,
+            "agent": "PixelPixie",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552505.2200174,
+            "agent": "ShadowPatron",
+            "emotion": "ANXIOUS"
+          },
+          {
+            "time": 1764552505.420841,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552505.420898,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552505.4209042,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552505.471118,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          }
+        ],
+        "dialogue": [
+          "ShadowPatron \u2192 ALL: Not on my watch.",
+          "ShadowPatron \u2192 ALL: The shadows always prevail."
+        ]
+      }
+    },
+    {
+      "battle_id": "Strategic Team (NovaWhale + PixelPixie + ShadowPatron)_battle_3",
+      "timestamp": "2025-11-30T20:28:28.736966",
+      "config": {
+        "scenario": "Strategic Team (NovaWhale + PixelPixie + ShadowPatron)",
+        "agents": [
+          "NovaWhale",
+          "PixelPixie",
+          "ShadowPatron"
+        ],
+        "tick_speed": 0.05
+      },
+      "results": {
+        "battle_number": 3,
+        "winner": "creator",
+        "creator_score": 4800,
+        "opponent_score": 3277,
+        "margin": 1523,
+        "duration_seconds": 3.01,
+        "agent_contributions": {
+          "NovaWhale": 0,
+          "PixelPixie": 0,
+          "ShadowPatron": 1600
+        }
+      },
+      "statistics": {
+        "total_gifts": 4,
+        "total_messages": 2,
+        "emotion_changes": 12,
+        "total_events": 84
+      },
+      "timeline": {
+        "gifts": [
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          },
+          {
+            "time": 40,
+            "agent": "ShadowPatron",
+            "points": 400,
+            "emotion": "VENGEFUL"
+          }
+        ],
+        "emotional_arc": [
+          {
+            "time": 1764552505.7227437,
+            "agent": "NovaWhale",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552505.7227645,
+            "agent": "PixelPixie",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552505.7227824,
+            "agent": "ShadowPatron",
+            "emotion": "EXCITED"
+          },
+          {
+            "time": 1764552505.923664,
+            "agent": "NovaWhale",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552505.92369,
+            "agent": "PixelPixie",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552505.9237297,
+            "agent": "ShadowPatron",
+            "emotion": "FRUSTRATED"
+          },
+          {
+            "time": 1764552507.7325382,
+            "agent": "NovaWhale",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552507.7325625,
+            "agent": "PixelPixie",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552507.7325788,
+            "agent": "ShadowPatron",
+            "emotion": "CONFIDENT"
+          },
+          {
+            "time": 1764552507.9335208,
+            "agent": "NovaWhale",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552507.933545,
+            "agent": "PixelPixie",
+            "emotion": "CALM"
+          },
+          {
+            "time": 1764552507.9335625,
+            "agent": "ShadowPatron",
+            "emotion": "CALM"
+          }
+        ],
+        "dialogue": [
+          "ShadowPatron \u2192 ALL: Enough.",
+          "ShadowPatron \u2192 ALL: The shadows always prevail."
+        ]
+      }
+    }
+  ]
+}

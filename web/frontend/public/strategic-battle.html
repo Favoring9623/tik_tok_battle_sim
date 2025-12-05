@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategic Battle Dashboard</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient 3s ease infinite;
+            background-size: 300%;
+        }
+
+        @keyframes gradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .status-waiting { background: #636e72; }
+        .status-live { background: #e74c3c; animation: pulse 1s infinite; }
+        .status-complete { background: #27ae60; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+        }
+
+        /* Panels */
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Phase Display */
+        .phase-display {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .phase-name {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .multiplier {
+            font-size: 3em;
+            font-weight: bold;
+            color: #feca57;
+            text-shadow: 0 0 20px rgba(254, 202, 87, 0.5);
+        }
+
+        .multiplier.x1 { color: #95a5a6; text-shadow: none; }
+        .multiplier.x2 { color: #3498db; text-shadow: 0 0 20px rgba(52, 152, 219, 0.5); }
+        .multiplier.x3 { color: #9b59b6; text-shadow: 0 0 20px rgba(155, 89, 182, 0.5); }
+        .multiplier.x5 { color: #e74c3c; text-shadow: 0 0 30px rgba(231, 76, 60, 0.8); animation: glow 0.5s infinite; }
+
+        @keyframes glow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .phase-timer {
+            font-size: 1.2em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 10px;
+        }
+
+        /* Score Display */
+        .score-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .team {
+            text-align: center;
+            flex: 1;
+        }
+
+        .team-name {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+
+        .team-score {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .creator-score { color: #2ecc71; }
+        .opponent-score { color: #e74c3c; }
+
+        .vs {
+            font-size: 1.5em;
+            opacity: 0.5;
+            padding: 0 20px;
+        }
+
+        .score-hidden {
+            filter: blur(10px);
+            color: #95a5a6 !important;
+        }
+
+        /* Timeline */
+        .timeline {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #3498db, #9b59b6, #e74c3c);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .timeline-markers {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            opacity: 0.6;
+            margin-top: 5px;
+        }
+
+        /* Agent Cards */
+        .agent-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .agent-card.active {
+            background: rgba(46, 204, 113, 0.2);
+            border-left: 3px solid #2ecc71;
+        }
+
+        .agent-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .agent-emoji {
+            font-size: 1.5em;
+        }
+
+        .agent-name {
+            font-weight: bold;
+        }
+
+        .agent-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            font-size: 0.85em;
+            opacity: 0.8;
+        }
+
+        .agent-evolution {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .evolution-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .evolution-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c, #feca57, #2ecc71);
+            transition: width 0.5s ease;
+        }
+
+        /* GPT Commentary */
+        .gpt-panel {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .gpt-message {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 3px solid #9b59b6;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .gpt-message .timestamp {
+            font-size: 0.75em;
+            opacity: 0.6;
+            margin-bottom: 5px;
+        }
+
+        /* Power-ups */
+        .powerup-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .powerup {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .powerup.available {
+            border: 2px solid #2ecc71;
+        }
+
+        .powerup.used {
+            opacity: 0.4;
+            text-decoration: line-through;
+        }
+
+        .powerup.active {
+            background: rgba(231, 76, 60, 0.3);
+            border: 2px solid #e74c3c;
+            animation: pulse 0.5s infinite;
+        }
+
+        .powerup-icon {
+            font-size: 1.5em;
+        }
+
+        /* Event Feed */
+        .event-feed {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .event {
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            animation: slideIn 0.2s ease;
+        }
+
+        .event-gift { background: rgba(46, 204, 113, 0.2); }
+        .event-phase { background: rgba(155, 89, 182, 0.2); }
+        .event-powerup { background: rgba(231, 76, 60, 0.2); }
+        .event-glove { background: rgba(241, 196, 15, 0.2); }
+
+        /* Boost Conditions */
+        .boost-conditions {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .condition {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .condition-progress {
+            width: 100px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .condition-fill {
+            height: 100%;
+            background: #2ecc71;
+            transition: width 0.3s ease;
+        }
+
+        .condition.met .condition-fill {
+            background: #f1c40f;
+        }
+
+        /* Rewards Preview */
+        .reward-preview {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .reward-tier {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+
+        .reward-tier.legend { background: linear-gradient(135deg, #f1c40f, #e67e22); }
+        .reward-tier.mvp { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+
+        /* Fog Effect */
+        .fog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .fog-overlay.active {
+            display: flex;
+        }
+
+        .fog-message {
+            font-size: 3em;
+            text-align: center;
+            animation: float 2s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* Gift Animation Overlay */
+        .gift-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 90;
+            pointer-events: none;
+        }
+
+        .gift-overlay.active {
+            display: flex;
+            animation: giftFadeIn 0.3s ease-out;
+        }
+
+        .gift-content {
+            text-align: center;
+            animation: giftPop 0.8s ease-out forwards;
+        }
+
+        .gift-emoji {
+            font-size: 5em;
+            display: block;
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
+        }
+
+        .gift-name {
+            font-size: 1.5em;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            margin-top: 10px;
+        }
+
+        .gift-points {
+            font-size: 2em;
+            color: #f1c40f;
+            font-weight: bold;
+            text-shadow: 0 0 15px rgba(241, 196, 15, 0.8);
+        }
+
+        @keyframes giftPop {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            70% { transform: scale(0.95); }
+            100% { transform: scale(1) translateY(-30px); opacity: 0; }
+        }
+
+        @keyframes giftFadeIn {
+            from { background: transparent; }
+            to { background: rgba(0, 0, 0, 0.3); }
+        }
+
+        /* Glove x5 Activation Effect */
+        .glove-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 95;
+            pointer-events: none;
+        }
+
+        .glove-overlay.active {
+            display: flex;
+            background: radial-gradient(circle, rgba(231, 76, 60, 0.4) 0%, transparent 70%);
+            animation: gloveFlash 1s ease-out;
+        }
+
+        .glove-content {
+            text-align: center;
+            animation: glovePunch 0.6s ease-out;
+        }
+
+        .glove-emoji {
+            font-size: 8em;
+            display: block;
+            filter: drop-shadow(0 0 30px rgba(231, 76, 60, 0.9));
+        }
+
+        .glove-text {
+            font-size: 2.5em;
+            color: #e74c3c;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+        }
+
+        .glove-x5 {
+            font-size: 4em;
+            color: #f39c12;
+            font-weight: bold;
+            animation: x5Pulse 0.5s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(243, 156, 18, 1);
+        }
+
+        @keyframes glovePunch {
+            0% { transform: scale(0.5) rotate(-20deg); opacity: 0; }
+            30% { transform: scale(1.3) rotate(10deg); opacity: 1; }
+            60% { transform: scale(1) rotate(-5deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        @keyframes gloveFlash {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @keyframes x5Pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* Hammer Effect */
+        .hammer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 95;
+            pointer-events: none;
+        }
+
+        .hammer-overlay.active {
+            display: flex;
+            animation: hammerShake 0.5s ease-out;
+        }
+
+        .hammer-content {
+            text-align: center;
+            animation: hammerSmash 0.6s ease-out;
+        }
+
+        .hammer-emoji {
+            font-size: 7em;
+            display: block;
+            filter: drop-shadow(0 0 25px rgba(155, 89, 182, 0.9));
+        }
+
+        .hammer-text {
+            font-size: 2em;
+            color: #9b59b6;
+            font-weight: bold;
+            text-shadow: 0 0 15px rgba(155, 89, 182, 0.8);
+        }
+
+        @keyframes hammerSmash {
+            0% { transform: translateY(-100px) rotate(-45deg); opacity: 0; }
+            60% { transform: translateY(10px) rotate(10deg); opacity: 1; }
+            80% { transform: translateY(-5px) rotate(-5deg); }
+            100% { transform: translateY(0) rotate(0deg); }
+        }
+
+        @keyframes hammerShake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
+        }
+
+        /* Time Bonus Effect */
+        .time-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 95;
+            pointer-events: none;
+        }
+
+        .time-overlay.active {
+            display: flex;
+            background: radial-gradient(circle, rgba(46, 204, 113, 0.3) 0%, transparent 70%);
+            animation: timeGlow 1.2s ease-out;
+        }
+
+        .time-content {
+            text-align: center;
+            animation: timeSpin 1s ease-out;
+        }
+
+        .time-emoji {
+            font-size: 6em;
+            display: block;
+            filter: drop-shadow(0 0 25px rgba(46, 204, 113, 0.9));
+        }
+
+        .time-text {
+            font-size: 2.5em;
+            color: #2ecc71;
+            font-weight: bold;
+            text-shadow: 0 0 15px rgba(46, 204, 113, 0.8);
+        }
+
+        @keyframes timeSpin {
+            0% { transform: scale(0.5) rotate(-180deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(20deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        @keyframes timeGlow {
+            0% { opacity: 0; }
+            30% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* Whale Gift Special Effect */
+        .whale-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 95;
+            pointer-events: none;
+        }
+
+        .whale-overlay.active {
+            display: flex;
+            background: radial-gradient(circle, rgba(52, 152, 219, 0.4) 0%, rgba(155, 89, 182, 0.2) 50%, transparent 70%);
+            animation: whaleGlow 1.5s ease-out;
+        }
+
+        .whale-content {
+            text-align: center;
+            animation: whaleRise 1.2s ease-out;
+        }
+
+        .whale-emoji {
+            font-size: 7em;
+            display: block;
+            filter: drop-shadow(0 0 40px rgba(52, 152, 219, 1));
+        }
+
+        .whale-name {
+            font-size: 2em;
+            color: #3498db;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(52, 152, 219, 0.9);
+        }
+
+        .whale-points {
+            font-size: 3em;
+            color: #f1c40f;
+            font-weight: bold;
+            text-shadow: 0 0 25px rgba(241, 196, 15, 1);
+            animation: pointsBounce 0.5s ease-in-out infinite;
+        }
+
+        @keyframes whaleRise {
+            0% { transform: translateY(100px) scale(0.5); opacity: 0; }
+            50% { transform: translateY(-20px) scale(1.1); opacity: 1; }
+            70% { transform: translateY(10px) scale(0.95); }
+            100% { transform: translateY(0) scale(1); }
+        }
+
+        @keyframes whaleGlow {
+            0% { opacity: 0; }
+            30% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @keyframes pointsBounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* Budget Display */
+        .budget-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            gap: 30px;
+        }
+
+        .budget-team {
+            flex: 1;
+            text-align: center;
+        }
+
+        .budget-label {
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 5px;
+        }
+
+        .budget-amount {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .budget-amount.creator { color: #2ecc71; }
+        .budget-amount.opponent { color: #e74c3c; }
+
+        .budget-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .budget-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease, background-color 0.5s ease;
+        }
+
+        .budget-fill.creator {
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+        }
+
+        .budget-fill.opponent {
+            background: linear-gradient(90deg, #c0392b, #e74c3c);
+        }
+
+        .budget-fill.critical {
+            background: linear-gradient(90deg, #c0392b, #e74c3c) !important;
+            animation: budgetPulse 1s infinite;
+        }
+
+        .budget-fill.low {
+            background: linear-gradient(90deg, #d35400, #f39c12) !important;
+        }
+
+        @keyframes budgetPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .budget-tier {
+            font-size: 0.7em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-top: 5px;
+            display: inline-block;
+        }
+
+        .budget-tier.ABUNDANT { background: rgba(46, 204, 113, 0.3); color: #2ecc71; }
+        .budget-tier.HEALTHY { background: rgba(52, 152, 219, 0.3); color: #3498db; }
+        .budget-tier.MEDIUM { background: rgba(241, 196, 15, 0.3); color: #f1c40f; }
+        .budget-tier.LOW { background: rgba(230, 126, 34, 0.3); color: #e67e22; }
+        .budget-tier.CRITICAL { background: rgba(231, 76, 60, 0.3); color: #e74c3c; animation: budgetPulse 1s infinite; }
+
+        .budget-vs {
+            font-size: 1em;
+            opacity: 0.4;
+            padding: 0 10px;
+        }
+
+        .budget-starting {
+            font-size: 0.7em;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 3px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Strategic Battle Dashboard</h1>
+            <div class="status-badge status-waiting" id="statusBadge">
+                Waiting for Battle...
+            </div>
+        </div>
+
+        <!-- Phase Display -->
+        <div class="phase-display" id="phaseDisplay">
+            <div class="phase-name" id="phaseName">Phase 1 - Warmup</div>
+            <div class="multiplier x1" id="multiplier">x1</div>
+            <div class="phase-timer" id="phaseTimer">300s remaining</div>
+        </div>
+
+        <!-- Score Display -->
+        <div class="score-container">
+            <div class="team">
+                <div class="team-name">CREATOR</div>
+                <div class="team-score creator-score" id="creatorScore">0</div>
+            </div>
+            <div class="vs">VS</div>
+            <div class="team">
+                <div class="team-name">OPPONENT</div>
+                <div class="team-score opponent-score" id="opponentScore">0</div>
+            </div>
+        </div>
+
+        <!-- Budget Display -->
+        <div class="budget-container">
+            <div class="budget-team">
+                <div class="budget-label">💰 CREATOR BUDGET</div>
+                <div class="budget-amount creator" id="creatorBudget">0</div>
+                <div class="budget-bar">
+                    <div class="budget-fill creator" id="creatorBudgetFill" style="width: 100%"></div>
+                </div>
+                <div class="budget-tier ABUNDANT" id="creatorBudgetTier">ABUNDANT</div>
+                <div class="budget-starting" id="creatorBudgetStarting">Started: 0</div>
+            </div>
+            <div class="budget-vs">💰</div>
+            <div class="budget-team">
+                <div class="budget-label">💰 OPPONENT BUDGET</div>
+                <div class="budget-amount opponent" id="opponentBudget">0</div>
+                <div class="budget-bar">
+                    <div class="budget-fill opponent" id="opponentBudgetFill" style="width: 100%"></div>
+                </div>
+                <div class="budget-tier ABUNDANT" id="opponentBudgetTier">ABUNDANT</div>
+                <div class="budget-starting" id="opponentBudgetStarting">Started: 0</div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline">
+            <div class="timeline-progress" id="timelineProgress" style="width: 0%"></div>
+        </div>
+        <div class="timeline-markers">
+            <span>0s</span>
+            <span>10-30s (Boost #1?)</span>
+            <span style="color: #9b59b6;">🔮 The Enigma 🔮</span>
+            <span>270s (Final 30s)</span>
+            <span>300s</span>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Left Panel: Agents -->
+            <div class="panel">
+                <div class="panel-title">🤖 Strategic Agents</div>
+                <div id="agentsList">
+                    <!-- Agent cards populated by JS -->
+                </div>
+
+                <!-- Boost #1 Status -->
+                <div class="boost-conditions" id="boost1Panel">
+                    <div class="panel-title" style="font-size: 1em; margin-bottom: 10px;">
+                        🎲 Boost #1 <span id="boost1Status" style="font-size: 0.8em; color: #888;">(10s-30s window)</span>
+                    </div>
+                    <div id="boost1Info" style="text-align: center; font-size: 0.9em; color: #888;">
+                        Random - may or may not trigger
+                    </div>
+                </div>
+
+                <!-- Boost #2 Status - ENIGMA MODE -->
+                <div class="boost-conditions" id="boost2Panel" style="margin-top: 10px;">
+                    <div class="panel-title" style="font-size: 1em; margin-bottom: 10px;">
+                        🔮 <span id="boost2Title">The Enigma</span> <span id="boost2WindowStatus" style="font-size: 0.8em; color: #9b59b6;">???</span>
+                    </div>
+                    <!-- Enigma mystery message (shown before reveal) -->
+                    <div id="boost2EnigmaMessage" style="text-align: center; font-size: 0.9em; color: #9b59b6; font-style: italic;">
+                        <div>✨ Will it manifest? ✨</div>
+                        <div style="font-size: 0.8em; margin-top: 5px;">Something stirs in the void...</div>
+                    </div>
+                    <div id="boost2ThresholdInfo" style="display: none;">
+                        <div style="text-align: center; margin-bottom: 10px; font-size: 1.1em;">
+                            Target: <span id="boost2Threshold" style="color: #f1c40f; font-weight: bold;">???</span> coins
+                        </div>
+                        <div class="condition" id="creatorCondition">
+                            <span>👤 Creator: <span id="creatorPoints">0</span></span>
+                            <div class="condition-progress">
+                                <div class="condition-fill" id="creatorFill" style="width: 0%; background: linear-gradient(90deg, #3498db, #2ecc71);"></div>
+                            </div>
+                        </div>
+                        <div class="condition" id="opponentCondition">
+                            <span>👻 Opponent: <span id="opponentPoints">0</span></span>
+                            <div class="condition-progress">
+                                <div class="condition-fill" id="opponentFill" style="width: 0%; background: linear-gradient(90deg, #e74c3c, #f39c12);"></div>
+                            </div>
+                        </div>
+                        <div id="boost2Results" style="display: none; margin-top: 10px; font-size: 0.9em;">
+                            <div id="creatorResult" style="padding: 5px; margin-bottom: 5px; border-radius: 5px; display: none;">
+                                <span id="creatorResultText">-</span>
+                            </div>
+                            <div id="opponentResult" style="padding: 5px; border-radius: 5px; display: none;">
+                                <span id="opponentResultText">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="boost2NoTrigger" style="text-align: center; font-size: 0.9em; color: #888;">
+                        Random - may or may not trigger
+                    </div>
+                </div>
+
+                <!-- Final 30s Zone -->
+                <div class="boost-conditions" id="final30sPanel" style="margin-top: 10px; display: none; background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c;">
+                    <div class="panel-title" style="font-size: 1em; color: #e74c3c;">
+                        🥊🌫️ FINAL 30 SECONDS
+                    </div>
+                    <div style="font-size: 0.85em; color: #e74c3c;">
+                        Gloves can trigger x5! Fog hides activation!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Panel: GPT Commentary & Events -->
+            <div class="panel">
+                <div class="panel-title">🤖 GPT-4 Commentary</div>
+                <div class="gpt-panel" id="gptPanel">
+                    <div class="gpt-message">
+                        <div class="timestamp">Waiting...</div>
+                        <div>GPT commentary will appear here when the battle starts.</div>
+                    </div>
+                </div>
+
+                <div class="panel-title" style="margin-top: 20px;">📢 Live Events</div>
+                <div class="event-feed" id="eventFeed">
+                    <!-- Events populated by JS -->
+                </div>
+            </div>
+
+            <!-- Right Panel: Power-ups & Stats -->
+            <div class="panel">
+                <div class="panel-title">🧰 Power-ups</div>
+                <div class="powerup-container" id="powerupContainer">
+                    <div class="powerup available" id="powerupGlove1">
+                        <span class="powerup-icon">🥊</span>
+                        <span>Glove 1</span>
+                    </div>
+                    <div class="powerup available" id="powerupGlove2">
+                        <span class="powerup-icon">🥊</span>
+                        <span>Glove 2</span>
+                    </div>
+                    <div class="powerup available" id="powerupHammer">
+                        <span class="powerup-icon">🔨</span>
+                        <span>Hammer</span>
+                    </div>
+                    <div class="powerup available" id="powerupFog">
+                        <span class="powerup-icon">🌫️</span>
+                        <span>Fog</span>
+                    </div>
+                    <div class="powerup available" id="powerupTime">
+                        <span class="powerup-icon">⏱️</span>
+                        <span>+25s</span>
+                    </div>
+                </div>
+
+                <div class="panel-title" style="margin-top: 20px;">🥊 Glove Stats</div>
+                <div id="gloveStats">
+                    <div class="agent-stats">
+                        <div>Sent: <span id="glovesSent">0</span></div>
+                        <div>Activated: <span id="glovesActivated">0</span></div>
+                        <div>Success Rate: <span id="gloveRate">0%</span></div>
+                    </div>
+                    <!-- Detailed stats by condition -->
+                    <div id="gloveDetailedStats" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <div style="font-size: 0.85em; color: #888; margin-bottom: 5px;">By Condition:</div>
+                        <div style="font-size: 0.8em;">
+                            <div style="display: flex; justify-content: space-between; margin: 3px 0;">
+                                <span>🚀 During Boost:</span>
+                                <span id="gloveBoostStats">0/0 (0%)</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin: 3px 0;">
+                                <span>⏱️ Final 30s:</span>
+                                <span id="gloveFinal30Stats">0/0 (0%)</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin: 3px 0;">
+                                <span>📊 Normal Phase:</span>
+                                <span id="gloveNormalStats">0/0 (0%)</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin: 3px 0;">
+                                <span>✨ With Bonuses:</span>
+                                <span id="gloveBonusStats">0/0 (0%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Glove Status Panel -->
+                <div id="activeGlovePanel" style="display: none; margin-top: 15px; background: rgba(231, 76, 60, 0.2); border: 2px solid #e74c3c; border-radius: 10px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: bold; color: #e74c3c;">🥊 x5 ACTIVE</span>
+                        <span id="gloveOwner" style="font-size: 0.9em; background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 10px;">CREATOR</span>
+                    </div>
+                    <div id="gloveCountdown" style="text-align: center; margin: 10px 0;">
+                        <span style="font-size: 2em; font-weight: bold; color: #f1c40f;" id="gloveTimeLeft">30</span>
+                        <span style="color: #888;">seconds</span>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <div style="font-size: 0.85em; color: #888; margin-bottom: 5px;">Activation Bonuses:</div>
+                        <div id="gloveBonusList" style="font-size: 0.8em;">
+                            <!-- Bonuses populated by JS -->
+                        </div>
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <span style="font-size: 0.8em; color: #888;">Base: <span id="gloveBaseChance">40%</span></span>
+                            <span style="font-size: 0.8em; color: #2ecc71; margin-left: 10px;">Final: <span id="gloveFinalChance">55%</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-title" style="margin-top: 20px;">🏆 Rewards Preview</div>
+                <div class="reward-preview">
+                    <div class="reward-tier legend">💎 Legend: 1000+</div>
+                    <div class="reward-tier mvp">⭐ MVP: 500+</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fog Overlay -->
+    <div class="fog-overlay" id="fogOverlay">
+        <div class="fog-message">
+            🌫️<br>
+            SCORES HIDDEN<br>
+            <span style="font-size: 0.5em">Fog active...</span>
+        </div>
+    </div>
+
+    <!-- Gift Animation Overlay -->
+    <div class="gift-overlay" id="giftOverlay">
+        <div class="gift-content">
+            <span class="gift-emoji" id="giftEmoji">🎁</span>
+            <div class="gift-name" id="giftName">Gift</div>
+            <div class="gift-points" id="giftPoints">+100</div>
+        </div>
+    </div>
+
+    <!-- Glove Effect Overlay -->
+    <div class="glove-overlay" id="gloveOverlay">
+        <div class="glove-content">
+            <span class="glove-emoji">🥊</span>
+            <div class="glove-text">GLOVE!</div>
+            <div class="glove-x5" id="gloveX5" style="display: none;">x5 ACTIVATED!</div>
+        </div>
+    </div>
+
+    <!-- Hammer Effect Overlay -->
+    <div class="hammer-overlay" id="hammerOverlay">
+        <div class="hammer-content">
+            <span class="hammer-emoji">🔨</span>
+            <div class="hammer-text">HAMMER SMASH!</div>
+            <div style="color: #e74c3c; font-size: 1.2em;">x5 Neutralized!</div>
+        </div>
+    </div>
+
+    <!-- Time Bonus Effect Overlay -->
+    <div class="time-overlay" id="timeOverlay">
+        <div class="time-content">
+            <span class="time-emoji">⏱️</span>
+            <div class="time-text">+25 SECONDS!</div>
+            <div style="color: #fff; font-size: 1.2em;">Time Extended!</div>
+        </div>
+    </div>
+
+    <!-- Whale Gift Effect Overlay -->
+    <div class="whale-overlay" id="whaleOverlay">
+        <div class="whale-content">
+            <span class="whale-emoji" id="whaleEmoji">🦁</span>
+            <div class="whale-name" id="whaleName">Lion</div>
+            <div class="whale-points" id="whalePoints">+29,999</div>
+        </div>
+    </div>
+
+    <script>
+        // Socket.IO connection
+        const socket = io();
+
+        // State
+        let battleActive = false;
+        let currentPhase = 'Phase 1 - Warmup';
+        let currentMultiplier = 1;
+        let fogActive = false;
+        let agents = {};
+        let gloveStats = { sent: 0, activated: 0 };
+        let boostConditions = { roses: 0, points: 0, met: false };
+        let fogTimeoutId = null; // Track fog timeout for cleanup
+        let budgetState = {
+            creatorStarting: 0,
+            opponentStarting: 0,
+            creatorCurrent: 0,
+            opponentCurrent: 0,
+            creatorTier: 'ABUNDANT',
+            opponentTier: 'ABUNDANT'
+        };
+
+        // DOM elements
+        const statusBadge = document.getElementById('statusBadge');
+        const phaseName = document.getElementById('phaseName');
+        const multiplier = document.getElementById('multiplier');
+        const phaseTimer = document.getElementById('phaseTimer');
+        const creatorScore = document.getElementById('creatorScore');
+        const opponentScore = document.getElementById('opponentScore');
+        const timelineProgress = document.getElementById('timelineProgress');
+        const agentsList = document.getElementById('agentsList');
+        const gptPanel = document.getElementById('gptPanel');
+        const eventFeed = document.getElementById('eventFeed');
+        const fogOverlay = document.getElementById('fogOverlay');
+
+        // Effect overlays
+        const giftOverlay = document.getElementById('giftOverlay');
+        const gloveOverlay = document.getElementById('gloveOverlay');
+        const hammerOverlay = document.getElementById('hammerOverlay');
+        const timeOverlay = document.getElementById('timeOverlay');
+        const whaleOverlay = document.getElementById('whaleOverlay');
+
+        // Gift emoji mapping
+        const giftEmojis = {
+            'rose': '🌹', 'Rose': '🌹',
+            'doughnut': '🍩', 'Doughnut': '🍩',
+            'lion': '🦁', 'Lion': '🦁',
+            'tiktok universe': '🌌', 'TikTok Universe': '🌌',
+            'dragon flame': '🐉', 'Dragon Flame': '🐉',
+            'galaxy': '🌌', 'Galaxy': '🌌',
+            'glove': '🥊', 'Glove': '🥊', 'GLOVE': '🥊',
+            'default': '🎁'
+        };
+
+        // Format numbers
+        function formatNumber(n) {
+            return n.toLocaleString();
+        }
+
+        // Update budget display
+        function updateBudget(team, current, tier, pct) {
+            const budgetEl = document.getElementById(`${team}Budget`);
+            const fillEl = document.getElementById(`${team}BudgetFill`);
+            const tierEl = document.getElementById(`${team}BudgetTier`);
+
+            if (budgetEl) budgetEl.textContent = formatNumber(current);
+            if (fillEl) {
+                fillEl.style.width = `${pct || 0}%`;
+                // Update fill class based on tier
+                fillEl.className = `budget-fill ${team}`;
+                if (tier === 'CRITICAL') fillEl.classList.add('critical');
+                else if (tier === 'LOW') fillEl.classList.add('low');
+            }
+            if (tierEl) {
+                tierEl.textContent = tier;
+                tierEl.className = `budget-tier ${tier}`;
+            }
+
+            // Update state
+            if (team === 'creator') {
+                budgetState.creatorCurrent = current;
+                budgetState.creatorTier = tier;
+            } else {
+                budgetState.opponentCurrent = current;
+                budgetState.opponentTier = tier;
+            }
+        }
+
+        // Initialize budget display with starting values
+        function initBudgets(creatorBudget, opponentBudget) {
+            budgetState.creatorStarting = creatorBudget;
+            budgetState.opponentStarting = opponentBudget;
+            budgetState.creatorCurrent = creatorBudget;
+            budgetState.opponentCurrent = opponentBudget;
+
+            document.getElementById('creatorBudget').textContent = formatNumber(creatorBudget);
+            document.getElementById('opponentBudget').textContent = formatNumber(opponentBudget);
+            document.getElementById('creatorBudgetStarting').textContent = `Started: ${formatNumber(creatorBudget)}`;
+            document.getElementById('opponentBudgetStarting').textContent = `Started: ${formatNumber(opponentBudget)}`;
+            document.getElementById('creatorBudgetFill').style.width = '100%';
+            document.getElementById('opponentBudgetFill').style.width = '100%';
+
+            // Set initial tiers
+            const creatorTierEl = document.getElementById('creatorBudgetTier');
+            const opponentTierEl = document.getElementById('opponentBudgetTier');
+            creatorTierEl.textContent = 'ABUNDANT';
+            creatorTierEl.className = 'budget-tier ABUNDANT';
+            opponentTierEl.textContent = 'ABUNDANT';
+            opponentTierEl.className = 'budget-tier ABUNDANT';
+        }
+
+        // Show gift effect
+        function showGiftEffect(giftName, points, emoji) {
+            // Skip very small gifts to avoid spam
+            if (points < 10) return;
+
+            // Check if it's a whale gift (10k+)
+            if (points >= 10000) {
+                showWhaleEffect(giftName, points, emoji);
+                return;
+            }
+
+            const giftEmoji = document.getElementById('giftEmoji');
+            const giftNameEl = document.getElementById('giftName');
+            const giftPointsEl = document.getElementById('giftPoints');
+
+            giftEmoji.textContent = emoji || giftEmojis[giftName] || giftEmojis['default'];
+            giftNameEl.textContent = giftName;
+            giftPointsEl.textContent = `+${formatNumber(points)}`;
+
+            giftOverlay.classList.add('active');
+            setTimeout(() => {
+                giftOverlay.classList.remove('active');
+            }, 800);
+        }
+
+        // Show whale gift effect (Lion, Universe, Dragon)
+        function showWhaleEffect(giftName, points, emoji) {
+            const whaleEmoji = document.getElementById('whaleEmoji');
+            const whaleName = document.getElementById('whaleName');
+            const whalePoints = document.getElementById('whalePoints');
+
+            whaleEmoji.textContent = emoji || giftEmojis[giftName] || '🐋';
+            whaleName.textContent = giftName;
+            whalePoints.textContent = `+${formatNumber(points)}`;
+
+            whaleOverlay.classList.add('active');
+            setTimeout(() => {
+                whaleOverlay.classList.remove('active');
+            }, 1500);
+        }
+
+        // Show glove effect
+        function showGloveEffect(activated) {
+            const gloveX5 = document.getElementById('gloveX5');
+            gloveX5.style.display = activated ? 'block' : 'none';
+
+            gloveOverlay.classList.add('active');
+            setTimeout(() => {
+                gloveOverlay.classList.remove('active');
+            }, activated ? 1500 : 800);
+        }
+
+        // Show hammer effect
+        function showHammerEffect() {
+            hammerOverlay.classList.add('active');
+            setTimeout(() => {
+                hammerOverlay.classList.remove('active');
+            }, 1000);
+        }
+
+        // Show time bonus effect
+        function showTimeEffect() {
+            timeOverlay.classList.add('active');
+            setTimeout(() => {
+                timeOverlay.classList.remove('active');
+            }, 1200);
+        }
+
+        // Update status badge
+        function updateStatus(status) {
+            statusBadge.className = 'status-badge';
+            if (status === 'live') {
+                statusBadge.classList.add('status-live');
+                statusBadge.textContent = '🔴 LIVE';
+            } else if (status === 'complete') {
+                statusBadge.classList.add('status-complete');
+                statusBadge.textContent = '✅ Complete';
+            } else {
+                statusBadge.classList.add('status-waiting');
+                statusBadge.textContent = 'Waiting for Battle...';
+            }
+        }
+
+        // Update phase display
+        function updatePhase(name, mult, timeRemaining) {
+            phaseName.textContent = name;
+            multiplier.textContent = `x${mult}`;
+            multiplier.className = 'multiplier';
+
+            if (mult >= 5) multiplier.classList.add('x5');
+            else if (mult >= 3) multiplier.classList.add('x3');
+            else if (mult >= 2) multiplier.classList.add('x2');
+            else multiplier.classList.add('x1');
+
+            phaseTimer.textContent = `${timeRemaining}s remaining`;
+        }
+
+        // Update scores
+        function updateScores(creator, opponent) {
+            if (fogActive) {
+                creatorScore.classList.add('score-hidden');
+                opponentScore.classList.add('score-hidden');
+            } else {
+                creatorScore.classList.remove('score-hidden');
+                opponentScore.classList.remove('score-hidden');
+            }
+            creatorScore.textContent = formatNumber(creator);
+            opponentScore.textContent = formatNumber(opponent);
+        }
+
+        // Update timeline
+        function updateTimeline(current, total) {
+            const percent = (current / total) * 100;
+            timelineProgress.style.width = `${percent}%`;
+        }
+
+        // Add GPT message
+        function addGptMessage(message, type = 'commentary') {
+            const div = document.createElement('div');
+            div.className = 'gpt-message';
+            div.innerHTML = `
+                <div class="timestamp">${new Date().toLocaleTimeString()}</div>
+                <div>${message}</div>
+            `;
+            gptPanel.insertBefore(div, gptPanel.firstChild);
+
+            // Keep only last 10 messages
+            while (gptPanel.children.length > 10) {
+                gptPanel.removeChild(gptPanel.lastChild);
+            }
+        }
+
+        // Add event to feed
+        function addEvent(text, type = 'gift') {
+            const div = document.createElement('div');
+            div.className = `event event-${type}`;
+            div.textContent = text;
+            eventFeed.insertBefore(div, eventFeed.firstChild);
+
+            // Keep only last 20 events
+            while (eventFeed.children.length > 20) {
+                eventFeed.removeChild(eventFeed.lastChild);
+            }
+        }
+
+        // Update agent card
+        function updateAgent(name, data) {
+            agents[name] = data;
+            renderAgents();
+        }
+
+        // Render agents
+        function renderAgents() {
+            agentsList.innerHTML = '';
+            for (const [name, data] of Object.entries(agents)) {
+                const card = document.createElement('div');
+                card.className = `agent-card ${data.active ? 'active' : ''}`;
+                card.innerHTML = `
+                    <div class="agent-header">
+                        <span class="agent-emoji">${data.emoji || '🤖'}</span>
+                        <span class="agent-name">${name}</span>
+                    </div>
+                    <div class="agent-stats">
+                        <div>Points: ${formatNumber(data.points || 0)}</div>
+                        <div>Gifts: ${data.gifts || 0}</div>
+                    </div>
+                    ${data.winRate !== undefined ? `
+                    <div class="agent-evolution">
+                        <div style="font-size: 0.8em; opacity: 0.7;">
+                            Evolution: ${(data.winRate * 100).toFixed(0)}% win rate
+                        </div>
+                        <div class="evolution-bar">
+                            <div class="evolution-fill" style="width: ${data.winRate * 100}%"></div>
+                        </div>
+                    </div>
+                    ` : ''}
+                `;
+                agentsList.appendChild(card);
+            }
+        }
+
+        // Update boost conditions (new random trigger system)
+        function updateBoostConditions(data) {
+            // Update Boost #1 status
+            const boost1Status = document.getElementById('boost1Status');
+            const boost1Info = document.getElementById('boost1Info');
+            const boost1Panel = document.getElementById('boost1Panel');
+
+            if (data.boost1_active) {
+                boost1Status.textContent = `🔴 ACTIVE x${data.boost1_multiplier}`;
+                boost1Status.style.color = '#e74c3c';
+                boost1Info.innerHTML = `<span style="color: #2ecc71; font-weight: bold;">BOOST ACTIVE! x${data.boost1_multiplier}</span>`;
+                boost1Panel.style.background = 'rgba(46, 204, 113, 0.2)';
+                boost1Panel.style.border = '1px solid #2ecc71';
+            } else if (data.boost1_will_trigger === false) {
+                boost1Status.textContent = '❌ Not this battle';
+                boost1Status.style.color = '#888';
+                boost1Info.textContent = 'No Boost #1 this battle';
+            } else if (data.boost1_will_trigger && !data.boost1_active) {
+                boost1Status.textContent = `⏳ Triggers at ${data.boost1_trigger_time}s`;
+                boost1Status.style.color = '#f1c40f';
+                boost1Info.innerHTML = `Coming at <span style="color: #f1c40f;">${data.boost1_trigger_time}s</span> (x${data.boost1_multiplier})`;
+            }
+
+            // Update Boost #2 status - ENIGMA MODE
+            const boost2WindowStatus = document.getElementById('boost2WindowStatus');
+            const boost2ThresholdInfo = document.getElementById('boost2ThresholdInfo');
+            const boost2NoTrigger = document.getElementById('boost2NoTrigger');
+            const boost2Panel = document.getElementById('boost2Panel');
+            const boost2Title = document.getElementById('boost2Title');
+            const boost2EnigmaMessage = document.getElementById('boost2EnigmaMessage');
+
+            if (data.boost2_will_trigger === false && data.boost2_triggered) {
+                // Enigma faded - no Boost #2 this battle (only show AFTER it would have triggered)
+                boost2Title.textContent = 'The Enigma';
+                boost2WindowStatus.textContent = '💨 Faded into nothing';
+                boost2WindowStatus.style.color = '#666';
+                boost2ThresholdInfo.style.display = 'none';
+                boost2EnigmaMessage.innerHTML = '<div>The void remains silent...</div><div style="font-size: 0.8em; margin-top: 5px;">No Boost #2 this battle</div>';
+                boost2EnigmaMessage.style.display = 'block';
+                boost2NoTrigger.style.display = 'none';
+                boost2Panel.style.background = 'rgba(100, 100, 100, 0.1)';
+                boost2Panel.style.border = '1px solid #444';
+            } else if (data.threshold_window_active) {
+                // THE ENIGMA REVEALS ITSELF! - show threshold and progress
+                boost2Title.textContent = 'BOOST #2 REVEALED!';
+                boost2WindowStatus.textContent = '⚡ THRESHOLD WINDOW';
+                boost2WindowStatus.style.color = '#f1c40f';
+                boost2ThresholdInfo.style.display = 'block';
+                boost2EnigmaMessage.style.display = 'none';
+                boost2NoTrigger.style.display = 'none';
+                boost2Panel.style.background = 'rgba(241, 196, 15, 0.2)';
+                boost2Panel.style.border = '2px solid #f1c40f';
+                boost2Panel.style.animation = 'pulse 1s infinite';
+
+                // Update threshold and progress
+                document.getElementById('boost2Threshold').textContent = formatNumber(data.threshold || 0);
+                document.getElementById('creatorPoints').textContent = formatNumber(data.creator_points || 0);
+                document.getElementById('creatorFill').style.width = `${Math.min(100, data.creator_progress || 0)}%`;
+                document.getElementById('opponentPoints').textContent = formatNumber(data.opponent_points || 0);
+                document.getElementById('opponentFill').style.width = `${Math.min(100, data.opponent_progress || 0)}%`;
+            } else if (data.boost2_active) {
+                // Boost #2 is ACTIVE
+                boost2Title.textContent = 'BOOST #2';
+                boost2WindowStatus.textContent = `🔥 ACTIVE x${data.boost2_multiplier}`;
+                boost2WindowStatus.style.color = '#2ecc71';
+                boost2Panel.style.background = 'rgba(46, 204, 113, 0.2)';
+                boost2Panel.style.border = '2px solid #2ecc71';
+                boost2Panel.style.animation = '';
+                boost2EnigmaMessage.style.display = 'none';
+            } else if (data.boost2_will_trigger) {
+                // ENIGMA MODE: Keep it mysterious! Don't show timing
+                boost2Title.textContent = 'The Enigma';
+
+                // Check if early warning phase (10s before threshold window)
+                const timeToWindow = (data.boost2_trigger_time - 30) - data.current_time;
+                if (timeToWindow <= 10 && timeToWindow > 0) {
+                    // Early warning - something is stirring!
+                    boost2WindowStatus.textContent = '✨ Awakening...';
+                    boost2WindowStatus.style.color = '#9b59b6';
+                    boost2EnigmaMessage.innerHTML = '<div style="font-size: 1.1em;">🌀 Something is stirring! 🌀</div><div style="font-size: 0.8em; margin-top: 5px;">The void trembles... prepare yourselves!</div>';
+                    boost2Panel.style.background = 'rgba(155, 89, 182, 0.2)';
+                    boost2Panel.style.border = '1px solid #9b59b6';
+                } else {
+                    // Mystery mode - no hints!
+                    boost2WindowStatus.textContent = '???';
+                    boost2WindowStatus.style.color = '#9b59b6';
+                    boost2EnigmaMessage.innerHTML = '<div>✨ Will it manifest? ✨</div><div style="font-size: 0.8em; margin-top: 5px;">Something stirs in the void...</div>';
+                    boost2Panel.style.background = 'rgba(155, 89, 182, 0.1)';
+                    boost2Panel.style.border = '1px solid #9b59b6';
+                }
+                boost2EnigmaMessage.style.display = 'block';
+                boost2ThresholdInfo.style.display = 'none';
+                boost2NoTrigger.style.display = 'none';
+            } else {
+                // Unknown state - keep mysterious
+                boost2Title.textContent = 'The Enigma';
+                boost2WindowStatus.textContent = '???';
+                boost2WindowStatus.style.color = '#9b59b6';
+                boost2EnigmaMessage.style.display = 'block';
+                boost2ThresholdInfo.style.display = 'none';
+            }
+
+            // Show qualification results
+            if (data.creator_qualified || data.opponent_qualified) {
+                const resultsDiv = document.getElementById('boost2Results');
+                const creatorResult = document.getElementById('creatorResult');
+                const opponentResult = document.getElementById('opponentResult');
+
+                if (data.creator_qualified) {
+                    creatorResult.style.display = 'block';
+                    creatorResult.style.background = 'rgba(46, 204, 113, 0.3)';
+                    document.getElementById('creatorResultText').textContent = '✅ Creator QUALIFIED!';
+                    resultsDiv.style.display = 'block';
+                }
+
+                if (data.opponent_qualified) {
+                    opponentResult.style.display = 'block';
+                    opponentResult.style.background = 'rgba(231, 76, 60, 0.3)';
+                    document.getElementById('opponentResultText').textContent = '✅ Opponent QUALIFIED!';
+                    resultsDiv.style.display = 'block';
+                }
+            }
+
+            // Show/hide Final 30s panel
+            const final30sPanel = document.getElementById('final30sPanel');
+            if (data.in_final_30s) {
+                final30sPanel.style.display = 'block';
+            }
+        }
+
+        // Update glove stats
+        function updateGloveStats(sent, activated) {
+            gloveStats = { sent, activated };
+            document.getElementById('glovesSent').textContent = sent;
+            document.getElementById('glovesActivated').textContent = activated;
+            document.getElementById('gloveRate').textContent =
+                sent > 0 ? `${Math.round(activated / sent * 100)}%` : '0%';
+        }
+
+        // Toggle fog
+        function setFog(active) {
+            fogActive = active;
+            if (active) {
+                fogOverlay.classList.add('active');
+            } else {
+                fogOverlay.classList.remove('active');
+            }
+        }
+
+        // Update power-up status
+        function updatePowerup(type, status) {
+            const el = document.getElementById(`powerup${type}`);
+            if (el) {
+                el.className = `powerup ${status}`;
+            }
+        }
+
+        // Socket event handlers
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            addEvent('Connected to battle server', 'phase');
+        });
+
+        socket.on('strategic_battle_start', (data) => {
+            battleActive = true;
+            updateStatus('live');
+            addGptMessage(data.gpt_analysis || 'Battle starting!');
+            addEvent(`Strategic battle started! (${data.duration}s)`, 'phase');
+
+            // Reset state
+            agents = {};
+            gloveStats = { sent: 0, activated: 0 };
+            boostConditions = { creatorQualified: false, opponentQualified: false };
+
+            // Initialize budgets
+            if (data.creator_budget !== undefined && data.opponent_budget !== undefined) {
+                initBudgets(data.creator_budget, data.opponent_budget);
+                addEvent(`💰 Budgets: Creator ${formatNumber(data.creator_budget)} vs Opponent ${formatNumber(data.opponent_budget)}`, 'phase');
+            }
+
+            // Reset boost panels
+            document.getElementById('boost1Panel').style.background = '';
+            document.getElementById('boost1Panel').style.border = '';
+            document.getElementById('boost2Panel').style.background = '';
+            document.getElementById('boost2Panel').style.border = '';
+            document.getElementById('boost2Results').style.display = 'none';
+            document.getElementById('creatorResult').style.display = 'none';
+            document.getElementById('opponentResult').style.display = 'none';
+            document.getElementById('final30sPanel').style.display = 'none';
+            document.getElementById('creatorCondition').style.background = '';
+            document.getElementById('opponentCondition').style.background = '';
+
+            // Initialize boost conditions
+            updateBoostConditions({
+                boost1_will_trigger: data.boost1_will_trigger,
+                boost1_trigger_time: data.boost1_trigger_time,
+                boost1_multiplier: data.boost1_multiplier,
+                boost1_active: false,
+                boost2_will_trigger: data.boost2_will_trigger,
+                boost2_trigger_time: data.boost2_trigger_time,
+                boost2_multiplier: data.boost2_multiplier,
+                threshold: data.boost2_threshold,
+                threshold_window_active: false,
+                boost2_active: false,
+                creator_points: 0,
+                opponent_points: 0,
+                creator_progress: 0,
+                opponent_progress: 0,
+                creator_qualified: false,
+                opponent_qualified: false,
+                in_final_30s: false
+            });
+
+            // Announce boost info
+            if (data.boost1_will_trigger) {
+                addEvent(`🎲 Boost #1 scheduled at ${data.boost1_trigger_time}s (x${data.boost1_multiplier})`, 'phase');
+            } else {
+                addEvent(`🎲 No Boost #1 this battle`, 'phase');
+            }
+
+            if (data.boost2_will_trigger) {
+                addEvent(`🎲 Boost #2 scheduled at ${data.boost2_trigger_time}s - threshold: ${formatNumber(data.boost2_threshold)} coins`, 'phase');
+            } else {
+                addEvent(`🎲 No Boost #2 this battle`, 'phase');
+            }
+        });
+
+        socket.on('battle_tick', (data) => {
+            if (data.creator_score !== undefined) {
+                updateScores(data.creator_score, data.opponent_score);
+            }
+            if (data.time !== undefined && data.duration !== undefined) {
+                updateTimeline(data.time, data.duration);
+                phaseTimer.textContent = `${data.duration - data.time}s remaining`;
+            }
+            // Update budgets if provided
+            if (data.creator_budget !== undefined) {
+                updateBudget('creator', data.creator_budget, data.creator_budget_tier || 'ABUNDANT', data.creator_budget_pct || 100);
+            }
+            if (data.opponent_budget !== undefined) {
+                updateBudget('opponent', data.opponent_budget, data.opponent_budget_tier || 'ABUNDANT', data.opponent_budget_pct || 100);
+            }
+        });
+
+        socket.on('phase_change', (data) => {
+            updatePhase(data.name, data.multiplier, data.time_remaining || 0);
+            addEvent(`Phase: ${data.name} (x${data.multiplier})`, 'phase');
+
+            if (data.gpt_commentary) {
+                addGptMessage(data.gpt_commentary);
+            }
+        });
+
+        socket.on('agent_action', (data) => {
+            updateAgent(data.agent_name, {
+                emoji: data.emoji,
+                points: (agents[data.agent_name]?.points || 0) + (data.points || 0),
+                gifts: (agents[data.agent_name]?.gifts || 0) + 1,
+                active: true,
+                winRate: data.win_rate
+            });
+
+            addEvent(`${data.emoji} ${data.agent_name}: ${data.gift_name} (+${formatNumber(data.points)})`, 'gift');
+
+            // Show gift visual effect (skip gloves - they have their own effect)
+            if (!data.gift_name.toLowerCase().includes('glove')) {
+                showGiftEffect(data.gift_name, data.points, data.emoji);
+            }
+
+            // Reset active state after delay
+            setTimeout(() => {
+                if (agents[data.agent_name]) {
+                    agents[data.agent_name].active = false;
+                    renderAgents();
+                }
+            }, 1000);
+        });
+
+        socket.on('boost_condition_update', (data) => {
+            updateBoostConditions(data);
+
+            // Announce when teams qualify
+            if (data.creator_qualified && !boostConditions.creatorQualified) {
+                boostConditions.creatorQualified = true;
+                addEvent(`🎯 CREATOR qualified for Boost #2!`, 'phase');
+            }
+            if (data.opponent_qualified && !boostConditions.opponentQualified) {
+                boostConditions.opponentQualified = true;
+                addEvent(`🎯 OPPONENT qualified for Boost #2!`, 'phase');
+            }
+        });
+
+        socket.on('glove_sent', (data) => {
+            updateGloveStats(data.total_sent, data.total_activated);
+
+            // Show glove visual effect
+            showGloveEffect(data.activated);
+
+            if (data.activated) {
+                addEvent(`🥊 GLOVE x5 ACTIVATED!`, 'glove');
+            } else {
+                addEvent(`🥊 Glove sent (no x5)`, 'gift');
+            }
+        });
+
+        socket.on('powerup_used', (data) => {
+            updatePowerup(data.type, 'used');
+            addEvent(`${data.emoji} ${data.name} deployed!`, 'powerup');
+
+            // Show power-up visual effects
+            if (data.type === 'Hammer') {
+                showHammerEffect();
+            } else if (data.type === 'Time') {
+                showTimeEffect();
+            }
+
+            if (data.type === 'Fog' && battleActive) {
+                setFog(true);
+                // Clear any existing fog timeout
+                if (fogTimeoutId) clearTimeout(fogTimeoutId);
+                fogTimeoutId = setTimeout(() => setFog(false), 15000);
+            }
+        });
+
+        socket.on('gpt_commentary', (data) => {
+            addGptMessage(data.message);
+        });
+
+        socket.on('battle_end', (data) => {
+            battleActive = false;
+            updateStatus('complete');
+
+            // Clear fog and any pending fog timeout
+            if (fogTimeoutId) {
+                clearTimeout(fogTimeoutId);
+                fogTimeoutId = null;
+            }
+            setFog(false);
+
+            // Hide active glove panel
+            document.getElementById('activeGlovePanel').style.display = 'none';
+
+            // Update final scores display
+            if (data.creator_score !== undefined) {
+                creatorScore.textContent = formatNumber(data.creator_score);
+            }
+            if (data.opponent_score !== undefined) {
+                opponentScore.textContent = formatNumber(data.opponent_score);
+            }
+
+            const winner = data.winner === 'creator' ? '🏆 CREATOR WINS!' : '😢 Opponent Wins';
+            addEvent(winner, 'phase');
+            addEvent(`Final Score: ${formatNumber(data.creator_score || 0)} vs ${formatNumber(data.opponent_score || 0)}`, 'phase');
+
+            // Show budget summary
+            if (data.creator_budget_remaining !== undefined) {
+                const creatorSpent = budgetState.creatorStarting - data.creator_budget_remaining;
+                const opponentSpent = budgetState.opponentStarting - (data.opponent_budget_remaining || 0);
+                addEvent(`💰 Creator spent ${formatNumber(creatorSpent)} (${formatNumber(data.creator_budget_remaining)} left)`, 'phase');
+                addEvent(`💰 Opponent spent ${formatNumber(opponentSpent)} (${formatNumber(data.opponent_budget_remaining || 0)} left)`, 'phase');
+
+                // Calculate efficiency (points per coin spent)
+                if (data.budget_analytics) {
+                    const cEff = data.budget_analytics.creator?.efficiency || 0;
+                    const oEff = data.budget_analytics.opponent?.efficiency || 0;
+                    addEvent(`📊 Efficiency - Creator: ${cEff.toFixed(2)} pts/coin | Opponent: ${oEff.toFixed(2)} pts/coin`, 'phase');
+                }
+            }
+
+            if (data.gpt_summary) {
+                addGptMessage(`📊 Battle Summary: ${data.gpt_summary}`);
+            }
+
+            // Show detailed glove stats
+            if (data.analytics && data.analytics.glove_stats) {
+                const gs = data.analytics.glove_stats;
+                const detailedDiv = document.getElementById('gloveDetailedStats');
+                detailedDiv.style.display = 'block';
+
+                // Format function for stats
+                const formatStats = (stats) => {
+                    const sent = stats.sent || 0;
+                    const activated = stats.activated || 0;
+                    const rate = sent > 0 ? Math.round(activated / sent * 100) : 0;
+                    return `${activated}/${sent} (${rate}%)`;
+                };
+
+                document.getElementById('gloveBoostStats').textContent = formatStats(gs.boost || {});
+                document.getElementById('gloveFinal30Stats').textContent = formatStats(gs.final_30s || {});
+                document.getElementById('gloveNormalStats').textContent = formatStats(gs.normal || {});
+                document.getElementById('gloveBonusStats').textContent = formatStats(gs.with_bonuses || {});
+
+                // Color code by success rate
+                const colorByRate = (el, stats) => {
+                    const sent = stats.sent || 0;
+                    const activated = stats.activated || 0;
+                    const rate = sent > 0 ? activated / sent : 0;
+                    if (rate >= 0.5) el.style.color = '#2ecc71';
+                    else if (rate >= 0.3) el.style.color = '#f1c40f';
+                    else if (sent > 0) el.style.color = '#e74c3c';
+                    else el.style.color = '#888';
+                };
+
+                colorByRate(document.getElementById('gloveBoostStats'), gs.boost || {});
+                colorByRate(document.getElementById('gloveFinal30Stats'), gs.final_30s || {});
+                colorByRate(document.getElementById('gloveNormalStats'), gs.normal || {});
+                colorByRate(document.getElementById('gloveBonusStats'), gs.with_bonuses || {});
+            }
+        });
+
+        socket.on('fog_clear', () => {
+            if (fogTimeoutId) {
+                clearTimeout(fogTimeoutId);
+                fogTimeoutId = null;
+            }
+            setFog(false);
+            addEvent('🌫️ Fog cleared - scores visible!', 'powerup');
+        });
+
+        socket.on('glove_state', (data) => {
+            // Update glove power-up displays based on active state
+            const glove1 = document.getElementById('powerupGlove1');
+            const glove2 = document.getElementById('powerupGlove2');
+            const activeGlovePanel = document.getElementById('activeGlovePanel');
+
+            if (data.active) {
+                // At least one glove is active - show active state
+                // Check if glove1 is used, if so glove2 is active
+                if (glove1 && glove1.classList.contains('used') && glove2 && !glove2.classList.contains('used')) {
+                    glove2.className = 'powerup active';
+                } else if (glove1 && !glove1.classList.contains('used')) {
+                    glove1.className = 'powerup active';
+                }
+
+                // Show active glove panel with details
+                activeGlovePanel.style.display = 'block';
+
+                // Update owner display
+                const ownerEl = document.getElementById('gloveOwner');
+                ownerEl.textContent = data.owner ? data.owner.toUpperCase() : 'UNKNOWN';
+                ownerEl.style.background = data.owner === 'creator' ? 'rgba(46, 204, 113, 0.3)' : 'rgba(231, 76, 60, 0.3)';
+
+                // Update countdown
+                document.getElementById('gloveTimeLeft').textContent = data.time_remaining || 30;
+
+                // Update bonuses list
+                const bonusList = document.getElementById('gloveBonusList');
+                if (data.bonuses && data.bonuses.length > 0) {
+                    bonusList.innerHTML = data.bonuses.map(b =>
+                        `<span style="display: inline-block; background: rgba(46, 204, 113, 0.3); padding: 2px 6px; border-radius: 8px; margin: 2px;">
+                            ${b.name}: +${b.value}%
+                        </span>`
+                    ).join('');
+                } else {
+                    bonusList.innerHTML = '<span style="color: #888;">No bonuses applied</span>';
+                }
+
+                // Update chance display
+                document.getElementById('gloveBaseChance').textContent = `${data.base_chance || 0}%`;
+                document.getElementById('gloveFinalChance').textContent = `${data.final_chance || 0}%`;
+
+                addEvent(`🥊 ${data.owner ? data.owner.toUpperCase() : ''} Glove x5 ACTIVE! (${data.time_remaining}s, ${data.final_chance}% roll)`, 'glove');
+            } else {
+                // Glove expired - mark as used and hide panel
+                if (glove1 && glove1.classList.contains('active')) {
+                    glove1.className = 'powerup used';
+                }
+                if (glove2 && glove2.classList.contains('active')) {
+                    glove2.className = 'powerup used';
+                }
+                activeGlovePanel.style.display = 'none';
+                addEvent('🥊 Glove x5 expired', 'powerup');
+            }
+        });
+
+        // Handle glove countdown updates
+        socket.on('glove_countdown', (data) => {
+            const activeGlovePanel = document.getElementById('activeGlovePanel');
+            if (activeGlovePanel.style.display !== 'none') {
+                document.getElementById('gloveTimeLeft').textContent = data.time_remaining || 0;
+
+                // Flash countdown when low
+                const timeEl = document.getElementById('gloveTimeLeft');
+                if (data.time_remaining <= 5) {
+                    timeEl.style.color = '#e74c3c';
+                    timeEl.style.animation = 'pulse 0.5s infinite';
+                }
+            }
+        });
+
+        // Initialize
+        updateStatus('waiting');
+        renderAgents();
+    </script>
+</body>
+</html>

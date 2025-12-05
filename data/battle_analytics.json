@@ -1,0 +1,107 @@
+{
+  "battle": {
+    "duration": 180,
+    "winner": "creator",
+    "final_scores": {
+      "creator": 91002,
+      "opponent": 5939
+    },
+    "score_diff": -85063
+  },
+  "agents": {
+    "StrikeMaster": {
+      "total_donated": 89997,
+      "gifts_sent": 1,
+      "avg_gift_value": 89997.0,
+      "best_gift": {
+        "name": "Lion",
+        "value": 89997
+      },
+      "timing": {
+        "early": 0,
+        "mid": 1,
+        "late": 0,
+        "final": 0
+      }
+    },
+    "Activator": {
+      "total_donated": 5,
+      "gifts_sent": 5,
+      "avg_gift_value": 1.0,
+      "best_gift": {
+        "name": "Rose",
+        "value": 1
+      },
+      "timing": {
+        "early": 0,
+        "mid": 5,
+        "late": 0,
+        "final": 0
+      }
+    },
+    "Kinetik": {
+      "total_donated": 1000,
+      "gifts_sent": 1,
+      "avg_gift_value": 1000.0,
+      "best_gift": {
+        "name": "Galaxy",
+        "value": 1000
+      },
+      "timing": {
+        "early": 0,
+        "mid": 0,
+        "late": 0,
+        "final": 1
+      }
+    }
+  },
+  "coordination": {
+    "total_events": 0,
+    "conflicts_prevented": 0,
+    "dependencies_satisfied": 0,
+    "coordination_rate": 0.0,
+    "events": []
+  },
+  "multipliers": {
+    "total_sessions": 2,
+    "total_duration": 47,
+    "sessions_by_type": {
+      "x3": 1,
+      "x2": 1
+    },
+    "avg_duration": 23.5,
+    "coverage": 26.111111111111114
+  },
+  "gifts": {
+    "distribution": {
+      "Lion": 1,
+      "Rose": 5,
+      "Galaxy": 1
+    },
+    "timing_patterns": {
+      "Lion": {
+        "count": 1,
+        "first": 62,
+        "last": 62,
+        "avg_time": 62.0
+      },
+      "Rose": {
+        "count": 5,
+        "first": 90,
+        "last": 98,
+        "avg_time": 94.0
+      },
+      "Galaxy": {
+        "count": 1,
+        "first": 178,
+        "last": 178,
+        "avg_time": 178.0
+      }
+    },
+    "most_used": "Rose"
+  },
+  "timeline": {
+    "snapshots": 180,
+    "actions": 7
+  }
+}

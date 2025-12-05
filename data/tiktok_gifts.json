@@ -1,0 +1,80 @@
+{
+  "gift_catalog": {
+    "budget_tier": {
+      "description": "Affordable gifts for consistent engagement (1-99 coins)",
+      "gifts": [
+        {"name": "Rose", "coins": 1, "emoji": "🌹"},
+        {"name": "TikTok", "coins": 1, "emoji": "🎵"},
+        {"name": "Heart", "coins": 1, "emoji": "💖"},
+        {"name": "Finger Heart", "coins": 5, "emoji": "🫰"},
+        {"name": "Peacock Feather", "coins": 5, "emoji": "🦚"},
+        {"name": "Friendship Necklace", "coins": 10, "emoji": "📿"},
+        {"name": "Rosa", "coins": 10, "emoji": "🌹"},
+        {"name": "Heart Gaze", "coins": 10, "emoji": "👀💕"},
+        {"name": "Tiny Diny in Love", "coins": 15, "emoji": "💑"},
+        {"name": "Perfume", "coins": 20, "emoji": "💐"},
+        {"name": "Doughnut", "coins": 30, "emoji": "🍩"},
+        {"name": "Butterfly", "coins": 88, "emoji": "🦋"},
+        {"name": "Paper Crane", "coins": 99, "emoji": "🪶"},
+        {"name": "Little Crown", "coins": 99, "emoji": "👑"}
+      ]
+    },
+    "mid_tier": {
+      "description": "Noticeable gifts for impact (100-999 coins)",
+      "gifts": [
+        {"name": "Game Controller", "coins": 100, "emoji": "🎮"},
+        {"name": "Confetti", "coins": 100, "emoji": "🎊"},
+        {"name": "Hand Heart", "coins": 150, "emoji": "🫶"},
+        {"name": "Shooting Star", "coins": 300, "emoji": "💫"},
+        {"name": "Sports Car", "coins": 500, "emoji": "🏎️"},
+        {"name": "Swan", "coins": 699, "emoji": "🦢"},
+        {"name": "Golden Tree", "coins": 799, "emoji": "🌳✨"},
+        {"name": "Diamond Ring", "coins": 999, "emoji": "💍"}
+      ]
+    },
+    "premium_tier": {
+      "description": "High-value gifts for serious supporters (1000-9999 coins)",
+      "gifts": [
+        {"name": "Galaxy", "coins": 1000, "emoji": "🌌"},
+        {"name": "Blooming Ribbons", "coins": 1000, "emoji": "🎀"},
+        {"name": "Silver Sports Car", "coins": 1000, "emoji": "🚗"},
+        {"name": "Fireworks", "coins": 1088, "emoji": "🎆"},
+        {"name": "Umbrella of Love", "coins": 1200, "emoji": "☂️💕"},
+        {"name": "Vibrant Stage", "coins": 1400, "emoji": "🎭"},
+        {"name": "Level Ship", "coins": 1500, "emoji": "🚢"},
+        {"name": "Lover's Lock", "coins": 1500, "emoji": "🔒💕"},
+        {"name": "Love Drop", "coins": 1800, "emoji": "💧💖"},
+        {"name": "Fox Legend", "coins": 1800, "emoji": "🦊"},
+        {"name": "Star of Red Carpet", "coins": 1999, "emoji": "⭐"},
+        {"name": "Gift Box", "coins": 1999, "emoji": "🎁"},
+        {"name": "Whale Diving", "coins": 2150, "emoji": "🐋"},
+        {"name": "Private Jet", "coins": 3000, "emoji": "✈️"},
+        {"name": "Yacht", "coins": 5000, "emoji": "🛥️"},
+        {"name": "Castle", "coins": 8000, "emoji": "🏰"}
+      ]
+    },
+    "ultra_premium_tier": {
+      "description": "Legendary gifts for whales (10,000+ coins)",
+      "gifts": [
+        {"name": "Dragon Flame", "coins": 10000, "emoji": "🐉🔥"},
+        {"name": "Adam's Dream", "coins": 15000, "emoji": "💭✨"},
+        {"name": "Lion", "coins": 29999, "emoji": "🦁"},
+        {"name": "TikTok Universe", "coins": 44999, "emoji": "🌌🌍"}
+      ]
+    },
+    "special_objects": {
+      "description": "Strategic items earned from victories",
+      "objects": [
+        {"name": "Glove", "coins": 0, "emoji": "🥊", "type": "offensive", "description": "Trigger x5 multiplier during x2/x3 sessions or final 30s"},
+        {"name": "Hammer", "coins": 0, "emoji": "🔨", "type": "defensive", "description": "Neutralize opponent's x5 multiplier"},
+        {"name": "Fog", "coins": 0, "emoji": "🌫️", "type": "tactical", "description": "Hide your score from opponent"}
+      ]
+    }
+  },
+  "metadata": {
+    "source": "StreamToEarn.io",
+    "last_updated": "2025-11-22",
+    "total_gifts": 42,
+    "coin_range": "1 - 44999"
+  }
+}

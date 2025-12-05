@@ -1,0 +1,633 @@
+"""
+Base Agent - Abstract base class for all AI donors.
+
+All agents inherit from this and implement their specific behavior.
+Now with COUNTER-STRATEGY support via OpponentPatternTracker!
+"""
+
+from abc import ABC, abstractmethod
+from typing import Optional, Dict, TYPE_CHECKING
+import random
+
+from core.event_bus import EventBus, EventType
+from .emotion_system import EmotionSystem, EmotionalState
+from .memory_system import MemorySystem
+from .communication import CommunicationChannel
+from .learning_system import OpponentPatternTracker, PATTERN_DETECTED_ANNOUNCEMENT
+
+if TYPE_CHECKING:
+    from core.budget_system import BudgetManager
+
+
+class BaseAgent(ABC):
+    """
+    Abstract base class for all AI battle agents.
+
+    Provides:
+    - Emotion system
+    - Memory system
+    - Communication capabilities
+    - Event bus access
+    - Budget awareness
+    - Common utilities
+
+    Subclasses must implement:
+    - decide_action(): Core decision-making logic
+    - get_personality_prompt(): Description for GPT (if using AI)
+    """
+
+    def __init__(self, name: str, emoji: str = "🤖"):
+        self.name = name
+        self.emoji = emoji
+
+        # Core systems
+        self.emotion_system = EmotionSystem()
+        self.memory_system = MemorySystem(name)
+
+        # Will be injected by BattleEngine or demo
+        self.event_bus: Optional[EventBus] = None
+        self.comm_channel: Optional[CommunicationChannel] = None
+        self.budget_manager: Optional['BudgetManager'] = None
+        self.team: str = "creator"  # Which team this agent belongs to
+
+        # Internal state
+        self.total_donated = 0
+        self.total_spent = 0  # Track actual spending (coins)
+        self.action_count = 0
+        self.last_action_time = 0
+        self.gifts_blocked_by_budget = 0  # Track budget failures
+
+        # === COUNTER-STRATEGY: Opponent Pattern Tracking ===
+        self.opponent_tracker = OpponentPatternTracker()
+        self.detected_pattern = None
+        self.counter_strategy = {}
+        self.pattern_adaptation_active = False
+
+    def act(self, battle):
+        """
+        Main action method called each battle tick.
+
+        Args:
+            battle: BattleEngine instance with access to battle state
+        """
+        # Update emotional state based on battle context
+        context = {
+            "creator_score": battle.score_tracker.creator_score,
+            "opponent_score": battle.score_tracker.opponent_score,
+            "time_remaining": battle.time_manager.time_remaining(),
+            "recent_events": []  # Could analyze event bus history
+        }
+        new_emotion = self.emotion_system.update_emotion(context)
+
+        # Announce emotion changes
+        if new_emotion and self.event_bus:
+            self.event_bus.publish(
+                EventType.EMOTION_CHANGED,
+                {
+                    "agent": self.name,
+                    "emotion": new_emotion.name,
+                    "emoji": self.emotion_system.get_emotion_display()
+                },
+                source=self.name
+            )
+
+        # Let subclass decide what to do
+        self.decide_action(battle)
+
+    @abstractmethod
+    def decide_action(self, battle):
+        """
+        Core decision-making logic (implemented by subclasses).
+
+        Args:
+            battle: BattleEngine instance
+
+        Example:
+            if battle.time_manager.current_time > 50:
+                self.send_gift(battle, "UNIVERSE", 1800)
+        """
+        pass
+
+    def can_afford(self, gift_name: str) -> bool:
+        """Check if agent's team can afford a gift."""
+        if not self.budget_manager:
+            return True  # No budget system = unlimited
+        return self.budget_manager.can_afford(self.team, gift_name)
+
+    def get_budget_status(self) -> dict:
+        """Get current budget status for agent's team."""
+        if not self.budget_manager:
+            return {"current": float('inf'), "tier": "unlimited"}
+        return self.budget_manager.get_status(self.team)
+
+    def send_gift(self, battle, gift_name: str, points: int) -> bool:
+        """
+        Send a gift (donate points to creator).
+
+        Args:
+            battle: BattleEngine instance
+            gift_name: Name of gift (e.g., "ROSE", "UNIVERSE")
+            points: Point value (base value, multipliers applied by battle engine)
+
+        Returns:
+            True if gift was sent, False if blocked by budget
+        """
+        current_time = battle.time_manager.current_time
+
+        # Check budget if budget system is active
+        if self.budget_manager:
+            # Determine phase for tracking
+            phase = "normal"
+            if hasattr(battle, 'phase_manager') and battle.phase_manager:
+                pm = battle.phase_manager
+                if pm.boost1_active or pm.boost2_active:
+                    phase = "boost"
+                elif pm.is_in_final_30s(current_time):
+                    phase = "final_30s"
+
+            # Try to spend
+            success, cost = self.budget_manager.spend(
+                self.team, gift_name, current_time, phase
+            )
+
+            if not success:
+                self.gifts_blocked_by_budget += 1
+                # Silent fail most of the time, occasional warning
+                if self.gifts_blocked_by_budget <= 3 or self.gifts_blocked_by_budget % 10 == 0:
+                    budget = self.budget_manager.get_status(self.team)
+                    print(f"💸 {self.name}: Can't afford {gift_name}! (Budget: {budget['current']:,})")
+                return False
+
+            self.total_spent += cost
+
+        # No emotion modifiers - use pure base value
+        actual_points = points
+
+        # Publish gift event
+        if self.event_bus:
+            self.event_bus.publish(
+                EventType.GIFT_SENT,
+                {
+                    "agent": self.name,
+                    "gift": gift_name,
+                    "points": actual_points,
+                    "emotion": self.emotion_system.current_state.name
+                },
+                source=self.name,
+                timestamp=current_time
+            )
+
+        # Track stats
+        self.total_donated += actual_points
+        self.action_count += 1
+        self.last_action_time = current_time
+
+        # Console output
+        emotion_emoji = self.emotion_system.get_emotion_display()
+        print(f"{self.emoji} {self.name} {emotion_emoji}: Sends {gift_name} 🎁 (+{actual_points})")
+        return True
+
+    def send_message(self, message: str, to_agent: Optional[str] = None,
+                     message_type: str = "chat"):
+        """
+        Send a message to other agents.
+
+        Args:
+            message: Message content
+            to_agent: Recipient (None for broadcast)
+            message_type: Type of message
+        """
+        if self.comm_channel:
+            self.comm_channel.send(
+                from_agent=self.name,
+                message=message,
+                to_agent=to_agent,
+                message_type=message_type
+            )
+
+        # Also publish as event
+        if self.event_bus:
+            self.event_bus.publish(
+                EventType.AGENT_DIALOGUE,
+                {
+                    "from": self.name,
+                    "to": to_agent or "ALL",
+                    "message": message,
+                    "type": message_type
+                },
+                source=self.name
+            )
+
+    def get_personality_prompt(self) -> str:
+        """
+        Get personality description for GPT-based decision making.
+
+        Override in subclasses to define unique personality.
+
+        Returns:
+            String describing agent's personality and strategy
+        """
+        return f"You are {self.name}, a TikTok battle supporter."
+
+    def should_act_this_tick(self, probability: float = 0.1) -> bool:
+        """
+        Random chance to act this tick (modified by emotions).
+
+        Args:
+            probability: Base probability (0-1)
+
+        Returns:
+            True if should act
+        """
+        modifiers = self.emotion_system.get_modifiers()
+        adjusted_prob = probability * modifiers.gift_frequency_multiplier
+        return random.random() < adjusted_prob
+
+    def get_stats(self) -> dict:
+        """Get agent statistics."""
+        return {
+            "name": self.name,
+            "total_donated": self.total_donated,
+            "action_count": self.action_count,
+            "current_emotion": self.emotion_system.current_state.name,
+            "battles_participated": self.memory_system.get_battle_count(),
+            "win_rate": self.memory_system.get_win_rate(),
+            "detected_pattern": self.detected_pattern,
+            "pattern_adaptation_active": self.pattern_adaptation_active,
+        }
+
+    # === COUNTER-STRATEGY: Pattern Detection Methods ===
+
+    def on_opponent_gift(self, amount: int, current_time: int, phase: str, time_remaining: int):
+        """
+        Called when opponent sends a gift - track for pattern detection.
+
+        Args:
+            amount: Gift value in coins
+            current_time: Battle time when gift was sent
+            phase: Current battle phase
+            time_remaining: Time remaining in battle
+        """
+        # Update pattern tracker
+        self.opponent_tracker.update(current_time, amount, phase, time_remaining)
+
+        # Check if pattern is detected
+        pattern = self.opponent_tracker.detect_pattern()
+        if pattern and pattern != self.detected_pattern:
+            self.detected_pattern = pattern
+            self.counter_strategy = self.opponent_tracker.get_counter_strategy()
+
+            # Announce pattern detection (once per pattern)
+            if not self.pattern_adaptation_active:
+                self.pattern_adaptation_active = True
+                self._announce_pattern_detection()
+
+    def _announce_pattern_detection(self):
+        """Announce that we've detected opponent's strategy!"""
+        if not self.detected_pattern:
+            return
+
+        # Get counter-strategy description
+        counter = self.counter_strategy.get('description', 'Adapting...')
+
+        print(PATTERN_DETECTED_ANNOUNCEMENT.format(
+            strategy=self.detected_pattern.upper().replace('_', ' '),
+            confidence=self.opponent_tracker.confidence
+        ))
+        print(f"   📋 Counter-Strategy: {counter}")
+
+    def get_counter_adjustments(self) -> Dict:
+        """
+        Get aggression adjustments based on detected opponent pattern.
+
+        Returns dict with adjustment values like:
+        {
+            'aggression_early': 0.7,
+            'aggression_boost': 0.9,
+            ...
+        }
+        """
+        if not self.counter_strategy:
+            return {}
+        return self.counter_strategy
+
+    def reset_pattern_tracking(self):
+        """Reset pattern tracking for new battle."""
+        self.opponent_tracker.reset()
+        self.detected_pattern = None
+        self.counter_strategy = {}
+        self.pattern_adaptation_active = False
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(name={self.name}, emotion={self.emotion_system.current_state.name})"
+
+
+# =============================================================================
+# AGENT PROFILE SYSTEM
+# =============================================================================
+
+class AgentProfileLoader:
+    """
+    Load and manage agent configurations from JSON profiles.
+
+    Profile Schema:
+    {
+        "identity": {
+            "name": "Custom Agent",
+            "emoji": "🎯",
+            "agent_type": "boost_responder",
+            "description": "A custom agent..."
+        },
+        "strategy": {
+            "aggression": {
+                "normal": 0.15,
+                "boost1": 0.70,
+                "boost2": 0.85,
+                "final_5s": 0.95,
+                "final_30s": 0.50
+            },
+            "cooldowns": {
+                "normal": 10.0,
+                "boost": 2.5,
+                "final": 1.0
+            },
+            "whale_chances": {
+                "normal": 0.05,
+                "boost": 0.40,
+                "final": 0.30
+            },
+            "gift_preferences": {
+                "default": "ROSE",
+                "boost": "LION",
+                "whale": "UNIVERSE"
+            }
+        },
+        "learning": {
+            "enabled": true,
+            "learning_rate": 0.15,
+            "epsilon": 0.20,
+            "discount_factor": 0.95
+        },
+        "personality": {
+            "aggression_style": "calculated",
+            "risk_tolerance": 0.5,
+            "team_player": true
+        }
+    }
+    """
+
+    # Default profile values
+    DEFAULTS = {
+        'identity': {
+            'name': 'Agent',
+            'emoji': '🤖',
+            'agent_type': 'generic',
+            'description': 'A battle agent'
+        },
+        'strategy': {
+            'aggression': {
+                'normal': 0.20,
+                'boost1': 0.60,
+                'boost2': 0.75,
+                'final_5s': 0.90,
+                'final_30s': 0.45
+            },
+            'cooldowns': {
+                'normal': 8.0,
+                'boost': 3.0,
+                'final': 1.5
+            },
+            'whale_chances': {
+                'normal': 0.05,
+                'boost': 0.25,
+                'final': 0.20
+            },
+            'gift_preferences': {
+                'default': 'ROSE',
+                'boost': 'LION',
+                'whale': 'UNIVERSE'
+            }
+        },
+        'learning': {
+            'enabled': False,
+            'learning_rate': 0.10,
+            'epsilon': 0.15,
+            'discount_factor': 0.90
+        },
+        'personality': {
+            'aggression_style': 'balanced',
+            'risk_tolerance': 0.5,
+            'team_player': True
+        }
+    }
+
+    # Preset profiles for common agent types
+    PRESETS = {
+        'aggressive_whale': {
+            'identity': {'name': 'Aggressive Whale', 'emoji': '🐋', 'agent_type': 'whale'},
+            'strategy': {
+                'aggression': {'normal': 0.10, 'boost1': 0.95, 'boost2': 0.99, 'final_5s': 0.99, 'final_30s': 0.60},
+                'whale_chances': {'normal': 0.20, 'boost': 0.70, 'final': 0.50}
+            }
+        },
+        'budget_saver': {
+            'identity': {'name': 'Budget Saver', 'emoji': '💰', 'agent_type': 'budget'},
+            'strategy': {
+                'aggression': {'normal': 0.05, 'boost1': 0.30, 'boost2': 0.40, 'final_5s': 0.80, 'final_30s': 0.20},
+                'whale_chances': {'normal': 0.01, 'boost': 0.10, 'final': 0.15}
+            }
+        },
+        'snipe_master': {
+            'identity': {'name': 'Snipe Master', 'emoji': '🎯', 'agent_type': 'sniper'},
+            'strategy': {
+                'aggression': {'normal': 0.02, 'boost1': 0.15, 'boost2': 0.20, 'final_5s': 0.99, 'final_30s': 0.05},
+                'whale_chances': {'normal': 0.00, 'boost': 0.10, 'final': 0.80}
+            }
+        },
+        'chaos_agent': {
+            'identity': {'name': 'Chaos Agent', 'emoji': '🌀', 'agent_type': 'chaos'},
+            'strategy': {
+                'aggression': {'normal': 0.30, 'boost1': 0.50, 'boost2': 0.60, 'final_5s': 0.70, 'final_30s': 0.40},
+                'whale_chances': {'normal': 0.15, 'boost': 0.35, 'final': 0.25}
+            },
+            'learning': {'enabled': True, 'epsilon': 0.40}
+        },
+        'learning_agent': {
+            'identity': {'name': 'Learning Agent', 'emoji': '🧠', 'agent_type': 'q_learning'},
+            'learning': {'enabled': True, 'learning_rate': 0.20, 'epsilon': 0.25, 'discount_factor': 0.95}
+        }
+    }
+
+    def __init__(self, profile_dir: str = "data/agent_profiles"):
+        """Initialize profile loader with profile directory."""
+        self.profile_dir = profile_dir
+        self.loaded_profiles: Dict[str, dict] = {}
+
+    def load_profile(self, filepath: str) -> dict:
+        """
+        Load an agent profile from JSON file.
+
+        Args:
+            filepath: Path to profile JSON
+
+        Returns:
+            Merged profile with defaults
+        """
+        import json
+        import os
+
+        # Handle relative paths
+        if not os.path.isabs(filepath):
+            filepath = os.path.join(self.profile_dir, filepath)
+
+        if not filepath.endswith('.json'):
+            filepath += '.json'
+
+        with open(filepath, 'r') as f:
+            profile = json.load(f)
+
+        # Validate and merge with defaults
+        merged = self._merge_with_defaults(profile)
+
+        # Cache the profile
+        name = merged['identity']['name']
+        self.loaded_profiles[name] = merged
+
+        return merged
+
+    def load_from_preset(self, preset_name: str) -> dict:
+        """
+        Load a profile from preset.
+
+        Args:
+            preset_name: Name of preset (e.g., 'aggressive_whale')
+
+        Returns:
+            Profile dict
+        """
+        if preset_name not in self.PRESETS:
+            raise ValueError(f"Unknown preset: {preset_name}. Available: {list(self.PRESETS.keys())}")
+
+        return self._merge_with_defaults(self.PRESETS[preset_name])
+
+    def _merge_with_defaults(self, profile: dict) -> dict:
+        """Recursively merge profile with defaults."""
+        result = {}
+
+        for key, default_value in self.DEFAULTS.items():
+            if key in profile:
+                if isinstance(default_value, dict) and isinstance(profile[key], dict):
+                    # Recursive merge for nested dicts
+                    result[key] = self._deep_merge(default_value, profile[key])
+                else:
+                    result[key] = profile[key]
+            else:
+                result[key] = default_value.copy() if isinstance(default_value, dict) else default_value
+
+        return result
+
+    def _deep_merge(self, base: dict, override: dict) -> dict:
+        """Deep merge two dicts."""
+        result = base.copy()
+        for key, value in override.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                result[key] = self._deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
+
+    def validate_profile(self, profile: dict) -> tuple:
+        """
+        Validate a profile structure.
+
+        Returns:
+            (is_valid, list of errors)
+        """
+        errors = []
+
+        # Check required sections
+        for section in ['identity', 'strategy']:
+            if section not in profile:
+                errors.append(f"Missing required section: {section}")
+
+        # Validate identity
+        if 'identity' in profile:
+            if 'name' not in profile['identity']:
+                errors.append("Identity missing 'name'")
+
+        # Validate aggression values (0-1)
+        if 'strategy' in profile and 'aggression' in profile['strategy']:
+            for key, val in profile['strategy']['aggression'].items():
+                if not isinstance(val, (int, float)) or not 0 <= val <= 1:
+                    errors.append(f"Aggression '{key}' must be 0-1, got {val}")
+
+        # Validate whale chances (0-1)
+        if 'strategy' in profile and 'whale_chances' in profile['strategy']:
+            for key, val in profile['strategy']['whale_chances'].items():
+                if not isinstance(val, (int, float)) or not 0 <= val <= 1:
+                    errors.append(f"Whale chance '{key}' must be 0-1, got {val}")
+
+        return len(errors) == 0, errors
+
+    def save_profile(self, profile: dict, filename: str):
+        """
+        Save a profile to JSON file.
+
+        Args:
+            profile: Profile dict
+            filename: Output filename
+        """
+        import os
+        import json
+
+        os.makedirs(self.profile_dir, exist_ok=True)
+
+        if not filename.endswith('.json'):
+            filename += '.json'
+
+        filepath = os.path.join(self.profile_dir, filename)
+
+        with open(filepath, 'w') as f:
+            json.dump(profile, f, indent=2)
+
+        print(f"💾 Profile saved to: {filepath}")
+
+    def list_profiles(self) -> list:
+        """List available profile files."""
+        import os
+
+        profiles = []
+
+        if not os.path.exists(self.profile_dir):
+            return profiles
+
+        for filename in os.listdir(self.profile_dir):
+            if filename.endswith('.json'):
+                profiles.append(filename[:-5])  # Remove .json
+
+        return profiles
+
+    def print_profile(self, profile: dict):
+        """Print formatted profile info."""
+        identity = profile.get('identity', {})
+        strategy = profile.get('strategy', {})
+        learning = profile.get('learning', {})
+
+        print(f"""
+╔══════════════════════════════════════════════════════════════════╗
+║  {identity.get('emoji', '🤖')} {identity.get('name', 'Agent'):<56} ║
+╠══════════════════════════════════════════════════════════════════╣
+║  Type: {identity.get('agent_type', 'generic'):<55} ║
+║  {identity.get('description', '')[:60]:<62} ║
+╠══════════════════════════════════════════════════════════════════╣
+║  AGGRESSION                                                      ║
+║    Normal:  {strategy.get('aggression', {}).get('normal', 0):.0%}   Boost1: {strategy.get('aggression', {}).get('boost1', 0):.0%}   Boost2: {strategy.get('aggression', {}).get('boost2', 0):.0%}                     ║
+║    Final5s: {strategy.get('aggression', {}).get('final_5s', 0):.0%}  Final30: {strategy.get('aggression', {}).get('final_30s', 0):.0%}                              ║
+╠══════════════════════════════════════════════════════════════════╣
+║  WHALE CHANCES                                                   ║
+║    Normal: {strategy.get('whale_chances', {}).get('normal', 0):.0%}   Boost: {strategy.get('whale_chances', {}).get('boost', 0):.0%}   Final: {strategy.get('whale_chances', {}).get('final', 0):.0%}                       ║
+╠══════════════════════════════════════════════════════════════════╣
+║  LEARNING: {'✅ ENABLED' if learning.get('enabled') else '❌ Disabled':<52} ║
+║    Rate: {learning.get('learning_rate', 0):.2f}   Epsilon: {learning.get('epsilon', 0):.2f}   γ: {learning.get('discount_factor', 0):.2f}                       ║
+╚══════════════════════════════════════════════════════════════════╝
+""")

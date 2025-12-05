@@ -1,0 +1,27 @@
+{
+  "completed": {
+    "first_victory": {
+      "challenge_id": "first_victory",
+      "completed": true,
+      "stars_earned": 3,
+      "score": 582565,
+      "opponent_score": 18157,
+      "date": "2025-11-30 19:24"
+    },
+    "boost_basics": {
+      "challenge_id": "boost_basics",
+      "completed": true,
+      "stars_earned": 3,
+      "score": 427145,
+      "opponent_score": 159198,
+      "date": "2025-11-30 20:06"
+    }
+  },
+  "best_stars": {
+    "first_victory": 3,
+    "boost_basics": 3
+  },
+  "total_stars": 6,
+  "coins_earned": 7500,
+  "items_earned": {}
+}

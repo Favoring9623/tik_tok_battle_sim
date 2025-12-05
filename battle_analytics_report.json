@@ -1,0 +1,124 @@
+{
+  "battle": {
+    "duration": 120,
+    "winner": "creator",
+    "final_scores": {
+      "creator": 35980,
+      "opponent": 3573
+    },
+    "score_diff": -32407
+  },
+  "agents": {
+    "DefenseMaster": {
+      "total_donated": 10390,
+      "gifts_sent": 18,
+      "avg_gift_value": 577.2222222222222,
+      "best_gift": {
+        "name": "Galaxy",
+        "value": 2000
+      },
+      "timing": {
+        "early": 6,
+        "mid": 6,
+        "late": 5,
+        "final": 1
+      }
+    },
+    "BudgetOptimizer": {
+      "total_donated": 8420,
+      "gifts_sent": 18,
+      "avg_gift_value": 467.77777777777777,
+      "best_gift": {
+        "name": "Galaxy",
+        "value": 2000
+      },
+      "timing": {
+        "early": 6,
+        "mid": 5,
+        "late": 7,
+        "final": 0
+      }
+    },
+    "ChaoticTrickster": {
+      "total_donated": 8390,
+      "gifts_sent": 17,
+      "avg_gift_value": 493.52941176470586,
+      "best_gift": {
+        "name": "Galaxy",
+        "value": 2000
+      },
+      "timing": {
+        "early": 8,
+        "mid": 6,
+        "late": 2,
+        "final": 1
+      }
+    },
+    "SynergyCoordinator": {
+      "total_donated": 2360,
+      "gifts_sent": 13,
+      "avg_gift_value": 181.53846153846155,
+      "best_gift": {
+        "name": "Galaxy",
+        "value": 2000
+      },
+      "timing": {
+        "early": 4,
+        "mid": 4,
+        "late": 4,
+        "final": 1
+      }
+    },
+    "Kinetik": {
+      "total_donated": 6420,
+      "gifts_sent": 17,
+      "avg_gift_value": 377.6470588235294,
+      "best_gift": {
+        "name": "Galaxy",
+        "value": 2000
+      },
+      "timing": {
+        "early": 5,
+        "mid": 7,
+        "late": 5,
+        "final": 0
+      }
+    }
+  },
+  "coordination": {
+    "total_events": 0,
+    "conflicts_prevented": 0,
+    "dependencies_satisfied": 0,
+    "coordination_rate": 0.0,
+    "events": []
+  },
+  "multipliers": {
+    "sessions": 0,
+    "total_duration": 0
+  },
+  "gifts": {
+    "distribution": {
+      "Doughnut": 66,
+      "Galaxy": 17
+    },
+    "timing_patterns": {
+      "Doughnut": {
+        "count": 66,
+        "first": 0,
+        "last": 117,
+        "avg_time": 65.45454545454545
+      },
+      "Galaxy": {
+        "count": 17,
+        "first": 12,
+        "last": 30,
+        "avg_time": 21.529411764705884
+      }
+    },
+    "most_used": "Doughnut"
+  },
+  "timeline": {
+    "snapshots": 41,
+    "actions": 83
+  }
+}

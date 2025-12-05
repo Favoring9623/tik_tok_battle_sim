@@ -1,0 +1,29 @@
+{
+  "name": "Snipe Master",
+  "description": "Save everything for final 5 seconds",
+  "budget_preference": "balanced",
+  "aggression": {
+    "normal": 0.05,
+    "boost1": 0.1,
+    "boost2": 0.15,
+    "final_30s": 0.2,
+    "final_5s": 0.99,
+    "x5_active": 0.9
+  },
+  "whale_chances": {
+    "normal": 0.01,
+    "boost": 0.05,
+    "final": 0.7,
+    "x5": 0.4
+  },
+  "glove_timing": {
+    "boost1": 0.1,
+    "boost2": 0.1,
+    "final_30s": 0.2,
+    "final_5s": 0.99
+  },
+  "reserves": {
+    "boost2": 0.1,
+    "snipe": 0.6
+  }
+}
