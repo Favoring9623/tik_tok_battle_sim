@@ -715,8 +715,8 @@
     </div>
 
     <script>
-        // Connect to SocketIO server
-        const socket = io('http://localhost:5000');
+        // Connect to SocketIO server (uses current host)
+        const socket = io();
 
         let currentTournament = null;
         let currentBattle = null;

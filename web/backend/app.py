@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 app = Flask(__name__,
             static_folder='../static',
             template_folder='../frontend/public')
-app.config['SECRET_KEY'] = 'tiktok-battle-secret-key'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 # Enable CORS for development
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -412,7 +412,7 @@ def broadcast_tournament_champion(team_name: str, emoji: str = '🏆',
     })
 
 
-def run_server(host='0.0.0.0', port=5000, debug=True):
+def run_server(host='0.0.0.0', port=5000, debug=None):
     """Run the Flask-SocketIO server."""
     print(f"\n{'='*70}")
     print(f"🌐 TikTok Battle Dashboard Server")
@@ -421,6 +421,8 @@ def run_server(host='0.0.0.0', port=5000, debug=True):
     print(f"Open in browser to watch battles live!")
     print(f"{'='*70}\n")
 
+    if debug is None:
+        debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)
 
 
