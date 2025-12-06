@@ -128,12 +128,48 @@ Environment variables:
 python -m pytest tests/ -v
 ```
 
+## Docker Deployment
+
+```bash
+# Build and run
+docker-compose up --build
+
+# Or just build
+docker build -t tiktok-battle-sim .
+docker run -p 5000:5000 tiktok-battle-sim
+```
+
 ## Documentation
 
 See `docs/` directory:
 - `docs/setup/` - Installation and GPT setup guides
 - `docs/features/` - Feature documentation
 - `docs/analysis/` - Battle analytics and findings
+
+## Roadmap
+
+### Completed
+- [x] Core battle engine with phases, multipliers, power-ups
+- [x] AI agents (specialists + GPT-powered personas)
+- [x] Tournament system with 8-team brackets
+- [x] Real-time web dashboard with Socket.IO
+- [x] Mobile-responsive UI
+- [x] Docker containerization
+- [x] GitHub Actions CI pipeline
+- [x] Test suite (62 tests)
+
+### In Progress
+- [ ] Database persistence for battle history
+- [ ] User authentication for dashboard
+
+### Planned
+- [ ] Battle replay system
+- [ ] Sound effects and audio feedback
+- [ ] Advanced analytics dashboard
+- [ ] OBS streaming integration
+- [ ] Live TikTok data integration (read-only)
+- [ ] Audience voting/interaction
+- [ ] API for third-party integration
 
 ## License
 
