@@ -11,6 +11,9 @@
     <!-- Chart.js for visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
+    <!-- Sound Effects -->
+    <script src="/static/sounds/sounds.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -542,8 +545,13 @@
         <header>
             <h1>🏆 Tournament Dashboard</h1>
             <p style="margin: 10px 0;">8-Team Elimination Bracket System</p>
-            <div id="connection-status" class="status disconnected">
-                🔴 Connecting...
+            <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+                <div id="connection-status" class="status disconnected">
+                    🔴 Connecting...
+                </div>
+                <button id="soundToggle" onclick="toggleSound()" style="background: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.5); border-radius: 8px; padding: 8px 15px; color: #f59e0b; cursor: pointer; font-size: 1.1rem;">
+                    🔊
+                </button>
             </div>
             <div class="nav-tabs">
                 <a href="/" class="nav-tab">🎮 Battle</a>
@@ -737,6 +745,14 @@
         // Connect to SocketIO server (uses current host)
         const socket = io();
 
+        // Sound toggle function
+        function toggleSound() {
+            if (window.battleSounds) {
+                const enabled = window.battleSounds.toggle();
+                document.getElementById('soundToggle').textContent = enabled ? '🔊' : '🔇';
+            }
+        }
+
         let currentTournament = null;
         let currentBattle = null;
         let bracketData = [];
@@ -760,6 +776,10 @@
             console.log('✅ Tournament started:', data);
             currentTournament = data;
             bracketData = [];
+
+            // Play tournament start sound
+            if (window.battleSounds) window.battleSounds.battleStart();
+
             renderTournament();
         });
 
@@ -818,6 +838,10 @@
             if (currentTournament) {
                 currentTournament.status = 'completed';
                 currentTournament.result = data;
+
+                // Play victory sound for tournament champion
+                if (window.battleSounds) window.battleSounds.battleEnd(true);
+
                 renderTournamentEnd();
             }
         });

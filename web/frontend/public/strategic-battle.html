@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Strategic Battle Dashboard</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="/static/sounds/sounds.js"></script>
     <style>
         * {
             margin: 0;
@@ -822,8 +823,13 @@
         <!-- Header -->
         <div class="header">
             <h1>Strategic Battle Dashboard</h1>
-            <div class="status-badge status-waiting" id="statusBadge">
-                Waiting for Battle...
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="status-badge status-waiting" id="statusBadge">
+                    Waiting for Battle...
+                </div>
+                <button id="soundToggle" onclick="toggleSound()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 8px 15px; color: white; cursor: pointer; font-size: 1.1rem;">
+                    🔊
+                </button>
             </div>
         </div>
 
@@ -1113,6 +1119,14 @@
     <script>
         // Socket.IO connection
         const socket = io();
+
+        // Sound toggle function
+        function toggleSound() {
+            if (window.battleSounds) {
+                const enabled = window.battleSounds.toggle();
+                document.getElementById('soundToggle').textContent = enabled ? '🔊' : '🔇';
+            }
+        }
 
         // State
         let battleActive = false;
@@ -1569,6 +1583,9 @@
             battleActive = true;
             updateStatus('live');
             addGptMessage(data.gpt_analysis || 'Battle starting!');
+
+            // Play battle start sound
+            if (window.battleSounds) window.battleSounds.battleStart();
             addEvent(`Strategic battle started! (${data.duration}s)`, 'phase');
 
             // Reset state
@@ -1650,6 +1667,9 @@
             updatePhase(data.name, data.multiplier, data.time_remaining || 0);
             addEvent(`Phase: ${data.name} (x${data.multiplier})`, 'phase');
 
+            // Play phase change sound
+            if (window.battleSounds) window.battleSounds.phaseChange(data.multiplier);
+
             if (data.gpt_commentary) {
                 addGptMessage(data.gpt_commentary);
             }
@@ -1665,6 +1685,11 @@
             });
 
             addEvent(`${data.emoji} ${data.agent_name}: ${data.gift_name} (+${formatNumber(data.points)})`, 'gift');
+
+            // Play gift sound based on value
+            if (window.battleSounds && !data.gift_name.toLowerCase().includes('glove')) {
+                window.battleSounds.giftReceived(data.points || 0);
+            }
 
             // Show gift visual effect (skip gloves - they have their own effect)
             if (!data.gift_name.toLowerCase().includes('glove')) {
@@ -1700,6 +1725,15 @@
             // Show glove visual effect
             showGloveEffect(data.activated);
 
+            // Play glove sounds
+            if (window.battleSounds) {
+                if (data.activated) {
+                    window.battleSounds.gloveActivated();
+                } else {
+                    window.battleSounds.gloveSent();
+                }
+            }
+
             if (data.activated) {
                 addEvent(`🥊 GLOVE x5 ACTIVATED!`, 'glove');
             } else {
@@ -1710,6 +1744,17 @@
         socket.on('powerup_used', (data) => {
             updatePowerup(data.type, 'used');
             addEvent(`${data.emoji} ${data.name} deployed!`, 'powerup');
+
+            // Play power-up sounds
+            if (window.battleSounds) {
+                if (data.type === 'Hammer') {
+                    window.battleSounds.hammerSmash();
+                } else if (data.type === 'Fog') {
+                    window.battleSounds.fogActivated();
+                } else if (data.type === 'Time') {
+                    window.battleSounds.timeBonus();
+                }
+            }
 
             // Show power-up visual effects
             if (data.type === 'Hammer') {
@@ -1733,6 +1778,12 @@
         socket.on('battle_end', (data) => {
             battleActive = false;
             updateStatus('complete');
+
+            // Play battle end sound
+            if (window.battleSounds) {
+                const isWin = data.winner === 'creator';
+                window.battleSounds.battleEnd(isWin);
+            }
 
             // Clear fog and any pending fog timeout
             if (fogTimeoutId) {
