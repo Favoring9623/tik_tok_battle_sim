@@ -483,6 +483,23 @@
         .specialist-card.budget { border-left-color: #10b981; }
         .specialist-card.chaos { border-left-color: #f59e0b; }
         .specialist-card.synergy { border-left-color: #8b5cf6; }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            header { padding: 15px; }
+            h1 { font-size: 1.5rem; }
+            .grid { grid-template-columns: 1fr; }
+            .scoreboard { flex-direction: column; gap: 15px; }
+            .score-value { font-size: 2rem; }
+            .vs { font-size: 1.2rem; }
+            .card { padding: 15px; }
+            .card h2 { font-size: 1.1rem; }
+            .nav-tabs { flex-wrap: wrap; justify-content: center; }
+            .nav-tab { padding: 6px 12px; font-size: 0.85rem; }
+            .specialist-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .analytics-mini { grid-template-columns: 1fr 1fr; }
+        }
     </style>
 </head>
 <body>

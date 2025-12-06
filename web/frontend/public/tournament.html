@@ -516,6 +516,25 @@
             font-weight: 600;
             margin-left: 8px;
         }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            h1 { font-size: 1.5rem; }
+            header { padding: 15px; }
+            .grid { grid-template-columns: 1fr; }
+            .card { padding: 15px; }
+            .series-score { flex-direction: column; gap: 20px; }
+            .wins-display { font-size: 2.5rem; }
+            .vs { font-size: 1.5rem; }
+            .bracket-8team { min-width: 100%; flex-direction: column; gap: 20px; }
+            .bracket-round { min-width: 100%; }
+            .bracket-connector { display: none; }
+            .nav-tabs { flex-wrap: wrap; justify-content: center; }
+            .nav-tab { padding: 6px 12px; font-size: 0.85rem; }
+            .standings-table { font-size: 0.85rem; }
+            .standings-table th, .standings-table td { padding: 8px; }
+        }
     </style>
 </head>
 <body>
