@@ -4,7 +4,7 @@ TikTok Battle Simulator - Web Dashboard Backend
 Flask + SocketIO server for real-time battle visualization.
 """
 
-from flask import Flask, render_template, jsonify, send_from_directory
+from flask import Flask, render_template, jsonify, send_from_directory, request, session, redirect, url_for
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import os
@@ -14,6 +14,11 @@ from typing import Dict, Any, List, Optional
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+
+from web.backend.auth import (
+    login_required, admin_required, authenticate_user,
+    create_user, init_default_admin, get_user_count
+)
 
 app = Flask(__name__,
             static_folder='../static',
@@ -412,8 +417,191 @@ def broadcast_tournament_champion(team_name: str, emoji: str = '🏆',
     })
 
 
+# =============================================================================
+# Database API Endpoints
+# =============================================================================
+
+try:
+    from core.database import BattleRepository, TournamentRepository, init_database
+    DATABASE_AVAILABLE = True
+    init_database()
+except ImportError:
+    DATABASE_AVAILABLE = False
+
+
+@app.route('/api/db/battles')
+def get_db_battles():
+    """Get battle history from database."""
+    if not DATABASE_AVAILABLE:
+        return jsonify({'error': 'Database not available'}), 503
+
+    limit = int(request.args.get('limit', 20))
+    battles = BattleRepository.get_recent_battles(limit)
+    return jsonify({'battles': battles})
+
+
+@app.route('/api/db/battles/<battle_id>')
+def get_db_battle(battle_id):
+    """Get specific battle from database."""
+    if not DATABASE_AVAILABLE:
+        return jsonify({'error': 'Database not available'}), 503
+
+    battle = BattleRepository.get_battle(battle_id)
+    if battle:
+        events = BattleRepository.get_battle_events(battle_id)
+        battle['events'] = events
+        return jsonify(battle)
+    return jsonify({'error': 'Battle not found'}), 404
+
+
+@app.route('/api/db/statistics')
+def get_db_statistics():
+    """Get overall battle statistics."""
+    if not DATABASE_AVAILABLE:
+        return jsonify({'error': 'Database not available'}), 503
+
+    stats = BattleRepository.get_statistics()
+    return jsonify(stats)
+
+
+@app.route('/api/db/tournaments')
+def get_db_tournaments():
+    """Get tournament history from database."""
+    if not DATABASE_AVAILABLE:
+        return jsonify({'error': 'Database not available'}), 503
+
+    limit = int(request.args.get('limit', 10))
+    tournaments = TournamentRepository.get_recent_tournaments(limit)
+    return jsonify({'tournaments': tournaments})
+
+
+@app.route('/api/db/tournaments/<tournament_id>')
+def get_db_tournament(tournament_id):
+    """Get specific tournament from database."""
+    if not DATABASE_AVAILABLE:
+        return jsonify({'error': 'Database not available'}), 503
+
+    tournament = TournamentRepository.get_tournament(tournament_id)
+    if tournament:
+        return jsonify(tournament)
+    return jsonify({'error': 'Tournament not found'}), 404
+
+
+# =============================================================================
+# Authentication Routes
+# =============================================================================
+
+@app.route('/login', methods=['GET'])
+def login_page():
+    """Serve login page."""
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Login - TikTok Battle Simulator</title>
+        <style>
+            body { font-family: -apple-system, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
+            .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%; }
+            h1 { margin: 0 0 30px; color: #1f2937; text-align: center; }
+            input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+            button { width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 20px; }
+            button:hover { opacity: 0.9; }
+            .error { color: #ef4444; text-align: center; margin-top: 15px; }
+        </style>
+    </head>
+    <body>
+        <div class="login-box">
+            <h1>TikTok Battle Simulator</h1>
+            <form method="POST" action="/login">
+                <input type="text" name="username" placeholder="Username" required>
+                <input type="password" name="password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </body>
+    </html>
+    '''
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    """Handle login form submission."""
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    user = authenticate_user(username, password)
+    if user:
+        session['user_id'] = user['id']
+        session['username'] = user['username']
+        session['is_admin'] = user['is_admin']
+        return redirect(url_for('index'))
+
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Login - TikTok Battle Simulator</title>
+        <style>
+            body { font-family: -apple-system, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
+            .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%; }
+            h1 { margin: 0 0 30px; color: #1f2937; text-align: center; }
+            input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+            button { width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 20px; }
+            button:hover { opacity: 0.9; }
+            .error { color: #ef4444; text-align: center; margin-top: 15px; }
+        </style>
+    </head>
+    <body>
+        <div class="login-box">
+            <h1>TikTok Battle Simulator</h1>
+            <form method="POST" action="/login">
+                <input type="text" name="username" placeholder="Username" required>
+                <input type="password" name="password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+            <p class="error">Invalid username or password</p>
+        </div>
+    </body>
+    </html>
+    '''
+
+
+@app.route('/logout')
+def logout():
+    """Handle logout."""
+    session.clear()
+    return redirect(url_for('login_page'))
+
+
+@app.route('/api/auth/status')
+def auth_status():
+    """Check authentication status."""
+    auth_enabled = os.environ.get('AUTH_ENABLED', 'false').lower() == 'true'
+    if 'user_id' in session:
+        return jsonify({
+            'authenticated': True,
+            'username': session.get('username'),
+            'is_admin': session.get('is_admin', False),
+            'auth_enabled': auth_enabled
+        })
+    return jsonify({
+        'authenticated': False,
+        'auth_enabled': auth_enabled
+    })
+
+
+# =============================================================================
+# Server Runner
+# =============================================================================
+
 def run_server(host='0.0.0.0', port=5000, debug=None):
     """Run the Flask-SocketIO server."""
+    # Initialize default admin if auth is enabled
+    if os.environ.get('AUTH_ENABLED', 'false').lower() == 'true':
+        init_default_admin()
+
     print(f"\n{'='*70}")
     print(f"🌐 TikTok Battle Dashboard Server")
     print(f"{'='*70}")
