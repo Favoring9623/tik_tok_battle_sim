@@ -157,10 +157,8 @@ See `docs/` directory:
 - [x] Docker containerization
 - [x] GitHub Actions CI pipeline
 - [x] Test suite (62 tests)
-
-### In Progress
-- [ ] Database persistence for battle history
-- [ ] User authentication for dashboard
+- [x] SQLite database for battle history
+- [x] User authentication system
 
 ### Planned
 - [ ] Battle replay system
