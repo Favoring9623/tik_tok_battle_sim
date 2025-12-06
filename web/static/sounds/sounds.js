@@ -256,6 +256,74 @@ class BattleSounds {
     }
 
     /**
+     * Final 30 seconds dramatic urge - intense pulsing heartbeat
+     */
+    final30Seconds() {
+        if (!this.enabled) return;
+        this.init();
+
+        // Dramatic low rumble + ascending tension
+        this.playTone(60, 0.3, 'sine');
+        this.playTone(80, 0.25, 'sawtooth');
+
+        // Tension build arpeggio
+        setTimeout(() => {
+            this.playArpeggio([220, 277, 330, 415], 0.15, 'sawtooth');
+        }, 300);
+
+        // Final dramatic hit
+        setTimeout(() => {
+            this.playTone(110, 0.4, 'sawtooth');
+            this.playTone(220, 0.3, 'triangle');
+        }, 900);
+    }
+
+    /**
+     * Heartbeat pulse for final countdown (call repeatedly)
+     */
+    heartbeat(intensity = 1) {
+        if (!this.enabled) return;
+        this.init();
+
+        const baseFreq = 50 + (intensity * 20);
+        const vol = this.volume * (0.3 + intensity * 0.2);
+
+        // Double thump like heartbeat
+        const osc1 = this.audioContext.createOscillator();
+        const gain1 = this.audioContext.createGain();
+        osc1.connect(gain1);
+        gain1.connect(this.audioContext.destination);
+        osc1.type = 'sine';
+        osc1.frequency.value = baseFreq;
+
+        const now = this.audioContext.currentTime;
+        gain1.gain.setValueAtTime(0, now);
+        gain1.gain.linearRampToValueAtTime(vol, now + 0.05);
+        gain1.gain.linearRampToValueAtTime(0, now + 0.15);
+
+        osc1.start(now);
+        osc1.stop(now + 0.15);
+
+        // Second beat (slightly softer)
+        setTimeout(() => {
+            const osc2 = this.audioContext.createOscillator();
+            const gain2 = this.audioContext.createGain();
+            osc2.connect(gain2);
+            gain2.connect(this.audioContext.destination);
+            osc2.type = 'sine';
+            osc2.frequency.value = baseFreq * 0.9;
+
+            const now2 = this.audioContext.currentTime;
+            gain2.gain.setValueAtTime(0, now2);
+            gain2.gain.linearRampToValueAtTime(vol * 0.7, now2 + 0.04);
+            gain2.gain.linearRampToValueAtTime(0, now2 + 0.12);
+
+            osc2.start(now2);
+            osc2.stop(now2 + 0.12);
+        }, 150);
+    }
+
+    /**
      * Boost condition met
      */
     boostQualified() {

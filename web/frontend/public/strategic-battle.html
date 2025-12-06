@@ -1137,6 +1137,8 @@
         let gloveStats = { sent: 0, activated: 0 };
         let boostConditions = { roses: 0, points: 0, met: false };
         let fogTimeoutId = null; // Track fog timeout for cleanup
+        let inFinal30s = false; // Track final 30 seconds state
+        let heartbeatInterval = null; // Heartbeat sound interval
         let budgetState = {
             creatorStarting: 0,
             opponentStarting: 0,
@@ -1592,6 +1594,11 @@
             agents = {};
             gloveStats = { sent: 0, activated: 0 };
             boostConditions = { creatorQualified: false, opponentQualified: false };
+            inFinal30s = false;
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
 
             // Initialize budgets
             if (data.creator_budget !== undefined && data.opponent_budget !== undefined) {
@@ -1712,10 +1719,28 @@
             if (data.creator_qualified && !boostConditions.creatorQualified) {
                 boostConditions.creatorQualified = true;
                 addEvent(`🎯 CREATOR qualified for Boost #2!`, 'phase');
+                if (window.battleSounds) window.battleSounds.boostQualified();
             }
             if (data.opponent_qualified && !boostConditions.opponentQualified) {
                 boostConditions.opponentQualified = true;
                 addEvent(`🎯 OPPONENT qualified for Boost #2!`, 'phase');
+            }
+
+            // Trigger final 30 seconds dramatic sound
+            if (data.in_final_30s && !inFinal30s) {
+                inFinal30s = true;
+                addEvent(`⏰ FINAL 30 SECONDS!`, 'phase');
+
+                // Play dramatic urge sound
+                if (window.battleSounds) window.battleSounds.final30Seconds();
+
+                // Start heartbeat every 2 seconds, increasing intensity
+                let beatCount = 0;
+                heartbeatInterval = setInterval(() => {
+                    beatCount++;
+                    const intensity = Math.min(beatCount / 10, 1.5); // Increases over time
+                    if (window.battleSounds) window.battleSounds.heartbeat(intensity);
+                }, 2000);
             }
         });
 
@@ -1778,6 +1803,13 @@
         socket.on('battle_end', (data) => {
             battleActive = false;
             updateStatus('complete');
+
+            // Stop heartbeat sound
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+            inFinal30s = false;
 
             // Play battle end sound
             if (window.battleSounds) {
