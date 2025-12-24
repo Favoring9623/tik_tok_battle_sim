@@ -2,12 +2,24 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install Playwright browsers (for TikTok integration)
+RUN playwright install chromium --with-deps || true
+
 # Copy application code
 COPY . .
+
+# Create data directory
+RUN mkdir -p /app/data
 
 # Expose port
 EXPOSE 5000
@@ -15,6 +27,7 @@ EXPOSE 5000
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV FLASK_DEBUG=false
+ENV PORT=5000
 
-# Run the web server
-CMD ["python", "-c", "from web.backend.app import run_server; run_server(host='0.0.0.0', port=5000)"]
+# Run with gunicorn
+CMD gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:${PORT:-5000} 'web.backend.app:app'

@@ -180,6 +180,16 @@ def control_center_page():
     return send_from_directory('../frontend/public', 'control-center.html')
 
 
+@app.route('/api/health')
+def health_check():
+    """Health check endpoint for deployment."""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'TikTok Battle Simulator',
+        'version': '2.0.0'
+    })
+
+
 @app.route('/api/live/status')
 def get_live_status():
     """Get live battle system status."""
