@@ -6,9 +6,18 @@ __pycache__/
 .gitignore
 .env
 .env.*
-*.md
-docs/
 .pytest_cache/
 .idea/
 .claude/
-data/
+
+# Exclude docs but keep legal folder
+docs/api/
+docs/tiktok/
+
+# Exclude debug/test files
+debug_*.py
+debug_*.png
+investigate_*.py
+investigate_*.png
+test_*.py
+*.log
