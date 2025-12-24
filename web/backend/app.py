@@ -2118,7 +2118,19 @@ def api_info():
 def privacy_policy():
     """Serve Privacy Policy page."""
     import markdown
-    policy_path = os.path.join(os.path.dirname(__file__), '../../docs/legal/PRIVACY_POLICY.md')
+    # Try multiple paths for Docker compatibility
+    possible_paths = [
+        '/app/docs/legal/PRIVACY_POLICY.md',  # Docker container
+        os.path.join(os.path.dirname(__file__), '../../docs/legal/PRIVACY_POLICY.md'),  # Local
+        os.path.abspath('docs/legal/PRIVACY_POLICY.md'),  # Relative to cwd
+    ]
+    policy_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            policy_path = path
+            break
+    if not policy_path:
+        return '<h1>Privacy Policy</h1><p>Policy document not found.</p>', 404
     try:
         with open(policy_path, 'r') as f:
             content = f.read()
@@ -2159,7 +2171,19 @@ def privacy_policy():
 def terms_of_service():
     """Serve Terms of Service page."""
     import markdown
-    tos_path = os.path.join(os.path.dirname(__file__), '../../docs/legal/TERMS_OF_SERVICE.md')
+    # Try multiple paths for Docker compatibility
+    possible_paths = [
+        '/app/docs/legal/TERMS_OF_SERVICE.md',  # Docker container
+        os.path.join(os.path.dirname(__file__), '../../docs/legal/TERMS_OF_SERVICE.md'),  # Local
+        os.path.abspath('docs/legal/TERMS_OF_SERVICE.md'),  # Relative to cwd
+    ]
+    tos_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            tos_path = path
+            break
+    if not tos_path:
+        return '<h1>Terms of Service</h1><p>Terms document not found.</p>', 404
     try:
         with open(tos_path, 'r') as f:
             content = f.read()
