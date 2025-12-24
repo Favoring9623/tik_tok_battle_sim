@@ -51,6 +51,17 @@ except ImportError:
     TIKTOK_LIVE_AVAILABLE = False
     print("WARNING: TikTokLive not installed. Run: pip install TikTokLive")
 
+    # Define dummy classes for type hints when TikTokLive is not installed
+    class GiftEvent: pass
+    class ConnectEvent: pass
+    class DisconnectEvent: pass
+    class CommentEvent: pass
+    class LikeEvent: pass
+    class ShareEvent: pass
+    class FollowEvent: pass
+    class JoinEvent: pass
+    TikTokLiveClient = None
+
 # Local imports
 from core.tiktok_gifts_catalog import TIKTOK_GIFTS_CATALOG, TikTokGift, GiftTier
 
