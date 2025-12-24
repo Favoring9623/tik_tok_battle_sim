@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Gift Alerts</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --tiktok-red: #FE2C55;
+            --tiktok-cyan: #25F4EE;
+            --gold: #FFD700;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: transparent;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Alert Container */
+        .alert-container {
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 20px;
+        }
+
+        .alert-container.top-left { top: 0; left: 0; align-items: flex-start; }
+        .alert-container.top-right { top: 0; right: 0; align-items: flex-end; }
+        .alert-container.bottom-left { bottom: 0; left: 0; align-items: flex-start; }
+        .alert-container.bottom-right { bottom: 0; right: 0; align-items: flex-end; }
+        .alert-container.center {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            align-items: center;
+        }
+
+        /* Gift Alert Card */
+        .gift-alert {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 16px 24px;
+            border-radius: 16px;
+            min-width: 320px;
+            animation: alertSlideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .gift-alert.creator {
+            border: 2px solid var(--tiktok-cyan);
+            box-shadow: 0 0 30px rgba(37, 244, 238, 0.3);
+        }
+
+        .gift-alert.opponent {
+            border: 2px solid var(--tiktok-red);
+            box-shadow: 0 0 30px rgba(254, 44, 85, 0.3);
+        }
+
+        .gift-alert.fade-out {
+            animation: alertFadeOut 0.5s ease-out forwards;
+        }
+
+        @keyframes alertSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.8);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes alertFadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.9);
+            }
+        }
+
+        .gift-emoji {
+            font-size: 3rem;
+            animation: bounce 0.5s ease-out;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .gift-info {
+            flex: 1;
+        }
+
+        .gift-sender {
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .gift-name {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .gift-points {
+            font-size: 1.8rem;
+            font-weight: 800;
+        }
+
+        .gift-alert.creator .gift-points {
+            color: var(--tiktok-cyan);
+            text-shadow: 0 0 20px var(--tiktok-cyan);
+        }
+
+        .gift-alert.opponent .gift-points {
+            color: var(--tiktok-red);
+            text-shadow: 0 0 20px var(--tiktok-red);
+        }
+
+        /* Mega Gift Alert (for high value gifts) */
+        .gift-alert.mega {
+            min-width: 400px;
+            padding: 24px 32px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(30,30,50,0.95));
+            animation: megaAlertIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .gift-alert.mega.creator {
+            border: 3px solid var(--tiktok-cyan);
+            box-shadow: 0 0 50px rgba(37, 244, 238, 0.5);
+        }
+
+        .gift-alert.mega.opponent {
+            border: 3px solid var(--tiktok-red);
+            box-shadow: 0 0 50px rgba(254, 44, 85, 0.5);
+        }
+
+        .gift-alert.mega .gift-emoji {
+            font-size: 4rem;
+        }
+
+        .gift-alert.mega .gift-points {
+            font-size: 2.5rem;
+        }
+
+        @keyframes megaAlertIn {
+            0% {
+                opacity: 0;
+                transform: scale(0) rotate(-10deg);
+            }
+            60% {
+                transform: scale(1.1) rotate(2deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0);
+            }
+        }
+
+        /* Power-up Alert */
+        .power-alert {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            background: linear-gradient(135deg, var(--gold), #ff9800);
+            color: black;
+            padding: 20px 40px;
+            border-radius: 20px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            animation: powerAlertIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.5);
+        }
+
+        .power-alert.fade-out {
+            animation: alertFadeOut 0.5s ease-out forwards;
+        }
+
+        @keyframes powerAlertIn {
+            0% {
+                opacity: 0;
+                transform: scale(0);
+            }
+            60% {
+                transform: scale(1.15);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .power-alert .icon {
+            font-size: 2rem;
+        }
+
+        /* Glove Battle Alert */
+        .glove-alert {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            color: white;
+            padding: 24px 48px;
+            border-radius: 20px;
+            font-size: 2rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            animation: gloveAlertIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 60px rgba(255, 100, 100, 0.6);
+        }
+
+        .glove-alert.fade-out {
+            animation: alertFadeOut 0.5s ease-out forwards;
+        }
+
+        @keyframes gloveAlertIn {
+            0% {
+                opacity: 0;
+                transform: scale(0) rotate(-180deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0);
+            }
+        }
+
+        /* Winner Alert */
+        .winner-alert {
+            text-align: center;
+            padding: 40px 60px;
+            background: rgba(0, 0, 0, 0.95);
+            border-radius: 24px;
+            animation: winnerAlertIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .winner-alert.creator {
+            border: 4px solid var(--tiktok-cyan);
+            box-shadow: 0 0 80px rgba(37, 244, 238, 0.5);
+        }
+
+        .winner-alert.opponent {
+            border: 4px solid var(--tiktok-red);
+            box-shadow: 0 0 80px rgba(254, 44, 85, 0.5);
+        }
+
+        @keyframes winnerAlertIn {
+            0% {
+                opacity: 0;
+                transform: scale(0);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            70% {
+                transform: scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .winner-label {
+            font-size: 1.5rem;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 12px;
+        }
+
+        .winner-team {
+            font-size: 3rem;
+            font-weight: 800;
+        }
+
+        .winner-alert.creator .winner-team {
+            color: var(--tiktok-cyan);
+            text-shadow: 0 0 30px var(--tiktok-cyan);
+        }
+
+        .winner-alert.opponent .winner-team {
+            color: var(--tiktok-red);
+            text-shadow: 0 0 30px var(--tiktok-red);
+        }
+
+        .winner-score {
+            font-size: 1.5rem;
+            color: white;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="alert-container top-right" id="alertContainer"></div>
+
+    <script>
+        const giftEmojis = {
+            'Rose': '🌹', 'TikTok': '🎵', 'Like': '❤️', 'Heart': '💖',
+            'Fire': '🔥', 'GG': '🏆', 'Ice Cream': '🍦', 'Doughnut': '🍩',
+            'Finger Heart': '🫰', 'Love You': '💕', 'Perfume': '💐',
+            'Cap': '🧢', 'Weights': '💪', 'Birthday Cake': '🎂',
+            'Hand Hearts': '🙌', 'Corgi': '🐕', 'Gaming Chair': '🎮',
+            'Love You Kitty': '😻', 'Lucky Airdrop Box': '📦',
+            'Galaxy': '🌌', 'Lion': '🦁', 'Rocket': '🚀',
+            'Interstellar': '🌠', 'Phoenix': '🔥', 'TikTok Universe': '🌍',
+            'Rosa': '🌸', 'default': '🎁'
+        };
+
+        // High-value gift threshold
+        const MEGA_GIFT_THRESHOLD = 10000;
+
+        const socket = io();
+        const container = document.getElementById('alertContainer');
+
+        socket.on('gift_sent', (data) => showGiftAlert(data));
+        socket.on('power_up', (data) => showPowerUpAlert(data));
+        socket.on('glove_battle_start', () => showGloveAlert());
+        socket.on('battle_end', (data) => showWinnerAlert(data));
+
+        function showGiftAlert(data) {
+            const team = data.team || 'creator';
+            const giftName = data.gift_name || data.gift || 'Gift';
+            const emoji = giftEmojis[giftName] || giftEmojis.default;
+            const points = data.points || 0;
+            const isMega = points >= MEGA_GIFT_THRESHOLD;
+
+            const alert = document.createElement('div');
+            alert.className = `gift-alert ${team}${isMega ? ' mega' : ''}`;
+            alert.innerHTML = `
+                <span class="gift-emoji">${emoji}</span>
+                <div class="gift-info">
+                    <div class="gift-sender">${data.agent_name || data.sender || 'Anonymous'}</div>
+                    <div class="gift-name">sent ${giftName}</div>
+                </div>
+                <div class="gift-points">+${points.toLocaleString()}</div>
+            `;
+
+            container.appendChild(alert);
+
+            // Remove after delay
+            const duration = isMega ? 5000 : 4000;
+            setTimeout(() => {
+                alert.classList.add('fade-out');
+                setTimeout(() => alert.remove(), 500);
+            }, duration);
+
+            // Limit visible alerts
+            limitAlerts(5);
+        }
+
+        function showPowerUpAlert(data) {
+            const alert = document.createElement('div');
+            alert.className = 'power-alert';
+            alert.innerHTML = `
+                <span class="icon">⚡</span>
+                <span>${data.power_up || data.name || 'POWER UP!'}</span>
+                <span class="icon">⚡</span>
+            `;
+
+            container.appendChild(alert);
+
+            setTimeout(() => {
+                alert.classList.add('fade-out');
+                setTimeout(() => alert.remove(), 500);
+            }, 3000);
+        }
+
+        function showGloveAlert() {
+            const alert = document.createElement('div');
+            alert.className = 'glove-alert';
+            alert.innerHTML = '🥊 GLOVE BATTLE! 🥊';
+
+            container.appendChild(alert);
+
+            setTimeout(() => {
+                alert.classList.add('fade-out');
+                setTimeout(() => alert.remove(), 500);
+            }, 4000);
+        }
+
+        function showWinnerAlert(data) {
+            // Clear other alerts
+            container.innerHTML = '';
+
+            const winner = data.winner || 'creator';
+            const alert = document.createElement('div');
+            alert.className = `winner-alert ${winner}`;
+            alert.innerHTML = `
+                <div class="winner-label">🏆 Winner 🏆</div>
+                <div class="winner-team">${winner === 'creator' ? 'CREATOR' : 'OPPONENT'} WINS!</div>
+                <div class="winner-score">${(data.creator_score || 0).toLocaleString()} - ${(data.opponent_score || 0).toLocaleString()}</div>
+            `;
+
+            container.appendChild(alert);
+        }
+
+        function limitAlerts(max) {
+            const alerts = container.children;
+            while (alerts.length > max) {
+                const oldest = alerts[0];
+                oldest.classList.add('fade-out');
+                setTimeout(() => oldest.remove(), 500);
+            }
+        }
+
+        // URL params for position
+        const params = new URLSearchParams(window.location.search);
+        const position = params.get('position') || 'top-right';
+
+        container.className = `alert-container ${position}`;
+
+        // Minimum points threshold
+        const minPoints = parseInt(params.get('minPoints') || '0');
+        if (minPoints > 0) {
+            const originalShowGift = showGiftAlert;
+            showGiftAlert = (data) => {
+                if ((data.points || 0) >= minPoints) {
+                    originalShowGift(data);
+                }
+            };
+        }
+    </script>
+</body>
+</html>

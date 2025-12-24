@@ -27,6 +27,8 @@ from core.advanced_phase_system import AdvancedPhaseManager, PowerUpType
 
 if TYPE_CHECKING:
     from core.budget_system import BudgetManager
+    from core.strategic_intelligence import StrategicIntelligence
+    from core.snipe_intelligence import SnipeIntelligence
 
 
 class StrategyProfile(Enum):
@@ -226,14 +228,15 @@ STRATEGY_BUDGET_PREFERENCES = {
 
 
 class OpponentAI:
-    """Smart opponent with strategy profiles and budget awareness."""
+    """Smart opponent with strategy profiles, budget awareness, and surrender logic."""
 
     def __init__(
         self,
         phase_manager: AdvancedPhaseManager,
         difficulty: str = "medium",
         budget_manager: Optional['BudgetManager'] = None,
-        strategy: Optional[StrategyProfile] = None
+        strategy: Optional[StrategyProfile] = None,
+        enable_strategic_intelligence: bool = True
     ):
         self.phase_manager = phase_manager
         self.difficulty = difficulty
@@ -263,6 +266,19 @@ class OpponentAI:
         self.snipe_reserve = 0
         self.boost2_reserve = 0
 
+        # Strategic Intelligence for surrender/adaptive logic
+        self.strategic_intel: Optional['StrategicIntelligence'] = None
+        self.enable_strategic_intelligence = enable_strategic_intelligence
+        self.has_surrendered = False
+        self.surrender_time = None
+        self.surrender_reason = None
+
+        # Snipe Intelligence for final seconds strategy
+        self.snipe_intel: Optional['SnipeIntelligence'] = None
+        self.snipe_reserve_locked = False
+        self.snipe_executed = False
+        self.snipe_glove_used = False
+
         # Gift options with costs
         self.small_gifts = [
             ("Rose", 1), ("Rose", 1), ("Rose", 1),
@@ -283,6 +299,9 @@ class OpponentAI:
 
         # Initialize budget reserves
         self._calculate_reserves()
+
+        # Initialize strategic intelligence if enabled and budget manager available
+        self._init_strategic_intelligence()
 
         # Announce strategy
         self._announce_strategy()
@@ -328,6 +347,35 @@ class OpponentAI:
         self.boost2_reserve = min(self.boost2_reserve, 150000)
         self.snipe_reserve = min(self.snipe_reserve, 80000)
 
+    def _init_strategic_intelligence(self):
+        """Initialize strategic intelligence for advanced decision making."""
+        if not self.enable_strategic_intelligence or not self.budget_manager:
+            return
+
+        try:
+            from core.strategic_intelligence import StrategicIntelligence
+            self.strategic_intel = StrategicIntelligence(
+                budget_manager=self.budget_manager,
+                team="opponent",
+                battle_duration=self.phase_manager.battle_duration
+            )
+        except ImportError:
+            # Module not available, continue without it
+            pass
+
+        # Also initialize snipe intelligence
+        try:
+            from core.snipe_intelligence import SnipeIntelligence
+            # Estimate creator's budget (we don't know exactly)
+            estimated_creator_budget = self.budget_manager.creator_starting
+            self.snipe_intel = SnipeIntelligence(
+                our_budget=self.budget_manager.opponent_starting,
+                opponent_estimated_budget=estimated_creator_budget,
+                battle_duration=self.phase_manager.battle_duration
+            )
+        except ImportError:
+            pass
+
     def _announce_strategy(self):
         """Print opponent strategy selection."""
         strategy_descriptions = {
@@ -358,6 +406,20 @@ class OpponentAI:
         self.boost1_participated = False
         self.boost2_participated = False
         self.snipe_mode_active = False
+
+        # Reset snipe state
+        self.snipe_reserve_locked = False
+        self.snipe_executed = False
+        self.snipe_glove_used = False
+
+        # Reset surrender state
+        self.has_surrendered = False
+        self.surrender_time = None
+        self.surrender_reason = None
+
+        # Reset snipe intelligence
+        if self.snipe_intel:
+            self.snipe_intel.reset()
 
         # Re-select strategy for new battle
         self.strategy = self._select_strategy()
@@ -539,7 +601,8 @@ class OpponentAI:
             "gift_name": None,
             "gift_points": 0,
             "power_up_used": None,
-            "message": None
+            "message": None,
+            "surrendered": False
         }
 
         # Get game state
@@ -549,6 +612,48 @@ class OpponentAI:
         in_final_5s = time_remaining <= 5
         deficit = creator_score - opponent_score  # Positive = we're behind
         phase = "boost" if in_boost else ("final_30s" if in_final_30s else "normal")
+
+        # === STRATEGIC INTELLIGENCE: Check for surrender ===
+        if self.strategic_intel and not self.has_surrendered:
+            # Update scores in strategic intel
+            self.strategic_intel.update_scores(opponent_score, creator_score, current_time)
+
+            # Analyze if we should surrender (only check every 10 seconds to save computation)
+            if current_time % 10 == 0 or deficit > 50000:
+                recovery = self.strategic_intel.analyze_recovery(time_remaining)
+
+                # Surrender if recovery is impossible and we're confident
+                if not recovery.can_recover and recovery.confidence >= 0.85:
+                    # Don't surrender in final 30s - always try to fight
+                    if time_remaining > 30:
+                        self.has_surrendered = True
+                        self.surrender_time = current_time
+                        self.surrender_reason = (
+                            f"Deficit {recovery.deficit:,} unrecoverable. "
+                            f"Max possible: {recovery.max_possible_points:,} "
+                            f"({recovery.confidence*100:.0f}% confidence)"
+                        )
+                        result["surrendered"] = True
+                        result["message"] = f"🏳️ Opponent SURRENDERED: {self.surrender_reason}"
+                        print(f"\n🏳️ OPPONENT SURRENDERED at t={current_time}s!")
+                        print(f"   Reason: {self.surrender_reason}")
+                        return result
+
+        # If already surrendered, stop gifting (but still allow defensive power-ups)
+        if self.has_surrendered:
+            result["surrendered"] = True
+            # Still allow defensive actions like hammer against enemy x5
+            creator_has_x5 = (self.phase_manager.active_glove_x5 and
+                             self.phase_manager.active_glove_owner == "creator")
+            if creator_has_x5 and not self.hammer_used:
+                # Use hammer to deny enemy x5 even when surrendered
+                if random.random() < 0.5:
+                    if self.phase_manager.use_power_up(PowerUpType.HAMMER, "opponent", current_time):
+                        self.hammer_used = True
+                        result["power_up_used"] = "HAMMER"
+                        result["message"] = "👻 Surrendered opponent used HAMMER defensively!"
+                        return result
+            return result
 
         # Get available budget (accounting for reserves)
         available_budget = self.get_available_budget(time_remaining)
@@ -560,6 +665,20 @@ class OpponentAI:
         # Check if we have x5 active
         we_have_x5 = (self.phase_manager.active_glove_x5 and
                       self.phase_manager.active_glove_owner == "opponent")
+
+        # === SNIPE INTELLIGENCE: Update tracking ===
+        if self.snipe_intel:
+            self.snipe_intel.update_scores(opponent_score, creator_score, current_time)
+            self.snipe_intel.update_our_budget(self.get_current_budget())
+
+        # === PRIORITY 0: SNIPE MODE (Final 5 seconds) ===
+        if in_final_5s and not self.snipe_executed:
+            snipe_result = self._execute_snipe_mode(
+                current_time, time_remaining, creator_score, opponent_score,
+                we_have_x5, result
+            )
+            if snipe_result:
+                return snipe_result
 
         # === PRIORITY 1: Use Hammer against creator's x5 ===
         if creator_has_x5 and not self.hammer_used:
@@ -651,9 +770,133 @@ class OpponentAI:
 
         return result
 
+    def _execute_snipe_mode(
+        self,
+        current_time: int,
+        time_remaining: int,
+        creator_score: int,
+        opponent_score: int,
+        we_have_x5: bool,
+        result: dict
+    ) -> Optional[dict]:
+        """
+        Execute snipe mode in final seconds.
+
+        This is the critical moment - all strategy leads to this.
+        TikTok battle reality: Most battles are won/lost in final 5 seconds.
+
+        Returns result dict if action taken, None to continue normal flow.
+        """
+        deficit = creator_score - opponent_score  # Positive = we're behind
+        our_budget = self.get_current_budget()
+        multiplier = self.phase_manager.get_current_multiplier()
+
+        # Calculate what we need to win
+        points_needed = deficit + 1 if deficit > 0 else 0
+
+        # With x5, our points are worth 5x
+        effective_multiplier = 5.0 if we_have_x5 else multiplier
+
+        print(f"\n{'='*60}")
+        print(f"👻🎯 OPPONENT SNIPE MODE ACTIVATED!")
+        print(f"   Time remaining: {time_remaining}s")
+        print(f"   Deficit: {deficit:,} | Budget: {our_budget:,}")
+        print(f"   Multiplier: x{effective_multiplier:.0f}")
+        print(f"{'='*60}")
+
+        # STEP 1: Deploy glove if we have one and don't have x5 yet
+        if self.gloves_used < 2 and not we_have_x5 and not self.snipe_glove_used:
+            if self.phase_manager.use_power_up(PowerUpType.GLOVE, "opponent", current_time):
+                self.gloves_used += 1
+                self.snipe_glove_used = True
+                result["power_up_used"] = "GLOVE"
+                result["message"] = "👻🥊 SNIPE GLOVE DEPLOYED! x5 ACTIVE!"
+                print(f"   🥊 GLOVE DEPLOYED for x5 multiplier!")
+                return result
+
+        # STEP 2: Calculate optimal gift to send
+        # We want to maximize points in remaining time
+        # Prioritize biggest affordable whale gifts
+
+        whale_gifts = [
+            ("TikTok Universe", 44999),
+            ("Lion", 29999),
+            ("Dragon Flame", 10000),
+        ]
+
+        # Find biggest affordable gift
+        chosen_gift = None
+        chosen_cost = 0
+
+        for name, cost in whale_gifts:
+            if cost <= our_budget and self.can_afford(name):
+                chosen_gift = name
+                chosen_cost = cost
+                break
+
+        # Fallback to medium gifts
+        if not chosen_gift:
+            medium_gifts = [("GG", 1000), ("Rosa Nebula", 299)]
+            for name, cost in medium_gifts:
+                if cost <= our_budget and self.can_afford(name):
+                    chosen_gift = name
+                    chosen_cost = cost
+                    break
+
+        if not chosen_gift:
+            # Even small gifts count in snipe
+            if our_budget >= 1 and self.can_afford("Rose"):
+                chosen_gift = "Rose"
+                chosen_cost = 1
+
+        if not chosen_gift:
+            return None  # Nothing we can do
+
+        # Calculate effective points
+        effective_points = int(chosen_cost * effective_multiplier)
+
+        # STEP 3: Send the gift
+        phase = "final_5s"
+        if self._spend_budget(chosen_gift, chosen_cost, current_time, phase):
+            self.phase_manager.record_gift(chosen_gift, chosen_cost, "opponent", current_time)
+            self.total_donated += chosen_cost
+
+            if chosen_cost >= 10000:
+                self.whale_gifts_sent += 1
+
+            result["gift_sent"] = True
+            result["gift_name"] = chosen_gift
+            result["gift_points"] = chosen_cost
+
+            # Determine if this is a winning snipe
+            new_score = opponent_score + effective_points
+            is_winning = new_score > creator_score
+
+            # Epic snipe announcement
+            if is_winning:
+                print(f"   💀 KILLING BLOW! {chosen_gift}: {chosen_cost:,} × {effective_multiplier:.0f} = {effective_points:,}")
+                print(f"   📊 Score: {opponent_score:,} + {effective_points:,} = {new_score:,} vs Creator: {creator_score:,}")
+                result["message"] = f"👻💀 SNIPE SUCCESSFUL! {chosen_gift} for {effective_points:,} effective!"
+            else:
+                remaining_deficit = creator_score - new_score
+                print(f"   🎯 SNIPE: {chosen_gift}: {chosen_cost:,} × {effective_multiplier:.0f} = {effective_points:,}")
+                print(f"   📊 Still behind by {remaining_deficit:,}")
+                result["message"] = f"👻🎯 Snipe: {chosen_gift} for {effective_points:,}"
+
+            # Check if we should mark snipe as executed
+            # Don't execute again if we've used most of budget
+            remaining = self.get_current_budget()
+            if remaining < 1000 or time_remaining <= 1:
+                self.snipe_executed = True
+                print(f"   ✅ Snipe sequence complete. Remaining budget: {remaining:,}")
+
+            return result
+
+        return None
+
     def get_stats(self) -> dict:
         """Get opponent stats for display."""
-        return {
+        stats = {
             "strategy": self.strategy.value,
             "total_donated": self.total_donated,
             "whale_gifts_sent": self.whale_gifts_sent,
@@ -663,7 +906,17 @@ class OpponentAI:
             "boost1_participated": self.boost1_participated,
             "boost2_participated": self.boost2_participated,
             "snipe_mode_activated": self.snipe_mode_active,
+            # Surrender info
+            "surrendered": self.has_surrendered,
+            "surrender_time": self.surrender_time,
+            "surrender_reason": self.surrender_reason,
         }
+
+        # Add strategic intelligence analytics if available
+        if self.strategic_intel:
+            stats["strategic_analytics"] = self.strategic_intel.get_analytics()
+
+        return stats
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

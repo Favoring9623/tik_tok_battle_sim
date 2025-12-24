@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audience Participation - TikTok Battle</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <style>
+        :root {
+            --tiktok-red: #FE2C55;
+            --tiktok-cyan: #25F4EE;
+            --tiktok-dark: #161823;
+            --gold: #FFD700;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, var(--tiktok-dark) 0%, #1a1a2e 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .battle-status {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-live {
+            background: var(--tiktok-red);
+            animation: pulse 2s infinite;
+        }
+
+        .status-waiting {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .status-ended {
+            background: #6c757d;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Score Display */
+        .score-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.4);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .team {
+            text-align: center;
+            flex: 1;
+        }
+
+        .team-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            opacity: 0.7;
+            margin-bottom: 4px;
+        }
+
+        .team-score {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .team.creator .team-score {
+            color: var(--tiktok-cyan);
+        }
+
+        .team.opponent .team-score {
+            color: var(--tiktok-red);
+        }
+
+        .vs {
+            font-size: 1rem;
+            opacity: 0.5;
+            padding: 0 15px;
+        }
+
+        /* Voting Section */
+        .section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title i {
+            color: var(--tiktok-cyan);
+        }
+
+        /* Vote Buttons */
+        .vote-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .vote-btn {
+            flex: 1;
+            padding: 16px;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .vote-btn.creator {
+            background: rgba(37, 244, 238, 0.15);
+            border-color: rgba(37, 244, 238, 0.3);
+            color: var(--tiktok-cyan);
+        }
+
+        .vote-btn.creator:hover {
+            background: rgba(37, 244, 238, 0.25);
+            border-color: var(--tiktok-cyan);
+            transform: scale(1.02);
+        }
+
+        .vote-btn.creator.voted {
+            background: var(--tiktok-cyan);
+            color: black;
+        }
+
+        .vote-btn.opponent {
+            background: rgba(254, 44, 85, 0.15);
+            border-color: rgba(254, 44, 85, 0.3);
+            color: var(--tiktok-red);
+        }
+
+        .vote-btn.opponent:hover {
+            background: rgba(254, 44, 85, 0.25);
+            border-color: var(--tiktok-red);
+            transform: scale(1.02);
+        }
+
+        .vote-btn.opponent.voted {
+            background: var(--tiktok-red);
+            color: white;
+        }
+
+        .vote-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .vote-btn .icon {
+            font-size: 1.5rem;
+        }
+
+        /* Vote Results Bar */
+        .vote-results {
+            margin-top: 12px;
+        }
+
+        .vote-bar {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .vote-bar-creator {
+            background: var(--tiktok-cyan);
+            transition: width 0.5s ease;
+        }
+
+        .vote-bar-opponent {
+            background: var(--tiktok-red);
+            transition: width 0.5s ease;
+        }
+
+        .vote-counts {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.85rem;
+        }
+
+        .vote-counts .creator { color: var(--tiktok-cyan); }
+        .vote-counts .opponent { color: var(--tiktok-red); }
+
+        /* Power-up Buttons */
+        .powerup-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .powerup-btn {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 12px;
+            padding: 16px 12px;
+            color: var(--gold);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .powerup-btn:hover:not(:disabled) {
+            background: rgba(255, 215, 0, 0.2);
+            border-color: var(--gold);
+            transform: scale(1.02);
+        }
+
+        .powerup-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .powerup-btn.on-cooldown {
+            position: relative;
+        }
+
+        .powerup-btn .cooldown-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            height: 100%;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .powerup-btn .icon {
+            font-size: 1.8rem;
+        }
+
+        .powerup-btn .label {
+            font-size: 0.85rem;
+        }
+
+        /* Prediction Section */
+        .prediction-result {
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .prediction-result.correct {
+            background: rgba(40, 167, 69, 0.2);
+            border: 2px solid #28a745;
+        }
+
+        .prediction-result.wrong {
+            background: rgba(220, 53, 69, 0.2);
+            border: 2px solid #dc3545;
+        }
+
+        .prediction-result .icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .prediction-result.correct .icon { color: #28a745; }
+        .prediction-result.wrong .icon { color: #dc3545; }
+
+        /* Activity Feed */
+        .activity-feed {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .activity-item .icon {
+            font-size: 1.2rem;
+        }
+
+        .activity-item.vote .icon { color: #9c27b0; }
+        .activity-item.powerup .icon { color: var(--gold); }
+        .activity-item.gift .icon { color: var(--tiktok-cyan); }
+
+        /* Viewer Count */
+        .viewer-count {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-top: 20px;
+        }
+
+        .viewer-count i {
+            color: var(--tiktok-red);
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+
+        .toast {
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            margin-bottom: 10px;
+            animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes toastOut {
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 400px) {
+            .vote-btn {
+                padding: 12px;
+            }
+            .powerup-btn {
+                padding: 12px 8px;
+            }
+            .powerup-btn .icon {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1><i class="bi bi-controller me-2"></i>Join the Battle!</h1>
+            <span class="battle-status status-waiting" id="battleStatus">Waiting for Battle</span>
+        </div>
+
+        <!-- Score Display -->
+        <div class="score-display">
+            <div class="team creator">
+                <div class="team-label">Creator</div>
+                <div class="team-score" id="creatorScore">0</div>
+            </div>
+            <div class="vs">VS</div>
+            <div class="team opponent">
+                <div class="team-label">Opponent</div>
+                <div class="team-score" id="opponentScore">0</div>
+            </div>
+        </div>
+
+        <!-- Voting Section -->
+        <div class="section">
+            <div class="section-title">
+                <i class="bi bi-hand-thumbs-up-fill"></i>
+                Who Will Win?
+            </div>
+            <div class="vote-buttons">
+                <button class="vote-btn creator" id="voteCreator" onclick="vote('creator')">
+                    <span class="icon">💎</span>
+                    <span>Creator Team</span>
+                </button>
+                <button class="vote-btn opponent" id="voteOpponent" onclick="vote('opponent')">
+                    <span class="icon">🔥</span>
+                    <span>Opponent Team</span>
+                </button>
+            </div>
+            <div class="vote-results">
+                <div class="vote-bar">
+                    <div class="vote-bar-creator" id="voteBarCreator" style="width: 50%"></div>
+                    <div class="vote-bar-opponent" id="voteBarOpponent" style="width: 50%"></div>
+                </div>
+                <div class="vote-counts">
+                    <span class="creator"><span id="creatorVotes">0</span> votes</span>
+                    <span class="opponent"><span id="opponentVotes">0</span> votes</span>
+                </div>
+            </div>
+            <div class="prediction-result" id="predictionResult">
+                <div class="icon"></div>
+                <div class="message"></div>
+            </div>
+        </div>
+
+        <!-- Power-ups Section -->
+        <div class="section">
+            <div class="section-title">
+                <i class="bi bi-lightning-fill"></i>
+                Trigger Power-ups
+            </div>
+            <div class="powerup-grid">
+                <button class="powerup-btn" id="powerupBoost" onclick="triggerPowerup('score_boost')">
+                    <span class="icon">🚀</span>
+                    <span class="label">Score Boost</span>
+                </button>
+                <button class="powerup-btn" id="powerupFreeze" onclick="triggerPowerup('freeze')">
+                    <span class="icon">❄️</span>
+                    <span class="label">Freeze Opponent</span>
+                </button>
+                <button class="powerup-btn" id="powerupDouble" onclick="triggerPowerup('double_points')">
+                    <span class="icon">✨</span>
+                    <span class="label">Double Points</span>
+                </button>
+                <button class="powerup-btn" id="powerupRandom" onclick="triggerPowerup('random')">
+                    <span class="icon">🎲</span>
+                    <span class="label">Random Effect</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Activity Feed -->
+        <div class="section">
+            <div class="section-title">
+                <i class="bi bi-activity"></i>
+                Live Activity
+            </div>
+            <div class="activity-feed" id="activityFeed">
+                <div class="activity-item">
+                    <span class="icon">👋</span>
+                    <span>Waiting for battle to start...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Viewer Count -->
+        <div class="viewer-count">
+            <i class="bi bi-people-fill"></i>
+            <span><span id="viewerCount">1</span> viewers participating</span>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // State
+        let state = {
+            voted: false,
+            votedFor: null,
+            viewerId: 'viewer_' + Math.random().toString(36).substr(2, 9),
+            battleActive: false,
+            cooldowns: {}
+        };
+
+        // Connect to server
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Connected to battle server');
+            socket.emit('viewer_join', { viewer_id: state.viewerId });
+        });
+
+        // Battle events
+        socket.on('battle_start', () => {
+            state.battleActive = true;
+            updateBattleStatus('live');
+            addActivity('🎬', 'Battle has started!');
+            showToast('Battle started! Cast your vote!');
+        });
+
+        socket.on('battle_update', (data) => {
+            updateScores(data);
+        });
+
+        socket.on('score_update', (data) => {
+            updateScores(data);
+        });
+
+        socket.on('battle_end', (data) => {
+            state.battleActive = false;
+            updateBattleStatus('ended');
+            checkPrediction(data.winner);
+            addActivity('🏆', `${data.winner === 'creator' ? 'Creator' : 'Opponent'} wins!`);
+        });
+
+        socket.on('gift_sent', (data) => {
+            addActivity('🎁', `${data.agent_name || 'Agent'} sent ${data.gift_name}`, 'gift');
+        });
+
+        socket.on('phase_change', (data) => {
+            const phase = data.phase || data.new_phase;
+            addActivity('📢', `Phase changed to ${phase.toUpperCase()}`);
+        });
+
+        // Voting events
+        socket.on('vote_update', (data) => {
+            updateVoteDisplay(data);
+        });
+
+        socket.on('viewer_count', (data) => {
+            document.getElementById('viewerCount').textContent = data.count || 1;
+        });
+
+        // Power-up events
+        socket.on('powerup_triggered', (data) => {
+            addActivity('⚡', `${data.triggered_by || 'Viewer'} activated ${data.powerup}!`, 'powerup');
+            showToast(`${data.powerup} activated!`);
+        });
+
+        socket.on('powerup_cooldown', (data) => {
+            startCooldown(data.powerup, data.seconds);
+        });
+
+        // Functions
+        function vote(team) {
+            if (state.voted) {
+                showToast('You already voted!');
+                return;
+            }
+
+            state.voted = true;
+            state.votedFor = team;
+
+            // Update UI
+            document.getElementById('voteCreator').disabled = true;
+            document.getElementById('voteOpponent').disabled = true;
+
+            if (team === 'creator') {
+                document.getElementById('voteCreator').classList.add('voted');
+            } else {
+                document.getElementById('voteOpponent').classList.add('voted');
+            }
+
+            // Send vote to server
+            socket.emit('audience_vote', {
+                viewer_id: state.viewerId,
+                vote: team
+            });
+
+            addActivity('🗳️', `You voted for ${team === 'creator' ? 'Creator' : 'Opponent'}!`, 'vote');
+            showToast('Vote cast!');
+        }
+
+        function triggerPowerup(powerup) {
+            if (state.cooldowns[powerup]) {
+                showToast('Power-up on cooldown!');
+                return;
+            }
+
+            socket.emit('audience_powerup', {
+                viewer_id: state.viewerId,
+                powerup: powerup
+            });
+
+            // Start local cooldown
+            startCooldown(powerup, 30);
+        }
+
+        function startCooldown(powerup, seconds) {
+            const btnMap = {
+                'score_boost': 'powerupBoost',
+                'freeze': 'powerupFreeze',
+                'double_points': 'powerupDouble',
+                'random': 'powerupRandom'
+            };
+
+            const btn = document.getElementById(btnMap[powerup]);
+            if (!btn) return;
+
+            state.cooldowns[powerup] = true;
+            btn.disabled = true;
+            btn.classList.add('on-cooldown');
+
+            // Add cooldown overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'cooldown-overlay';
+            overlay.id = `cooldown-${powerup}`;
+            overlay.textContent = seconds;
+            btn.appendChild(overlay);
+
+            // Countdown
+            let remaining = seconds;
+            const interval = setInterval(() => {
+                remaining--;
+                overlay.textContent = remaining;
+
+                if (remaining <= 0) {
+                    clearInterval(interval);
+                    state.cooldowns[powerup] = false;
+                    btn.disabled = false;
+                    btn.classList.remove('on-cooldown');
+                    overlay.remove();
+                }
+            }, 1000);
+        }
+
+        function updateScores(data) {
+            if (data.creator_score !== undefined) {
+                document.getElementById('creatorScore').textContent = data.creator_score.toLocaleString();
+            }
+            if (data.opponent_score !== undefined) {
+                document.getElementById('opponentScore').textContent = data.opponent_score.toLocaleString();
+            }
+
+            // Update battle status if not already live
+            if (!state.battleActive && (data.creator_score > 0 || data.opponent_score > 0)) {
+                state.battleActive = true;
+                updateBattleStatus('live');
+            }
+        }
+
+        function updateVoteDisplay(data) {
+            const creatorVotes = data.creator_votes || 0;
+            const opponentVotes = data.opponent_votes || 0;
+            const total = creatorVotes + opponentVotes || 1;
+
+            const creatorPercent = (creatorVotes / total) * 100;
+            const opponentPercent = (opponentVotes / total) * 100;
+
+            document.getElementById('creatorVotes').textContent = creatorVotes;
+            document.getElementById('opponentVotes').textContent = opponentVotes;
+            document.getElementById('voteBarCreator').style.width = creatorPercent + '%';
+            document.getElementById('voteBarOpponent').style.width = opponentPercent + '%';
+        }
+
+        function updateBattleStatus(status) {
+            const el = document.getElementById('battleStatus');
+            el.className = 'battle-status';
+
+            switch (status) {
+                case 'live':
+                    el.classList.add('status-live');
+                    el.innerHTML = '<i class="bi bi-broadcast me-1"></i>LIVE';
+                    break;
+                case 'ended':
+                    el.classList.add('status-ended');
+                    el.textContent = 'Battle Ended';
+                    break;
+                default:
+                    el.classList.add('status-waiting');
+                    el.textContent = 'Waiting for Battle';
+            }
+        }
+
+        function checkPrediction(winner) {
+            if (!state.voted) return;
+
+            const result = document.getElementById('predictionResult');
+            const isCorrect = state.votedFor === winner;
+
+            result.className = 'prediction-result ' + (isCorrect ? 'correct' : 'wrong');
+            result.querySelector('.icon').textContent = isCorrect ? '🎉' : '😢';
+            result.querySelector('.message').textContent = isCorrect
+                ? 'Your prediction was correct!'
+                : 'Better luck next time!';
+            result.style.display = 'block';
+        }
+
+        function addActivity(icon, message, type = '') {
+            const feed = document.getElementById('activityFeed');
+            const item = document.createElement('div');
+            item.className = 'activity-item ' + type;
+            item.innerHTML = `<span class="icon">${icon}</span><span>${message}</span>`;
+            feed.insertBefore(item, feed.firstChild);
+
+            // Limit items
+            while (feed.children.length > 20) {
+                feed.lastChild.remove();
+            }
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // URL params
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('theme') === 'light') {
+            document.body.style.background = '#f5f5f5';
+            document.body.style.color = '#333';
+        }
+    </script>
+</body>
+</html>

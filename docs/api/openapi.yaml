@@ -1,0 +1,726 @@
+openapi: 3.0.3
+info:
+  title: TikTok Battle Simulator API
+  description: |
+    Real-time battle simulation, analytics, and leaderboard services for TikTok Live streams.
+
+    ## Features
+    - Real-time battle state via WebSocket
+    - RESTful endpoints for battles, analytics, and leaderboards
+    - Live TikTok stream integration
+    - Comprehensive agent and gifter statistics
+
+    ## Authentication
+    All endpoints require an API key in the Authorization header.
+  version: 1.0.0
+  contact:
+    name: TikTok Battle Simulator Support
+    url: https://github.com/Favoring9623/tik_tok_battle_sim
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.tiktok-battle.com/v1
+    description: Production server
+  - url: http://localhost:5000/api/v1
+    description: Development server
+
+tags:
+  - name: Battles
+    description: Battle management and state
+  - name: Live
+    description: Live TikTok battle integration
+  - name: Analytics
+    description: Battle analytics and statistics
+  - name: Leaderboard
+    description: Agent and gifter rankings
+  - name: Replay
+    description: Battle replay system
+  - name: Audience
+    description: Audience interaction and voting
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+paths:
+  /battles/active:
+    get:
+      tags:
+        - Battles
+      summary: List active battles
+      description: Get all currently active battles
+      responses:
+        '200':
+          description: List of active battles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  battles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Battle'
+                  count:
+                    type: integer
+
+  /battles/history:
+    get:
+      tags:
+        - Battles
+      summary: Get battle history
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: battle_type
+          in: query
+          schema:
+            type: string
+            enum: [standard, strategic, live, all]
+            default: all
+      responses:
+        '200':
+          description: Battle history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  battles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Battle'
+                  total:
+                    type: integer
+
+  /battles/{battle_id}:
+    get:
+      tags:
+        - Battles
+      summary: Get battle details
+      parameters:
+        - name: battle_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Battle details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BattleDetails'
+        '404':
+          description: Battle not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /live/status:
+    get:
+      tags:
+        - Live
+      summary: Get live battle status
+      responses:
+        '200':
+          description: Live battle status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveStatus'
+
+  /live/start:
+    post:
+      tags:
+        - Live
+      summary: Start a live battle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LiveBattleRequest'
+      responses:
+        '200':
+          description: Battle started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveBattleResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /live/stop:
+    post:
+      tags:
+        - Live
+      summary: Stop the active live battle
+      responses:
+        '200':
+          description: Battle stopped
+        '400':
+          description: No active battle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /analytics/overview:
+    get:
+      tags:
+        - Analytics
+      summary: Get analytics overview
+      responses:
+        '200':
+          description: Analytics overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsOverview'
+
+  /analytics/agents:
+    get:
+      tags:
+        - Analytics
+      summary: Get agent statistics
+      responses:
+        '200':
+          description: Agent statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AgentStats'
+
+  /analytics/distribution:
+    get:
+      tags:
+        - Analytics
+      summary: Get score distribution
+      responses:
+        '200':
+          description: Score distribution data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoreDistribution'
+
+  /leaderboard/agents:
+    get:
+      tags:
+        - Leaderboard
+      summary: Get top agents
+      parameters:
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [total_points, total_wins, total_battles, avg_points_per_battle, best_single_battle]
+            default: total_points
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Top agents leaderboard
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LeaderboardAgent'
+
+  /leaderboard/gifters:
+    get:
+      tags:
+        - Leaderboard
+      summary: Get top gifters
+      parameters:
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [total_coins, total_gifts, total_battles]
+            default: total_coins
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Top gifters leaderboard
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gifters:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LeaderboardGifter'
+
+  /leaderboard/summary:
+    get:
+      tags:
+        - Leaderboard
+      summary: Get leaderboard summary
+      responses:
+        '200':
+          description: Leaderboard summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardSummary'
+
+  /replay/list:
+    get:
+      tags:
+        - Replay
+      summary: List available replays
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of replays
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  replays:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReplayListItem'
+
+  /replay/{battle_id}:
+    get:
+      tags:
+        - Replay
+      summary: Get full replay data
+      parameters:
+        - name: battle_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Replay data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReplayData'
+        '404':
+          description: Replay not found
+
+  /replay/{battle_id}/state:
+    get:
+      tags:
+        - Replay
+      summary: Get state at specific time
+      parameters:
+        - name: battle_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: time
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+      responses:
+        '200':
+          description: Battle state at time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BattleState'
+
+  /audience/votes:
+    get:
+      tags:
+        - Audience
+      summary: Get current vote counts
+      responses:
+        '200':
+          description: Vote counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoteCounts'
+
+  /audience/reset:
+    post:
+      tags:
+        - Audience
+      summary: Reset votes
+      responses:
+        '200':
+          description: Votes reset
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: reset
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    Battle:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [active, completed]
+        creator_score:
+          type: integer
+        opponent_score:
+          type: integer
+        current_time:
+          type: integer
+        duration:
+          type: integer
+        phase:
+          type: string
+        multiplier:
+          type: number
+
+    BattleDetails:
+      allOf:
+        - $ref: '#/components/schemas/Battle'
+        - type: object
+          properties:
+            started_at:
+              type: string
+              format: date-time
+            ended_at:
+              type: string
+              format: date-time
+            battle_type:
+              type: string
+            winner:
+              type: string
+            agents:
+              type: array
+              items:
+                $ref: '#/components/schemas/BattleAgent'
+            analytics:
+              type: object
+
+    BattleAgent:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        points:
+          type: integer
+        gifts:
+          type: integer
+
+    LiveStatus:
+      type: object
+      properties:
+        tiktok_live_available:
+          type: boolean
+        active_battle:
+          type: boolean
+        battle_state:
+          $ref: '#/components/schemas/LiveBattleState'
+
+    LiveBattleState:
+      type: object
+      properties:
+        creator_username:
+          type: string
+        opponent_username:
+          type: string
+        creator_score:
+          type: integer
+        opponent_score:
+          type: integer
+        creator_connected:
+          type: boolean
+        opponent_connected:
+          type: boolean
+        time_remaining:
+          type: integer
+        current_phase:
+          type: string
+        current_multiplier:
+          type: number
+
+    LiveBattleRequest:
+      type: object
+      required:
+        - creator_username
+        - opponent_username
+      properties:
+        creator_username:
+          type: string
+        opponent_username:
+          type: string
+        duration:
+          type: integer
+          default: 300
+
+    LiveBattleResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        battle_id:
+          type: string
+        creator:
+          type: string
+        opponent:
+          type: string
+        duration:
+          type: integer
+
+    AnalyticsOverview:
+      type: object
+      properties:
+        total_battles:
+          type: integer
+        creator_wins:
+          type: integer
+        opponent_wins:
+          type: integer
+        creator_win_rate:
+          type: number
+        avg_creator_score:
+          type: integer
+        avg_opponent_score:
+          type: integer
+        close_battles:
+          type: integer
+        battles_per_day:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              count:
+                type: integer
+
+    AgentStats:
+      type: object
+      properties:
+        agent_name:
+          type: string
+        agent_type:
+          type: string
+        battles:
+          type: integer
+        total_points:
+          type: integer
+        avg_points:
+          type: number
+        total_gifts:
+          type: integer
+        avg_efficiency:
+          type: number
+
+    ScoreDistribution:
+      type: object
+      properties:
+        ranges:
+          type: array
+          items:
+            type: string
+        creator:
+          type: object
+        opponent:
+          type: object
+
+    LeaderboardAgent:
+      type: object
+      properties:
+        agent_name:
+          type: string
+        agent_type:
+          type: string
+        total_battles:
+          type: integer
+        total_wins:
+          type: integer
+        total_points:
+          type: integer
+        total_gifts:
+          type: integer
+        avg_points_per_battle:
+          type: number
+        best_single_battle:
+          type: integer
+        last_battle_at:
+          type: string
+          format: date-time
+
+    LeaderboardGifter:
+      type: object
+      properties:
+        username:
+          type: string
+        total_gifts:
+          type: integer
+        total_coins:
+          type: integer
+        total_battles:
+          type: integer
+        favorite_gift:
+          type: string
+        last_gift_at:
+          type: string
+          format: date-time
+
+    LeaderboardSummary:
+      type: object
+      properties:
+        total_agents:
+          type: integer
+        total_agent_battles:
+          type: integer
+        total_gifters:
+          type: integer
+        total_coins_gifted:
+          type: integer
+        top_agent:
+          type: object
+        top_gifter:
+          type: object
+
+    ReplayListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        creator_score:
+          type: integer
+        opponent_score:
+          type: integer
+        winner:
+          type: string
+        event_count:
+          type: integer
+
+    ReplayData:
+      type: object
+      properties:
+        battle:
+          $ref: '#/components/schemas/BattleDetails'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/BattleEvent'
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/BattleAgent'
+
+    BattleEvent:
+      type: object
+      properties:
+        timestamp:
+          type: number
+        event_type:
+          type: string
+        data:
+          type: object
+
+    BattleState:
+      type: object
+      properties:
+        creator_score:
+          type: integer
+        opponent_score:
+          type: integer
+        current_phase:
+          type: string
+        multiplier:
+          type: number
+        gifts:
+          type: array
+          items:
+            type: object
+
+    VoteCounts:
+      type: object
+      properties:
+        votes:
+          type: object
+          properties:
+            creator:
+              type: integer
+            opponent:
+              type: integer
+        total_viewers:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            status:
+              type: integer

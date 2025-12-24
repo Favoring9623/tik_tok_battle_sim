@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Battle Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #00d9ff, #ff00d9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card h2 {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            color: #00d9ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Configuration Panel */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 1em;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+
+        .strategy-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .strategy-card {
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .strategy-card:hover {
+            border-color: rgba(0, 217, 255, 0.5);
+        }
+
+        .strategy-card.active {
+            border-color: #00d9ff;
+            background: rgba(0, 217, 255, 0.1);
+        }
+
+        .strategy-card .icon {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .strategy-card .name {
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 24px;
+            border-radius: 8px;
+            border: none;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 217, 255, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(90deg, #ff4444, #ff0066);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 5px 20px rgba(255, 0, 102, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Battle Monitor */
+        .score-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .team {
+            text-align: center;
+        }
+
+        .team .label {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .team .score {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .team.us .score {
+            color: #00ff88;
+        }
+
+        .team.them .score {
+            color: #ff4444;
+        }
+
+        .vs {
+            font-size: 1.5em;
+            color: #666;
+        }
+
+        .gap-display {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .gap-value {
+            font-size: 3em;
+            font-weight: bold;
+        }
+
+        .gap-value.winning {
+            color: #00ff88;
+        }
+
+        .gap-value.losing {
+            color: #ff4444;
+        }
+
+        .gap-value.tied {
+            color: #ffaa00;
+        }
+
+        /* Decision Feed */
+        .decision-feed {
+            height: 400px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .decision-item {
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid #00d9ff;
+        }
+
+        .decision-item.send {
+            border-left-color: #00ff88;
+        }
+
+        .decision-item.wait {
+            border-left-color: #666;
+        }
+
+        .decision-item .time {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .decision-item .action {
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .decision-item .reason {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        /* Stats Panel */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #888;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #00d9ff;
+        }
+
+        /* Status indicator */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #666;
+        }
+
+        .status-dot.active {
+            background: #00ff88;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Timer */
+        .timer {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .timer .label {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .timer .time {
+            font-size: 3em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        /* Urgency indicators */
+        .urgency-critical { color: #ff0066; }
+        .urgency-high { color: #ff8800; }
+        .urgency-normal { color: #00d9ff; }
+        .urgency-low { color: #666; }
+
+        @media (max-width: 1200px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI Battle Controller</h1>
+            <p>Intelligent gift sending with real-time battle monitoring</p>
+        </div>
+
+        <div class="grid">
+            <!-- Configuration Panel -->
+            <div class="card">
+                <h2>Configuration</h2>
+
+                <div class="form-group">
+                    <label>Target Streamer</label>
+                    <input type="text" id="username" placeholder="@username" value="">
+                </div>
+
+                <div class="form-group">
+                    <label>Gift</label>
+                    <select id="gift">
+                        <option value="Fest Pop">Fest Pop (1 coin)</option>
+                        <option value="Rose">Rose (1 coin)</option>
+                        <option value="Fest Cheers">Fest Cheers (5 coins)</option>
+                        <option value="Fest Party">Fest Party (10 coins)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Strategy</label>
+                    <div class="strategy-cards">
+                        <div class="strategy-card active" data-strategy="smart">
+                            <div class="icon">brain</div>
+                            <div class="name">Smart</div>
+                        </div>
+                        <div class="strategy-card" data-strategy="aggressive">
+                            <div class="icon">fire</div>
+                            <div class="name">Aggressive</div>
+                        </div>
+                        <div class="strategy-card" data-strategy="defensive">
+                            <div class="icon">shield</div>
+                            <div class="name">Defensive</div>
+                        </div>
+                        <div class="strategy-card" data-strategy="sniper">
+                            <div class="icon">bullseye</div>
+                            <div class="name">Sniper</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Duration (seconds)</label>
+                    <input type="number" id="duration" value="300" min="60" max="3600">
+                </div>
+
+                <div class="form-group">
+                    <label>Max gifts/minute</label>
+                    <input type="number" id="maxPerMinute" value="500" min="10" max="1000">
+                </div>
+
+                <button class="btn btn-primary" id="startBtn" onclick="startBattle()">
+                    Start AI Battle
+                </button>
+
+                <button class="btn btn-danger" id="stopBtn" onclick="stopBattle()" style="display: none; margin-top: 10px;">
+                    Stop Battle
+                </button>
+            </div>
+
+            <!-- Battle Monitor -->
+            <div class="card">
+                <h2>Battle Monitor</h2>
+
+                <div class="status-bar">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Idle</span>
+                </div>
+
+                <div class="score-display">
+                    <div class="team us">
+                        <div class="label">OUR SCORE</div>
+                        <div class="score" id="ourScore">0</div>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="team them">
+                        <div class="label">OPPONENT</div>
+                        <div class="score" id="theirScore">0</div>
+                    </div>
+                </div>
+
+                <div class="gap-display">
+                    <div class="label">GAP</div>
+                    <div class="gap-value tied" id="gapValue">0</div>
+                </div>
+
+                <div class="timer">
+                    <div class="label">TIME REMAINING</div>
+                    <div class="time" id="timeRemaining">5:00</div>
+                </div>
+
+                <h3 style="margin-bottom: 15px; color: #888;">Decision Feed</h3>
+                <div class="decision-feed" id="decisionFeed">
+                    <div class="decision-item wait">
+                        <div class="time">--:--:--</div>
+                        <div class="action">Waiting to start...</div>
+                        <div class="reason">Configure and click "Start AI Battle"</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Panel -->
+            <div class="card">
+                <h2>Statistics</h2>
+
+                <div class="stat-row">
+                    <span class="stat-label">Gifts Sent</span>
+                    <span class="stat-value" id="giftsSent">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Failed</span>
+                    <span class="stat-value" id="giftsFailed">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Decisions</span>
+                    <span class="stat-value" id="decisions">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Gifts/min</span>
+                    <span class="stat-value" id="giftsPerMin">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Elapsed</span>
+                    <span class="stat-value" id="elapsed">0:00</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Strategy</span>
+                    <span class="stat-value" id="currentStrategy">smart</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Last Urgency</span>
+                    <span class="stat-value urgency-normal" id="lastUrgency">-</span>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <h3 style="margin-bottom: 15px; color: #888;">Strategy Info</h3>
+                    <div id="strategyInfo" style="font-size: 0.9em; color: #aaa;">
+                        <strong>Smart:</strong> Adapts to the battle situation.
+                        Increases pressure when behind, relaxes when ahead.
+                        Goes all-in during final moments.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let selectedStrategy = 'smart';
+        let battleActive = false;
+        let ws = null;
+        let startTime = null;
+
+        // Strategy descriptions
+        const strategyInfo = {
+            smart: '<strong>Smart:</strong> Adapts to the battle situation. Increases pressure when behind, relaxes when ahead. Goes all-in during final moments.',
+            aggressive: '<strong>Aggressive:</strong> Maximum pressure at all times. Sends gifts constantly at the highest CPS. Best for overwhelming opponents.',
+            defensive: '<strong>Defensive:</strong> Only sends when behind or tied. Conserves resources when ahead. Good for maintaining a lead.',
+            sniper: '<strong>Sniper:</strong> Saves resources and strikes in the final 30 seconds. High risk, high reward strategy.'
+        };
+
+        // Initialize
+        document.querySelectorAll('.strategy-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.strategy-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                selectedStrategy = card.dataset.strategy;
+                document.getElementById('currentStrategy').textContent = selectedStrategy;
+                document.getElementById('strategyInfo').innerHTML = strategyInfo[selectedStrategy];
+            });
+        });
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function addDecision(decision) {
+            const feed = document.getElementById('decisionFeed');
+            const item = document.createElement('div');
+            item.className = `decision-item ${decision.should_send ? 'send' : 'wait'}`;
+
+            const now = new Date();
+            const time = now.toTimeString().slice(0, 8);
+
+            item.innerHTML = `
+                <div class="time">${time}</div>
+                <div class="action ${decision.should_send ? '' : 'wait'}">${decision.should_send ? 'SEND ' + decision.quantity : 'WAIT'}</div>
+                <div class="reason">${decision.reason}</div>
+            `;
+
+            feed.insertBefore(item, feed.firstChild);
+
+            // Keep only last 50 items
+            while (feed.children.length > 50) {
+                feed.removeChild(feed.lastChild);
+            }
+        }
+
+        function updateStats(stats) {
+            document.getElementById('giftsSent').textContent = stats.gifts_sent.toLocaleString();
+            document.getElementById('giftsFailed').textContent = stats.gifts_failed;
+            document.getElementById('decisions').textContent = stats.decisions;
+
+            if (startTime) {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('elapsed').textContent = formatTime(elapsed);
+
+                if (elapsed > 0) {
+                    const perMin = Math.round(stats.gifts_sent / elapsed * 60);
+                    document.getElementById('giftsPerMin').textContent = perMin;
+                }
+            }
+        }
+
+        function updateScore(score) {
+            document.getElementById('ourScore').textContent = score.our_score.toLocaleString();
+            document.getElementById('theirScore').textContent = score.opponent_score.toLocaleString();
+
+            const gap = score.our_score - score.opponent_score;
+            const gapEl = document.getElementById('gapValue');
+            gapEl.textContent = (gap >= 0 ? '+' : '') + gap.toLocaleString();
+            gapEl.className = 'gap-value ' + (gap > 0 ? 'winning' : gap < 0 ? 'losing' : 'tied');
+
+            document.getElementById('timeRemaining').textContent = formatTime(score.time_remaining);
+        }
+
+        async function startBattle() {
+            const username = document.getElementById('username').value.trim();
+            if (!username) {
+                alert('Please enter a streamer username');
+                return;
+            }
+
+            const config = {
+                username: username.replace('@', ''),
+                strategy: selectedStrategy,
+                gift_name: document.getElementById('gift').value,
+                duration: parseInt(document.getElementById('duration').value),
+                max_per_minute: parseInt(document.getElementById('maxPerMinute').value)
+            };
+
+            // Connect to WebSocket
+            try {
+                ws = new WebSocket('ws://localhost:8889/ws/ai-battle');
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify({ type: 'start', config: config }));
+                    battleActive = true;
+                    startTime = Date.now();
+
+                    document.getElementById('startBtn').style.display = 'none';
+                    document.getElementById('stopBtn').style.display = 'block';
+                    document.getElementById('statusDot').classList.add('active');
+                    document.getElementById('statusText').textContent = 'Running - ' + config.username;
+                };
+
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+
+                    if (data.type === 'decision') {
+                        addDecision(data.decision);
+                        document.getElementById('lastUrgency').textContent = data.decision.urgency;
+                        document.getElementById('lastUrgency').className = 'stat-value urgency-' + data.decision.urgency;
+                    }
+
+                    if (data.type === 'score') {
+                        updateScore(data.score);
+                    }
+
+                    if (data.type === 'stats') {
+                        updateStats(data.stats);
+                    }
+
+                    if (data.type === 'ended') {
+                        stopBattle();
+                        addDecision({ should_send: false, reason: 'Battle ended: ' + data.reason });
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    addDecision({ should_send: false, reason: 'Connection error - is the backend running?' });
+                };
+
+                ws.onclose = () => {
+                    if (battleActive) {
+                        stopBattle();
+                    }
+                };
+
+            } catch (error) {
+                alert('Failed to connect. Make sure the AI Battle backend is running.');
+                console.error(error);
+            }
+        }
+
+        function stopBattle() {
+            if (ws) {
+                ws.send(JSON.stringify({ type: 'stop' }));
+                ws.close();
+                ws = null;
+            }
+
+            battleActive = false;
+            document.getElementById('startBtn').style.display = 'block';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('statusDot').classList.remove('active');
+            document.getElementById('statusText').textContent = 'Stopped';
+        }
+
+        // Simulated demo mode if no backend
+        function runDemo() {
+            let score = { our_score: 0, opponent_score: 0, time_remaining: 300 };
+            let stats = { gifts_sent: 0, gifts_failed: 0, decisions: 0 };
+
+            const interval = setInterval(() => {
+                if (!battleActive) {
+                    clearInterval(interval);
+                    return;
+                }
+
+                // Simulate score changes
+                score.our_score += Math.random() > 0.3 ? Math.floor(Math.random() * 50) : 0;
+                score.opponent_score += Math.random() > 0.5 ? Math.floor(Math.random() * 40) : 0;
+                score.time_remaining = Math.max(0, score.time_remaining - 1);
+
+                // Simulate decision
+                const gap = score.our_score - score.opponent_score;
+                const shouldSend = gap < 500 || Math.random() > 0.7;
+                const decision = {
+                    should_send: shouldSend,
+                    quantity: shouldSend ? Math.floor(Math.random() * 30) + 10 : 0,
+                    reason: shouldSend ? (gap < 0 ? 'Behind - catching up' : 'Maintaining pressure') : 'Comfortable lead',
+                    urgency: gap < -1000 ? 'critical' : gap < 0 ? 'high' : 'normal'
+                };
+
+                stats.decisions++;
+                if (shouldSend) {
+                    stats.gifts_sent += decision.quantity;
+                }
+
+                updateScore(score);
+                updateStats(stats);
+                addDecision(decision);
+
+                if (score.time_remaining <= 0) {
+                    stopBattle();
+                    addDecision({ should_send: false, reason: 'Battle finished!' });
+                }
+
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

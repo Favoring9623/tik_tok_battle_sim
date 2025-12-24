@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Battle Overlay</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --tiktok-red: #FE2C55;
+            --tiktok-cyan: #25F4EE;
+            --gold: #FFD700;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: transparent;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Main Container - positioned at bottom */
+        .overlay-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 800px;
+        }
+
+        /* Score Bar */
+        .score-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 16px;
+            padding: 12px 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .team {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .team.creator {
+            justify-content: flex-start;
+        }
+
+        .team.opponent {
+            justify-content: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .team-info {
+            text-align: center;
+        }
+
+        .team.opponent .team-info {
+            text-align: center;
+        }
+
+        .team-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+            color: white;
+        }
+
+        .team-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .score {
+            font-size: 2.5rem;
+            font-weight: 800;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .team.creator .score {
+            color: var(--tiktok-cyan);
+            text-shadow: 0 0 20px var(--tiktok-cyan);
+        }
+
+        .team.opponent .score {
+            color: var(--tiktok-red);
+            text-shadow: 0 0 20px var(--tiktok-red);
+        }
+
+        /* VS Divider */
+        .vs-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .vs-text {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: white;
+            opacity: 0.5;
+        }
+
+        .phase-badge {
+            font-size: 0.7rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .phase-warmup {
+            background: linear-gradient(135deg, #ffc107, #ff9800);
+            color: black;
+        }
+
+        .phase-battle {
+            background: linear-gradient(135deg, #4caf50, #8bc34a);
+            color: white;
+        }
+
+        .phase-climax {
+            background: linear-gradient(135deg, var(--tiktok-red), #ff1744);
+            color: white;
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        .phase-overtime {
+            background: linear-gradient(135deg, #9c27b0, #e91e63);
+            color: white;
+            animation: pulse 0.3s infinite alternate;
+        }
+
+        .phase-finished {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+
+        /* Timer */
+        .timer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 10px 25px;
+            border-radius: 30px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .timer.warning {
+            color: #ffc107;
+            border-color: #ffc107;
+            animation: timerPulse 1s infinite;
+        }
+
+        .timer.critical {
+            color: var(--tiktok-red);
+            border-color: var(--tiktok-red);
+            animation: timerPulse 0.5s infinite;
+        }
+
+        @keyframes timerPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Gift Feed - Top Left */
+        .gift-feed {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            max-height: 300px;
+            overflow: hidden;
+        }
+
+        .gift-notification {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 10px 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            animation: slideInLeft 0.4s ease-out;
+            border-left: 4px solid;
+        }
+
+        .gift-notification.creator {
+            border-color: var(--tiktok-cyan);
+        }
+
+        .gift-notification.opponent {
+            border-color: var(--tiktok-red);
+        }
+
+        .gift-notification.fade-out {
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+        }
+
+        .gift-emoji {
+            font-size: 1.8rem;
+        }
+
+        .gift-details {
+            flex: 1;
+        }
+
+        .gift-sender {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .gift-name {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .gift-points {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .gift-notification.creator .gift-points {
+            color: var(--tiktok-cyan);
+        }
+
+        .gift-notification.opponent .gift-points {
+            color: var(--tiktok-red);
+        }
+
+        /* Power-up Indicator */
+        .power-up-alert {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, var(--gold), #ff9800);
+            color: black;
+            padding: 20px 40px;
+            border-radius: 16px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            animation: powerUpBounce 0.6s ease-out;
+            display: none;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+        }
+
+        .power-up-alert.show {
+            display: block;
+        }
+
+        @keyframes powerUpBounce {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* Glove Battle Overlay */
+        .glove-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            display: none;
+        }
+
+        .glove-overlay.active {
+            display: block;
+            animation: gloveFlash 0.5s ease-out;
+        }
+
+        .glove-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 8px solid var(--gold);
+            animation: glovePulse 1s infinite;
+        }
+
+        @keyframes gloveFlash {
+            0% { background: rgba(255, 215, 0, 0.3); }
+            100% { background: transparent; }
+        }
+
+        @keyframes glovePulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .glove-badge {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--gold), #ff9800);
+            color: black;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            display: none;
+        }
+
+        .glove-badge.show {
+            display: block;
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Winner Announcement */
+        .winner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .winner-overlay.show {
+            display: flex;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .winner-content {
+            text-align: center;
+            animation: winnerZoom 0.8s ease-out;
+        }
+
+        @keyframes winnerZoom {
+            0% { transform: scale(0); }
+            60% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .winner-label {
+            font-size: 1.5rem;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .winner-name {
+            font-size: 4rem;
+            font-weight: 800;
+            margin: 20px 0;
+        }
+
+        .winner-name.creator {
+            color: var(--tiktok-cyan);
+            text-shadow: 0 0 40px var(--tiktok-cyan);
+        }
+
+        .winner-name.opponent {
+            color: var(--tiktok-red);
+            text-shadow: 0 0 40px var(--tiktok-red);
+        }
+
+        .winner-score {
+            font-size: 2rem;
+            color: white;
+        }
+
+        /* Hidden state */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Timer -->
+    <div class="timer" id="timer">5:00</div>
+
+    <!-- Gift Feed -->
+    <div class="gift-feed" id="giftFeed"></div>
+
+    <!-- Glove Battle Overlay -->
+    <div class="glove-overlay" id="gloveOverlay"></div>
+    <div class="glove-badge" id="gloveBadge">GLOVE BATTLE!</div>
+
+    <!-- Power-up Alert -->
+    <div class="power-up-alert" id="powerUpAlert"></div>
+
+    <!-- Score Bar -->
+    <div class="overlay-container">
+        <div class="score-bar">
+            <div class="team creator">
+                <div class="score" id="creatorScore">0</div>
+                <div class="team-info">
+                    <div class="team-label">Creator</div>
+                    <div class="team-name" id="creatorName">Team A</div>
+                </div>
+            </div>
+
+            <div class="vs-section">
+                <div class="vs-text">VS</div>
+                <div class="phase-badge phase-warmup" id="phaseBadge">WARMUP</div>
+            </div>
+
+            <div class="team opponent">
+                <div class="score" id="opponentScore">0</div>
+                <div class="team-info">
+                    <div class="team-label">Opponent</div>
+                    <div class="team-name" id="opponentName">Team B</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Winner Overlay -->
+    <div class="winner-overlay" id="winnerOverlay">
+        <div class="winner-content">
+            <div class="winner-label">Winner</div>
+            <div class="winner-name" id="winnerName">Creator Team</div>
+            <div class="winner-score" id="winnerScore">1000 - 500</div>
+        </div>
+    </div>
+
+    <script>
+        // Gift emoji mapping
+        const giftEmojis = {
+            'Rose': '🌹', 'TikTok': '🎵', 'Like': '❤️', 'Heart': '💖',
+            'Fire': '🔥', 'GG': '🏆', 'Ice Cream': '🍦', 'Doughnut': '🍩',
+            'Finger Heart': '🫰', 'Love You': '💕', 'Perfume': '💐',
+            'Cap': '🧢', 'Weights': '💪', 'Birthday Cake': '🎂',
+            'Hand Hearts': '🙌', 'Corgi': '🐕', 'Gaming Chair': '🎮',
+            'Love You Kitty': '😻', 'Lucky Airdrop Box': '📦',
+            'Galaxy': '🌌', 'Lion': '🦁', 'Rocket': '🚀',
+            'Interstellar': '🌠', 'Phoenix': '🔥', 'TikTok Universe': '🌍',
+            'Rosa': '🌸', 'default': '🎁'
+        };
+
+        // State
+        let battleState = {
+            creatorScore: 0,
+            opponentScore: 0,
+            phase: 'warmup',
+            timeRemaining: 300,
+            gloveActive: false
+        };
+
+        // Connect to Socket.IO
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('OBS Overlay connected');
+        });
+
+        // Battle updates
+        socket.on('battle_update', (data) => {
+            updateScores(data);
+        });
+
+        socket.on('score_update', (data) => {
+            updateScores(data);
+        });
+
+        socket.on('gift_sent', (data) => {
+            showGiftNotification(data);
+        });
+
+        socket.on('phase_change', (data) => {
+            updatePhase(data.phase || data.new_phase);
+        });
+
+        socket.on('power_up', (data) => {
+            showPowerUp(data);
+        });
+
+        socket.on('glove_battle_start', () => {
+            activateGlove(true);
+        });
+
+        socket.on('glove_battle_end', () => {
+            activateGlove(false);
+        });
+
+        socket.on('battle_end', (data) => {
+            showWinner(data);
+        });
+
+        socket.on('timer_update', (data) => {
+            updateTimer(data.time_remaining || data.remaining);
+        });
+
+        // Update functions
+        function updateScores(data) {
+            if (data.creator_score !== undefined) {
+                animateScore('creatorScore', battleState.creatorScore, data.creator_score);
+                battleState.creatorScore = data.creator_score;
+            }
+            if (data.opponent_score !== undefined) {
+                animateScore('opponentScore', battleState.opponentScore, data.opponent_score);
+                battleState.opponentScore = data.opponent_score;
+            }
+        }
+
+        function animateScore(elementId, from, to) {
+            const el = document.getElementById(elementId);
+            const duration = 300;
+            const steps = 20;
+            const increment = (to - from) / steps;
+            let current = from;
+            let step = 0;
+
+            const timer = setInterval(() => {
+                step++;
+                current += increment;
+                el.textContent = Math.round(current).toLocaleString();
+
+                if (step >= steps) {
+                    clearInterval(timer);
+                    el.textContent = to.toLocaleString();
+                }
+            }, duration / steps);
+        }
+
+        function updatePhase(phase) {
+            const badge = document.getElementById('phaseBadge');
+            badge.className = 'phase-badge phase-' + phase.toLowerCase();
+            badge.textContent = phase.toUpperCase();
+            battleState.phase = phase;
+        }
+
+        function updateTimer(seconds) {
+            const timer = document.getElementById('timer');
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            timer.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+            timer.classList.remove('warning', 'critical');
+            if (seconds <= 10) {
+                timer.classList.add('critical');
+            } else if (seconds <= 30) {
+                timer.classList.add('warning');
+            }
+
+            battleState.timeRemaining = seconds;
+        }
+
+        function showGiftNotification(data) {
+            const feed = document.getElementById('giftFeed');
+            const team = data.team || 'creator';
+            const giftName = data.gift_name || data.gift || 'Gift';
+            const emoji = giftEmojis[giftName] || giftEmojis.default;
+
+            const notification = document.createElement('div');
+            notification.className = `gift-notification ${team}`;
+            notification.innerHTML = `
+                <span class="gift-emoji">${emoji}</span>
+                <div class="gift-details">
+                    <div class="gift-sender">${data.agent_name || data.sender || 'Agent'}</div>
+                    <div class="gift-name">${giftName}</div>
+                </div>
+                <div class="gift-points">+${(data.points || 0).toLocaleString()}</div>
+            `;
+
+            feed.insertBefore(notification, feed.firstChild);
+
+            // Limit feed items
+            while (feed.children.length > 5) {
+                feed.lastChild.classList.add('fade-out');
+                setTimeout(() => feed.lastChild?.remove(), 500);
+            }
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => notification.remove(), 500);
+            }, 5000);
+        }
+
+        function showPowerUp(data) {
+            const alert = document.getElementById('powerUpAlert');
+            alert.textContent = `⚡ ${data.power_up || data.name || 'POWER UP'} ⚡`;
+            alert.classList.add('show');
+
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 2000);
+        }
+
+        function activateGlove(active) {
+            const overlay = document.getElementById('gloveOverlay');
+            const badge = document.getElementById('gloveBadge');
+
+            if (active) {
+                overlay.classList.add('active');
+                badge.classList.add('show');
+            } else {
+                overlay.classList.remove('active');
+                badge.classList.remove('show');
+            }
+
+            battleState.gloveActive = active;
+        }
+
+        function showWinner(data) {
+            const overlay = document.getElementById('winnerOverlay');
+            const name = document.getElementById('winnerName');
+            const score = document.getElementById('winnerScore');
+
+            const winner = data.winner || 'creator';
+            name.textContent = winner === 'creator' ? 'CREATOR WINS!' : 'OPPONENT WINS!';
+            name.className = 'winner-name ' + winner;
+            score.textContent = `${data.creator_score?.toLocaleString() || battleState.creatorScore.toLocaleString()} - ${data.opponent_score?.toLocaleString() || battleState.opponentScore.toLocaleString()}`;
+
+            overlay.classList.add('show');
+        }
+
+        // URL params for customization
+        const params = new URLSearchParams(window.location.search);
+
+        if (params.get('hideGifts') === 'true') {
+            document.getElementById('giftFeed').classList.add('hidden');
+        }
+
+        if (params.get('hideTimer') === 'true') {
+            document.getElementById('timer').classList.add('hidden');
+        }
+
+        if (params.get('position') === 'top') {
+            document.querySelector('.overlay-container').style.cssText = 'bottom: auto; top: 20px;';
+        }
+    </script>
+</body>
+</html>

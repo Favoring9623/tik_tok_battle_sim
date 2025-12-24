@@ -17,6 +17,7 @@ from .learning_system import OpponentPatternTracker, PATTERN_DETECTED_ANNOUNCEME
 
 if TYPE_CHECKING:
     from core.budget_system import BudgetManager
+    from core.strategic_intelligence import StrategicIntelligence
 
 
 class BaseAgent(ABC):
@@ -62,6 +63,12 @@ class BaseAgent(ABC):
         self.detected_pattern = None
         self.counter_strategy = {}
         self.pattern_adaptation_active = False
+
+        # === STRATEGIC INTELLIGENCE ===
+        self.strategic_intel: Optional['StrategicIntelligence'] = None
+        self.has_surrendered = False
+        self.surrender_time = None
+        self.current_strategy_mode = None
 
     def act(self, battle):
         """
@@ -317,6 +324,155 @@ class BaseAgent(ABC):
         self.detected_pattern = None
         self.counter_strategy = {}
         self.pattern_adaptation_active = False
+
+    # === STRATEGIC INTELLIGENCE METHODS ===
+
+    def init_strategic_intelligence(self, budget_manager: 'BudgetManager', battle_duration: int = 300):
+        """
+        Initialize strategic intelligence for this agent.
+
+        Args:
+            budget_manager: BudgetManager instance
+            battle_duration: Total battle duration in seconds
+        """
+        try:
+            from core.strategic_intelligence import StrategicIntelligence
+            self.strategic_intel = StrategicIntelligence(
+                budget_manager=budget_manager,
+                team=self.team,
+                battle_duration=battle_duration
+            )
+        except ImportError:
+            pass
+
+    def get_strategic_recommendation(self, battle) -> Dict:
+        """
+        Get strategic recommendation from intelligence system.
+
+        Returns dict with:
+        - mode: Current strategy mode (AGGRESSIVE, DEFENSIVE, etc.)
+        - should_gift: Whether to send a gift now
+        - max_spend: Maximum coins to spend
+        - gift_tier: Recommended gift tier
+        - reasoning: Explanation of recommendation
+        """
+        if not self.strategic_intel:
+            return {
+                'mode': None,
+                'should_gift': True,
+                'max_spend': float('inf'),
+                'gift_tier': 'large',
+                'reasoning': 'No strategic intelligence available'
+            }
+
+        current_time = battle.time_manager.current_time
+        time_remaining = battle.time_manager.time_remaining()
+
+        # Update scores
+        our_score = battle.score_tracker.creator_score if self.team == "creator" else battle.score_tracker.opponent_score
+        their_score = battle.score_tracker.opponent_score if self.team == "creator" else battle.score_tracker.creator_score
+        self.strategic_intel.update_scores(our_score, their_score, current_time)
+
+        # Get phase info
+        phase_info = {'multiplier': 1.0, 'name': 'Normal'}
+        if hasattr(battle, 'phase_manager') and battle.phase_manager:
+            pm = battle.phase_manager
+            if pm.boost1_active:
+                phase_info = {'multiplier': pm.boost1_multiplier, 'name': 'Boost #1'}
+            elif pm.boost2_active:
+                phase_info = {'multiplier': pm.boost2_multiplier, 'name': 'Boost #2'}
+            elif pm.active_glove_x5:
+                phase_info = {'multiplier': 5.0, 'name': 'x5 Active'}
+
+        # Get recommendation
+        recommendation = self.strategic_intel.get_recommended_strategy(
+            current_time=current_time,
+            time_remaining=time_remaining,
+            phase_info=phase_info
+        )
+
+        # Update current mode
+        self.current_strategy_mode = recommendation.get('mode')
+
+        # Check for surrender
+        recovery = recommendation.get('recovery_analysis')
+        if recovery and not recovery.can_recover and recovery.confidence >= 0.80:
+            if time_remaining > 30 and not self.has_surrendered:
+                self.has_surrendered = True
+                self.surrender_time = current_time
+                print(f"\n🏳️ {self.name} SURRENDERED at t={current_time}s!")
+                print(f"   Deficit: {recovery.deficit:,} | Max possible: {recovery.max_possible_points:,}")
+
+        return recommendation
+
+    def should_gift_strategically(self, battle) -> tuple:
+        """
+        Check if agent should send a gift based on strategic analysis.
+
+        Returns:
+            (should_gift: bool, max_spend: int, tier: str, reason: str)
+        """
+        if self.has_surrendered:
+            return False, 0, None, "Surrendered - conserving budget"
+
+        recommendation = self.get_strategic_recommendation(battle)
+        return (
+            recommendation.get('should_gift', True),
+            recommendation.get('max_spend', float('inf')),
+            recommendation.get('gift_tier', 'large'),
+            recommendation.get('reasoning', '')
+        )
+
+    def select_gift_by_strategy(self, max_spend: int, tier: str) -> Optional[str]:
+        """
+        Select optimal gift based on strategic constraints.
+
+        Args:
+            max_spend: Maximum coins to spend
+            tier: Maximum gift tier ('small', 'medium', 'large', 'whale')
+
+        Returns:
+            Gift name or None if no suitable gift
+        """
+        if self.strategic_intel:
+            return self.strategic_intel.select_optimal_gift(max_spend, tier)
+
+        # Fallback: simple selection
+        tier_gifts = {
+            'small': [('Rose', 1), ('Heart', 5), ('Doughnut', 30)],
+            'medium': [('Rosa Nebula', 299), ('Perfume', 500), ('GG', 1000)],
+            'large': [('Corgi', 2999), ('Money Gun', 5000)],
+            'whale': [('Dragon Flame', 10000), ('Lion', 29999)]
+        }
+
+        tier_order = ['small', 'medium', 'large', 'whale']
+        max_tier_idx = tier_order.index(tier) if tier in tier_order else 3
+
+        # Find best affordable gift
+        best_gift = None
+        best_value = 0
+
+        for t_idx in range(max_tier_idx, -1, -1):
+            for name, cost in tier_gifts.get(tier_order[t_idx], []):
+                if cost <= max_spend and cost > best_value:
+                    best_gift = name
+                    best_value = cost
+
+        return best_gift
+
+    def reset_strategic_state(self):
+        """Reset strategic state for new battle."""
+        self.has_surrendered = False
+        self.surrender_time = None
+        self.current_strategy_mode = None
+        if self.strategic_intel:
+            # Reset intel state
+            self.strategic_intel.our_score = 0
+            self.strategic_intel.opponent_score = 0
+            self.strategic_intel.peak_lead = 0
+            self.strategic_intel.max_deficit = 0
+            self.strategic_intel.upcoming_boosts.clear()
+            self.strategic_intel.strategy_changes.clear()
 
     def __repr__(self):
         return f"{self.__class__.__name__}(name={self.name}, emotion={self.emotion_system.current_state.name})"

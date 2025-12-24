@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Tournament - TikTok Battle Simulator</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 20px 0 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf, #e040fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .format-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #1a1a2e;
+        }
+
+        /* Setup Form */
+        .setup-form {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #aaa;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+            color: #fff;
+        }
+
+        /* Series Score */
+        .series-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .team-box {
+            text-align: center;
+            padding: 20px 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            min-width: 200px;
+        }
+
+        .team-box.creator {
+            border: 3px solid #00d4ff;
+        }
+
+        .team-box.opponent {
+            border: 3px solid #ff6b6b;
+        }
+
+        .team-box.winner {
+            background: rgba(255, 215, 0, 0.2);
+            border-color: #ffd700;
+        }
+
+        .team-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .team-box.creator .team-name {
+            color: #00d4ff;
+        }
+
+        .team-box.opponent .team-name {
+            color: #ff6b6b;
+        }
+
+        .rounds-won {
+            font-size: 4rem;
+            font-weight: bold;
+        }
+
+        .vs-badge {
+            font-size: 2rem;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        /* Round Progress */
+        .round-progress {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .round-dot {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .round-dot.creator-won {
+            background: #00d4ff;
+            border-color: #00d4ff;
+        }
+
+        .round-dot.opponent-won {
+            background: #ff6b6b;
+            border-color: #ff6b6b;
+        }
+
+        .round-dot.current {
+            border-color: #ffd700;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* Current Round */
+        .current-round {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .round-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .round-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .timer {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffd700;
+            font-family: 'Courier New', monospace;
+        }
+
+        .timer.warning {
+            color: #ff6b6b;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Score Display */
+        .score-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .score-box {
+            text-align: center;
+            flex: 1;
+        }
+
+        .score-value {
+            font-size: 3rem;
+            font-weight: bold;
+        }
+
+        .score-box.creator .score-value {
+            color: #00d4ff;
+        }
+
+        .score-box.opponent .score-value {
+            color: #ff6b6b;
+        }
+
+        .score-label {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        /* Score Bar */
+        .score-bar-container {
+            height: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .score-bar {
+            display: flex;
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .score-bar-creator {
+            background: linear-gradient(90deg, #00d4ff, #0099cc);
+        }
+
+        .score-bar-opponent {
+            background: linear-gradient(90deg, #cc0000, #ff6b6b);
+        }
+
+        /* Gift Feed */
+        .gift-feed {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            height: 250px;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .gift-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .gift-item.creator {
+            background: rgba(0, 212, 255, 0.2);
+            border-left: 4px solid #00d4ff;
+        }
+
+        .gift-item.opponent {
+            background: rgba(255, 107, 107, 0.2);
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .gift-user {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .gift-info {
+            flex: 1;
+        }
+
+        .gift-points {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        /* Round History */
+        .round-history {
+            margin-top: 30px;
+        }
+
+        .round-history h3 {
+            margin-bottom: 15px;
+            color: #aaa;
+        }
+
+        .round-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .round-card.creator-won {
+            border-left: 4px solid #00d4ff;
+        }
+
+        .round-card.opponent-won {
+            border-left: 4px solid #ff6b6b;
+        }
+
+        /* Status Messages */
+        .status-message {
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2rem;
+            color: #aaa;
+        }
+
+        .status-message.connecting {
+            color: #ffd700;
+        }
+
+        .status-message.break {
+            color: #00d4ff;
+            font-size: 1.5rem;
+        }
+
+        /* Winner Celebration */
+        .winner-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .winner-overlay.show {
+            display: flex;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .winner-text {
+            font-size: 4rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #ffd700, #ff6b6b, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shine 2s infinite;
+        }
+
+        @keyframes shine {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.5); }
+        }
+
+        .winner-name {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .series-container {
+                flex-direction: column;
+            }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .score-display {
+                flex-direction: column;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Live Tournament</h1>
+            <span class="format-badge" id="formatBadge">Best of 3</span>
+        </div>
+
+        <!-- Setup Form (shown when no tournament active) -->
+        <div class="setup-form" id="setupForm">
+            <h2 style="text-align: center; margin-bottom: 20px;">Start New Tournament</h2>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Creator Username</label>
+                    <input type="text" id="creatorInput" placeholder="@username" value="">
+                </div>
+                <div class="form-group">
+                    <label>Opponent Username</label>
+                    <input type="text" id="opponentInput" placeholder="@username" value="">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tournament Format</label>
+                    <select id="formatSelect">
+                        <option value="3">Best of 3</option>
+                        <option value="5">Best of 5</option>
+                        <option value="7">Best of 7</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Round Duration (seconds)</label>
+                    <input type="number" id="durationInput" value="120" min="30" max="600">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Break Time (seconds)</label>
+                    <input type="number" id="breakInput" value="20" min="5" max="120">
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="startTournament()">
+                Start Tournament
+            </button>
+        </div>
+
+        <!-- Tournament View (shown during tournament) -->
+        <div id="tournamentView" style="display: none;">
+            <!-- Series Score -->
+            <div class="series-container">
+                <div class="team-box creator" id="creatorBox">
+                    <div class="team-name" id="creatorName">Creator</div>
+                    <div class="rounds-won" id="creatorRounds">0</div>
+                </div>
+                <div class="vs-badge">VS</div>
+                <div class="team-box opponent" id="opponentBox">
+                    <div class="team-name" id="opponentName">Opponent</div>
+                    <div class="rounds-won" id="opponentRounds">0</div>
+                </div>
+            </div>
+
+            <!-- Round Progress -->
+            <div class="round-progress" id="roundProgress">
+                <!-- Generated dynamically -->
+            </div>
+
+            <!-- Current Round -->
+            <div class="current-round" id="currentRound">
+                <div class="round-header">
+                    <span class="round-title" id="roundTitle">Round 1</span>
+                    <span class="timer" id="timer">2:00</span>
+                </div>
+
+                <div class="score-display">
+                    <div class="score-box creator">
+                        <div class="score-value" id="creatorScore">0</div>
+                        <div class="score-label">Creator Points</div>
+                    </div>
+                    <div class="score-box opponent">
+                        <div class="score-value" id="opponentScore">0</div>
+                        <div class="score-label">Opponent Points</div>
+                    </div>
+                </div>
+
+                <div class="score-bar-container">
+                    <div class="score-bar">
+                        <div class="score-bar-creator" id="creatorBar" style="width: 50%;"></div>
+                        <div class="score-bar-opponent" id="opponentBar" style="width: 50%;"></div>
+                    </div>
+                </div>
+
+                <div class="gift-feed" id="giftFeed">
+                    <div class="status-message">Waiting for gifts...</div>
+                </div>
+            </div>
+
+            <!-- Status Message -->
+            <div class="status-message" id="statusMessage" style="display: none;"></div>
+
+            <!-- Round History -->
+            <div class="round-history" id="roundHistory">
+                <h3>Round History</h3>
+                <div id="roundCards"></div>
+            </div>
+
+            <!-- Stop Button -->
+            <button class="btn btn-danger" onclick="stopTournament()" style="margin-top: 20px;">
+                Stop Tournament
+            </button>
+        </div>
+
+        <!-- Winner Overlay -->
+        <div class="winner-overlay" id="winnerOverlay">
+            <div class="winner-text">TOURNAMENT CHAMPION</div>
+            <div class="winner-name" id="winnerName"></div>
+            <div style="font-size: 1.5rem; margin-bottom: 30px;" id="finalScore"></div>
+            <button class="btn btn-primary" onclick="resetTournament()">New Tournament</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        let tournamentState = {
+            active: false,
+            format: 3,
+            creator: '',
+            opponent: '',
+            creatorRounds: 0,
+            opponentRounds: 0,
+            currentRound: 0,
+            roundHistory: []
+        };
+
+        // Socket Events
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        socket.on('tournament_round_start', (data) => {
+            console.log('Round start:', data);
+            tournamentState.currentRound = data.round;
+            updateRoundDisplay(data.round);
+            hideStatus();
+            document.getElementById('giftFeed').innerHTML = '<div class="status-message">Waiting for gifts...</div>';
+        });
+
+        socket.on('tournament_gift', (data) => {
+            console.log('Gift:', data);
+            addGiftToFeed(data);
+            updateScores(data.creator_score, data.opponent_score);
+        });
+
+        socket.on('tournament_score_update', (data) => {
+            updateScores(data.creator_score, data.opponent_score);
+            updateTimer(data.time_remaining);
+        });
+
+        socket.on('tournament_round_end', (data) => {
+            console.log('Round end:', data);
+            addRoundToHistory(data);
+            updateSeriesScore(data.stats);
+            updateRoundProgress();
+        });
+
+        socket.on('tournament_break', (data) => {
+            showStatus(`Break Time - ${data.seconds}s until Round ${data.next_round}`, 'break');
+            startBreakCountdown(data.seconds, data.next_round);
+        });
+
+        socket.on('tournament_end', (data) => {
+            console.log('Tournament end:', data);
+            showWinner(data.winner, data.stats);
+        });
+
+        socket.on('tournament_error', (data) => {
+            alert('Tournament error: ' + data.error);
+            resetTournament();
+        });
+
+        // Functions
+        function startTournament() {
+            const creator = document.getElementById('creatorInput').value.trim().replace('@', '');
+            const opponent = document.getElementById('opponentInput').value.trim().replace('@', '');
+            const format = parseInt(document.getElementById('formatSelect').value);
+            const duration = parseInt(document.getElementById('durationInput').value);
+            const breakTime = parseInt(document.getElementById('breakInput').value);
+
+            if (!creator || !opponent) {
+                alert('Please enter both usernames');
+                return;
+            }
+
+            tournamentState = {
+                active: true,
+                format: format,
+                creator: creator,
+                opponent: opponent,
+                creatorRounds: 0,
+                opponentRounds: 0,
+                currentRound: 0,
+                roundHistory: []
+            };
+
+            // Update UI
+            document.getElementById('formatBadge').textContent = `Best of ${format}`;
+            document.getElementById('creatorName').textContent = `@${creator}`;
+            document.getElementById('opponentName').textContent = `@${opponent}`;
+            document.getElementById('creatorRounds').textContent = '0';
+            document.getElementById('opponentRounds').textContent = '0';
+            document.getElementById('creatorScore').textContent = '0';
+            document.getElementById('opponentScore').textContent = '0';
+            document.getElementById('roundCards').innerHTML = '';
+
+            generateRoundProgress(format);
+
+            document.getElementById('setupForm').style.display = 'none';
+            document.getElementById('tournamentView').style.display = 'block';
+
+            // Start tournament via socket
+            socket.emit('start_tournament', {
+                creator: creator,
+                opponent: opponent,
+                format: format,
+                round_duration: duration,
+                break_duration: breakTime
+            });
+
+            showStatus('Connecting to streams...', 'connecting');
+        }
+
+        function stopTournament() {
+            if (confirm('Are you sure you want to stop the tournament?')) {
+                socket.emit('stop_tournament');
+                resetTournament();
+            }
+        }
+
+        function resetTournament() {
+            tournamentState.active = false;
+            document.getElementById('setupForm').style.display = 'block';
+            document.getElementById('tournamentView').style.display = 'none';
+            document.getElementById('winnerOverlay').classList.remove('show');
+        }
+
+        function generateRoundProgress(format) {
+            const container = document.getElementById('roundProgress');
+            container.innerHTML = '';
+
+            for (let i = 1; i <= format; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'round-dot';
+                dot.id = `round-dot-${i}`;
+                dot.textContent = i;
+                container.appendChild(dot);
+            }
+        }
+
+        function updateRoundProgress() {
+            tournamentState.roundHistory.forEach((round, index) => {
+                const dot = document.getElementById(`round-dot-${round.round_number}`);
+                if (dot) {
+                    dot.className = 'round-dot';
+                    if (round.winner === 'creator') {
+                        dot.classList.add('creator-won');
+                    } else if (round.winner === 'opponent') {
+                        dot.classList.add('opponent-won');
+                    }
+                }
+            });
+
+            // Mark current round
+            const currentDot = document.getElementById(`round-dot-${tournamentState.currentRound}`);
+            if (currentDot && !currentDot.classList.contains('creator-won') && !currentDot.classList.contains('opponent-won')) {
+                currentDot.classList.add('current');
+            }
+        }
+
+        function updateRoundDisplay(round) {
+            document.getElementById('roundTitle').textContent = `Round ${round}`;
+            updateRoundProgress();
+        }
+
+        function updateScores(creatorScore, opponentScore) {
+            document.getElementById('creatorScore').textContent = creatorScore.toLocaleString();
+            document.getElementById('opponentScore').textContent = opponentScore.toLocaleString();
+
+            const total = creatorScore + opponentScore || 1;
+            const creatorPct = (creatorScore / total) * 100;
+            const opponentPct = 100 - creatorPct;
+
+            document.getElementById('creatorBar').style.width = `${creatorPct}%`;
+            document.getElementById('opponentBar').style.width = `${opponentPct}%`;
+        }
+
+        function updateTimer(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            const timerEl = document.getElementById('timer');
+            timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+            if (seconds <= 30) {
+                timerEl.classList.add('warning');
+            } else {
+                timerEl.classList.remove('warning');
+            }
+        }
+
+        function addGiftToFeed(data) {
+            const feed = document.getElementById('giftFeed');
+
+            // Remove "waiting" message if present
+            const waiting = feed.querySelector('.status-message');
+            if (waiting) waiting.remove();
+
+            const item = document.createElement('div');
+            item.className = `gift-item ${data.team}`;
+            item.innerHTML = `
+                <span class="gift-user">${data.username}</span>
+                <span class="gift-info">${data.gift_name} x${data.repeat_count}</span>
+                <span class="gift-points">+${data.points.toLocaleString()}</span>
+            `;
+
+            feed.insertBefore(item, feed.firstChild);
+
+            // Keep only last 50 items
+            while (feed.children.length > 50) {
+                feed.removeChild(feed.lastChild);
+            }
+        }
+
+        function addRoundToHistory(data) {
+            tournamentState.roundHistory.push(data.result);
+
+            const container = document.getElementById('roundCards');
+            const card = document.createElement('div');
+            card.className = `round-card ${data.result.winner}-won`;
+            card.innerHTML = `
+                <span>Round ${data.result.round_number}</span>
+                <span>${data.result.creator_score.toLocaleString()} - ${data.result.opponent_score.toLocaleString()}</span>
+                <span>${data.result.winner === 'creator' ? '🔵' : '🔴'} ${data.result.winner.toUpperCase()}</span>
+            `;
+            container.appendChild(card);
+        }
+
+        function updateSeriesScore(stats) {
+            tournamentState.creatorRounds = stats.creator_rounds_won;
+            tournamentState.opponentRounds = stats.opponent_rounds_won;
+
+            document.getElementById('creatorRounds').textContent = stats.creator_rounds_won;
+            document.getElementById('opponentRounds').textContent = stats.opponent_rounds_won;
+        }
+
+        function showStatus(message, type) {
+            const el = document.getElementById('statusMessage');
+            el.textContent = message;
+            el.className = `status-message ${type}`;
+            el.style.display = 'block';
+        }
+
+        function hideStatus() {
+            document.getElementById('statusMessage').style.display = 'none';
+        }
+
+        function startBreakCountdown(seconds, nextRound) {
+            let remaining = seconds;
+            const interval = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(interval);
+                    hideStatus();
+                } else {
+                    showStatus(`Break Time - ${remaining}s until Round ${nextRound}`, 'break');
+                }
+            }, 1000);
+        }
+
+        function showWinner(winner, stats) {
+            const winnerName = winner === 'creator' ? tournamentState.creator : tournamentState.opponent;
+            document.getElementById('winnerName').textContent = `@${winnerName}`;
+            document.getElementById('winnerName').style.color = winner === 'creator' ? '#00d4ff' : '#ff6b6b';
+            document.getElementById('finalScore').textContent =
+                `Series: ${stats.series_score} | Total Points: ${stats.total_creator_score.toLocaleString()} - ${stats.total_opponent_score.toLocaleString()}`;
+            document.getElementById('winnerOverlay').classList.add('show');
+        }
+    </script>
+</body>
+</html>

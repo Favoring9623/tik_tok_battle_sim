@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Setup - TikTok Battle Simulator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --tiktok-red: #FE2C55;
+            --tiktok-cyan: #25F4EE;
+            --tiktok-dark: #161823;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--tiktok-dark) 0%, #1a1a2e 100%);
+            color: white;
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        .navbar {
+            background: rgba(22, 24, 35, 0.95) !important;
+            backdrop-filter: blur(10px);
+        }
+
+        .card {
+            background: rgba(47, 47, 47, 0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+        }
+
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .overlay-preview {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 16/9;
+        }
+
+        .overlay-preview iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .url-box {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .url-text {
+            flex: 1;
+            color: var(--tiktok-cyan);
+        }
+
+        .copy-btn {
+            background: var(--tiktok-cyan);
+            border: none;
+            color: black;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            background: #1ed8d3;
+        }
+
+        .copy-btn.copied {
+            background: #28a745;
+            color: white;
+        }
+
+        .form-check-input:checked {
+            background-color: var(--tiktok-cyan);
+            border-color: var(--tiktok-cyan);
+        }
+
+        .form-select, .form-control {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .form-select:focus, .form-control:focus {
+            background: rgba(0,0,0,0.4);
+            border-color: var(--tiktok-cyan);
+            color: white;
+            box-shadow: 0 0 0 0.25rem rgba(37, 244, 238, 0.25);
+        }
+
+        .form-select option {
+            background: #2f2f2f;
+        }
+
+        .overlay-card {
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .overlay-card:hover {
+            border-color: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .overlay-card.selected {
+            border-color: var(--tiktok-cyan);
+            box-shadow: 0 0 20px rgba(37, 244, 238, 0.3);
+        }
+
+        .overlay-thumb {
+            background: #000;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .overlay-thumb i {
+            font-size: 3rem;
+            opacity: 0.7;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: var(--tiktok-cyan);
+            color: black;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .dimension-badge {
+            background: rgba(255,255,255,0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .nav-link {
+            color: rgba(255,255,255,0.7) !important;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--tiktok-cyan) !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-play-circle-fill me-2" style="color: var(--tiktok-red);"></i>
+                TikTok Battle Sim
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/strategic-battle">Strategic</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/analytics">Analytics</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/replay">Replay</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/obs/setup">OBS Setup</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div class="row mb-4">
+            <div class="col">
+                <h2><i class="bi bi-broadcast me-2"></i>OBS Streaming Setup</h2>
+                <p class="text-muted">Configure overlays for your TikTok battle streams</p>
+            </div>
+        </div>
+
+        <!-- Overlay Selection -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-grid me-2"></i>Choose Overlay Type</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="overlay-card card h-100 selected" data-overlay="full" onclick="selectOverlay('full')">
+                                    <div class="card-body text-center">
+                                        <div class="overlay-thumb mb-3">
+                                            <i class="bi bi-display"></i>
+                                        </div>
+                                        <h6>Full Overlay</h6>
+                                        <p class="text-muted small mb-2">Complete battle overlay with scores, timer, gift feed, and phase indicator</p>
+                                        <span class="dimension-badge">1920x1080</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="overlay-card card h-100" data-overlay="scores" onclick="selectOverlay('scores')">
+                                    <div class="card-body text-center">
+                                        <div class="overlay-thumb mb-3">
+                                            <i class="bi bi-trophy"></i>
+                                        </div>
+                                        <h6>Score Widget</h6>
+                                        <p class="text-muted small mb-2">Minimal score display with optional timer. Perfect for corner placement</p>
+                                        <span class="dimension-badge">400x100</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="overlay-card card h-100" data-overlay="alerts" onclick="selectOverlay('alerts')">
+                                    <div class="card-body text-center">
+                                        <div class="overlay-thumb mb-3">
+                                            <i class="bi bi-gift"></i>
+                                        </div>
+                                        <h6>Gift Alerts</h6>
+                                        <p class="text-muted small mb-2">Animated gift notifications. Great for engagement overlay</p>
+                                        <span class="dimension-badge">400x600</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Configuration -->
+            <div class="col-lg-5 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-sliders me-2"></i>Customize</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Full Overlay Options -->
+                        <div id="fullOptions" class="options-panel">
+                            <div class="mb-3">
+                                <label class="form-label">Position</label>
+                                <select class="form-select" id="fullPosition" onchange="updateUrl()">
+                                    <option value="bottom">Bottom (Default)</option>
+                                    <option value="top">Top</option>
+                                </select>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="fullHideGifts" onchange="updateUrl()">
+                                <label class="form-check-label" for="fullHideGifts">Hide gift feed</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="fullHideTimer" onchange="updateUrl()">
+                                <label class="form-check-label" for="fullHideTimer">Hide timer</label>
+                            </div>
+                        </div>
+
+                        <!-- Score Widget Options -->
+                        <div id="scoresOptions" class="options-panel" style="display: none;">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="scoresCompact" onchange="updateUrl()">
+                                <label class="form-check-label" for="scoresCompact">Compact mode</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="scoresVertical" onchange="updateUrl()">
+                                <label class="form-check-label" for="scoresVertical">Vertical layout</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="scoresHideTimer" onchange="updateUrl()">
+                                <label class="form-check-label" for="scoresHideTimer">Hide timer</label>
+                            </div>
+                        </div>
+
+                        <!-- Alert Options -->
+                        <div id="alertsOptions" class="options-panel" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Alert Position</label>
+                                <select class="form-select" id="alertsPosition" onchange="updateUrl()">
+                                    <option value="top-right">Top Right</option>
+                                    <option value="top-left">Top Left</option>
+                                    <option value="bottom-right">Bottom Right</option>
+                                    <option value="bottom-left">Bottom Left</option>
+                                    <option value="center">Center</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Minimum Points (filter small gifts)</label>
+                                <input type="number" class="form-control" id="alertsMinPoints" value="0" min="0" onchange="updateUrl()">
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Your Overlay URL</label>
+                            <div class="url-box">
+                                <span class="url-text" id="overlayUrl">http://localhost:5000/obs/overlay</span>
+                                <button class="copy-btn" onclick="copyUrl()">
+                                    <i class="bi bi-clipboard me-1"></i>Copy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div class="col-lg-7 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-eye me-2"></i>Preview</h5>
+                        <button class="btn btn-sm btn-outline-light" onclick="refreshPreview()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="overlay-preview">
+                            <iframe id="previewFrame" src="/obs/overlay"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Setup Instructions -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-book me-2"></i>OBS Setup Instructions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="d-flex gap-3 mb-4">
+                                    <div class="step-number">1</div>
+                                    <div>
+                                        <h6>Add Browser Source</h6>
+                                        <p class="text-muted mb-0">In OBS, click the "+" button in Sources and select "Browser"</p>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-3 mb-4">
+                                    <div class="step-number">2</div>
+                                    <div>
+                                        <h6>Paste the URL</h6>
+                                        <p class="text-muted mb-0">Copy the overlay URL above and paste it into the "URL" field</p>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-3 mb-4">
+                                    <div class="step-number">3</div>
+                                    <div>
+                                        <h6>Set Dimensions</h6>
+                                        <p class="text-muted mb-0">
+                                            <strong>Full Overlay:</strong> 1920 x 1080<br>
+                                            <strong>Score Widget:</strong> 400 x 100 (or 150 for vertical)<br>
+                                            <strong>Gift Alerts:</strong> 400 x 600
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex gap-3 mb-4">
+                                    <div class="step-number">4</div>
+                                    <div>
+                                        <h6>Enable Transparency</h6>
+                                        <p class="text-muted mb-0">Scroll down and check "Custom CSS" is empty, then the transparent background will work automatically</p>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-3 mb-4">
+                                    <div class="step-number">5</div>
+                                    <div>
+                                        <h6>Position the Overlay</h6>
+                                        <p class="text-muted mb-0">Drag and resize the overlay in OBS to your preferred position</p>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-3">
+                                    <div class="step-number">6</div>
+                                    <div>
+                                        <h6>Start a Battle!</h6>
+                                        <p class="text-muted mb-0">Run a battle and the overlay will update in real-time via WebSocket</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-4 mb-0">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Tip:</strong> Make sure the battle server is running on the same machine or network. The overlay connects via Socket.IO for real-time updates.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let selectedOverlay = 'full';
+        const baseUrl = window.location.origin;
+
+        function selectOverlay(type) {
+            selectedOverlay = type;
+
+            // Update card selection
+            document.querySelectorAll('.overlay-card').forEach(card => {
+                card.classList.toggle('selected', card.dataset.overlay === type);
+            });
+
+            // Show/hide options panels
+            document.querySelectorAll('.options-panel').forEach(panel => {
+                panel.style.display = 'none';
+            });
+            document.getElementById(type + 'Options').style.display = 'block';
+
+            updateUrl();
+        }
+
+        function updateUrl() {
+            let url = baseUrl + '/obs/';
+            let params = [];
+
+            switch (selectedOverlay) {
+                case 'full':
+                    url += 'overlay';
+                    if (document.getElementById('fullPosition').value === 'top') {
+                        params.push('position=top');
+                    }
+                    if (document.getElementById('fullHideGifts').checked) {
+                        params.push('hideGifts=true');
+                    }
+                    if (document.getElementById('fullHideTimer').checked) {
+                        params.push('hideTimer=true');
+                    }
+                    break;
+
+                case 'scores':
+                    url += 'scores';
+                    if (document.getElementById('scoresCompact').checked) {
+                        params.push('compact=true');
+                    }
+                    if (document.getElementById('scoresVertical').checked) {
+                        params.push('vertical=true');
+                    }
+                    if (document.getElementById('scoresHideTimer').checked) {
+                        params.push('hideTimer=true');
+                    }
+                    break;
+
+                case 'alerts':
+                    url += 'alerts';
+                    const position = document.getElementById('alertsPosition').value;
+                    if (position !== 'top-right') {
+                        params.push('position=' + position);
+                    }
+                    const minPoints = document.getElementById('alertsMinPoints').value;
+                    if (minPoints && parseInt(minPoints) > 0) {
+                        params.push('minPoints=' + minPoints);
+                    }
+                    break;
+            }
+
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+
+            document.getElementById('overlayUrl').textContent = url;
+            document.getElementById('previewFrame').src = url;
+        }
+
+        function copyUrl() {
+            const url = document.getElementById('overlayUrl').textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function refreshPreview() {
+            const frame = document.getElementById('previewFrame');
+            frame.src = frame.src;
+        }
+
+        // Initialize
+        updateUrl();
+    </script>
+</body>
+</html>

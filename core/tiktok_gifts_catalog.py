@@ -22,6 +22,7 @@ class GiftTier(Enum):
     HIGH = "high"           # 500-5,999 coins
     LUXURY = "luxury"       # 6,000-24,999 coins
     ULTRA = "ultra"         # 25,000-44,999 coins
+    LIVE_FEST = "live_fest"  # Special event gifts (campaigns)
 
 
 @dataclass
@@ -35,8 +36,23 @@ class TikTokGift:
 
     @property
     def points(self) -> int:
-        """Calculate battle points (coins × 10)."""
-        return self.coins * 10
+        """Battle points equal coin value (TikTok official: 1 coin = 1 diamond = 1 point)."""
+        return self.coins
+
+    @property
+    def live_fest_points(self) -> float:
+        """
+        Live Fest ranking points.
+
+        During LiveFest 2025:
+        - Fest gifts (FEST_POP, FEST_GEAR, FEST_CHEERS, FEST_PARTY) = 1.5x points
+        - Vault gifts = 1.5x points
+        - Regular gifts = 1x points
+        - Votes = 1 point (free)
+        """
+        if self.tier == GiftTier.LIVE_FEST:
+            return self.coins * 1.5  # 1.5x multiplier for Fest/Vault gifts
+        return float(self.coins)
 
     def usd_cost(self, coin_rate: float = 0.0133) -> float:
         """Calculate USD cost (default rate: $0.0133/coin)."""
@@ -457,6 +473,60 @@ TIKTOK_GIFTS_CATALOG: Dict[str, TikTokGift] = {
         tier=GiftTier.ULTRA,
         emoji="🌌",
         description="The ultimate TikTok gift"
+    ),
+
+    # ===== LIVE FEST 2025 BONUS GIFTS =====
+    # These 4 gifts give 1.5x POINTS PER COIN (official TikTok LiveFest 2025)
+    # Source: TikTok LiveFest 2025 creator briefing
+    "FEST_POP": TikTokGift(
+        name="Fest Pop",
+        coins=1,
+        tier=GiftTier.LIVE_FEST,
+        emoji="🎪",
+        description="1.5x points! Basic Live Fest gift (1 coin = 1.5 pts)"
+    ),
+    "FEST_GEAR": TikTokGift(
+        name="Fest Gear",
+        coins=99,
+        tier=GiftTier.LIVE_FEST,
+        emoji="😎",
+        description="1.5x points! Cool sunglasses (99 coins = 148.5 pts)"
+    ),
+    "FEST_CHEERS": TikTokGift(
+        name="Fest Cheers",
+        coins=399,  # Corrected from 299!
+        tier=GiftTier.LIVE_FEST,
+        emoji="🎉",
+        description="1.5x points! Premium fest gift (399 coins = 598.5 pts)"
+    ),
+    "FEST_PARTY": TikTokGift(
+        name="Fest Party",
+        coins=2999,
+        tier=GiftTier.LIVE_FEST,
+        emoji="🥳",
+        description="1.5x points! Whale fest gift (2999 coins = 4498.5 pts)"
+    ),
+
+    # ===== VAULT GIFTS (Live Fest exclusive) =====
+    # Also give 1.5x points per coin!
+    # Only available during LiveFest - require unlocking
+    "VAULT_GIFT": TikTokGift(
+        name="Vault Gift",
+        coins=5000,
+        tier=GiftTier.LIVE_FEST,
+        emoji="🔐",
+        description="1.5x points! Exclusive LiveFest vault gift"
+    ),
+
+    # ===== VOTES (Free support) =====
+    # Votes earned through challenges, calendar check-ins, etc.
+    # Each vote = 1 point (no money required)
+    "LIVE_FEST_VOTE": TikTokGift(
+        name="Live Fest Vote",
+        coins=0,  # FREE - earned through challenges
+        tier=GiftTier.LIVE_FEST,
+        emoji="🗳️",
+        description="FREE vote = 1 point (earned via challenges/calendar)"
     ),
 }
 

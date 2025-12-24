@@ -27,9 +27,13 @@ from core.battle_engine import BattleEngine
 from core.advanced_phase_system import AdvancedPhaseManager, PowerUpType
 from core.battle_history import BattleHistoryDB, generate_battle_id
 from core.budget_system import BudgetManager, BudgetIntelligence
+from core.database import BattleRepository, ReplayRepository, init_database
 from agents.evolving_agents import create_mixed_strategic_team, reset_evolving_team, learn_from_battle_results
 from agents.gpt_strategic_agents import GPTStrategicNarrator
 from agents.opponent_ai import OpponentAI
+
+# Initialize analytics database
+init_database()
 
 
 def run_web_strategic_battle():
@@ -93,7 +97,13 @@ def run_web_strategic_battle():
         opponent_ai = OpponentAI(phase_manager, difficulty="medium", budget_manager=budget_manager)
 
         # Create mixed strategic team (strategic + persona agents)
-        team = create_mixed_strategic_team(phase_manager, db=db, budget_intelligence=budget_intelligence)
+        # IMPORTANT: Pass budget_manager to enable strategic intelligence (surrender, snipe, catch-up)
+        team = create_mixed_strategic_team(
+            phase_manager,
+            db=db,
+            budget_intelligence=budget_intelligence,
+            budget_manager=budget_manager
+        )
 
         # Give all agents access to budget manager
         for agent in team:
@@ -148,6 +158,15 @@ def run_web_strategic_battle():
         gloves_activated = 0
         last_glove_active = False
 
+        # Helper to record replay events
+        def record_event(event_type: str, data: dict):
+            """Record event for replay."""
+            try:
+                current_time = engine.time_manager.current_time if engine.time_manager else 0
+                ReplayRepository.save_replay_event(battle_id, current_time, event_type, data)
+            except Exception as e:
+                pass  # Don't interrupt battle for recording errors
+
         # Track Boost #1 for budget intelligence analysis
         boost1_started = False
         boost1_scores_before = {'creator': 0, 'opponent': 0}
@@ -188,6 +207,14 @@ def run_web_strategic_battle():
             # Apply opponent gift to score
             if opponent_result["gift_sent"]:
                 engine.score_tracker.opponent_score += opponent_result["gift_points"]
+                # Record for replay
+                record_event('gift_sent', {
+                    'team': 'opponent',
+                    'agent': 'OpponentAI',
+                    'emoji': '👻',
+                    'gift': opponent_result.get("gift_name", "Gift"),
+                    'points': opponent_result["gift_points"]
+                })
 
             # Broadcast opponent power-up usage
             if opponent_result["power_up_used"]:
@@ -253,6 +280,13 @@ def run_web_strategic_battle():
                     'multiplier': base_mult,
                     'time_remaining': time_remaining,
                     'gpt_commentary': gpt_comment
+                })
+
+                # Record for replay
+                record_event('phase_change', {
+                    'phase': current_phase,
+                    'multiplier': base_mult,
+                    'time_remaining': time_remaining
                 })
 
             # Check boost #1 and #2 status
@@ -327,11 +361,24 @@ def run_web_strategic_battle():
                     'glove_active': phase_manager.active_glove_x5
                 })
 
+            # Record score snapshot every 5 seconds for replay
+            if current_time % 5 == 0:
+                record_event('score_update', {
+                    'creator_score': engine.score_tracker.creator_score,
+                    'opponent_score': engine.score_tracker.opponent_score,
+                    'time': current_time
+                })
+
             # Check for glove state changes
             glove_active = phase_manager.active_glove_x5
             if glove_active != last_glove_active:
                 last_glove_active = glove_active
                 glove_status = phase_manager.get_active_glove_status(current_time)
+                # Record glove state change
+                record_event('glove_activated' if glove_active else 'glove_ended', {
+                    'owner': glove_status.get('owner'),
+                    'multiplier': glove_status.get('final_chance')
+                })
                 socketio.emit('glove_state', {
                     'active': glove_status['active'],
                     'owner': glove_status['owner'],
@@ -387,6 +434,15 @@ def run_web_strategic_battle():
                             'win_rate': ag.learning_agent.get_win_rate() if hasattr(ag, 'learning_agent') else 0
                         })
 
+                        # Record for replay
+                        record_event('gift_sent', {
+                            'team': 'creator',
+                            'agent': ag.name,
+                            'emoji': ag.emoji,
+                            'gift': gift_name,
+                            'points': points
+                        })
+
                         # Check for glove
                         if 'GLOVE' in gift_name.upper():
                             nonlocal gloves_sent
@@ -436,6 +492,13 @@ def run_web_strategic_battle():
                     info = powerup_info.get(powerup_type, {'name': 'Unknown', 'emoji': '❓', 'type': 'Unknown'})
                 # broadcast_powerup_used already prints
                 broadcast_powerup_used(info)
+
+                # Record for replay
+                record_event('power_up', {
+                    'type': info['type'],
+                    'name': info['name'],
+                    'team': team_name
+                })
 
                 # Show glove effect for glove power-ups
                 if powerup_type == PowerUpType.GLOVE:
@@ -519,6 +582,53 @@ def run_web_strategic_battle():
         # IMPORTANT: Learn BEFORE reset (so agents can see their battle stats)
         learn_from_battle_results(team, winner == 'creator', battle_stats)
         reset_evolving_team(team)  # Reset for next battle
+
+        # === SAVE TO ANALYTICS DATABASE ===
+        try:
+            # Create battle record
+            BattleRepository.create_battle(
+                battle_id=battle_id,
+                duration=phase_manager.battle_duration,
+                battle_type='strategic',
+                config={
+                    'boost1_triggered': phase_analytics.get('boost1_triggered', False),
+                    'boost2_triggered': phase_analytics.get('boost2_triggered', False),
+                    'creator_budget': budget_manager.creator_starting,
+                    'opponent_budget': budget_manager.opponent_starting
+                }
+            )
+
+            # End battle with results
+            BattleRepository.end_battle(
+                battle_id=battle_id,
+                creator_score=final_scores['creator'],
+                opponent_score=final_scores['opponent'],
+                winner=winner,
+                analytics={
+                    'phase_analytics': phase_analytics,
+                    'budget_analytics': budget_analytics,
+                    'gloves_sent': gloves_sent,
+                    'gloves_activated': gloves_activated
+                }
+            )
+
+            # Save agent stats
+            agent_performance = engine.analytics.get_agent_performance() if hasattr(engine, 'analytics') else {}
+            for agent in team:
+                perf = agent_performance.get(agent.name, {})
+                BattleRepository.add_agent_stats(
+                    battle_id=battle_id,
+                    agent_name=agent.name,
+                    agent_type=agent.agent_type,
+                    total_points=perf.get('total_donated', 0),
+                    total_gifts=perf.get('gifts_sent', 0),
+                    total_spent=perf.get('coins_spent', 0),
+                    efficiency=perf.get('efficiency', 0)
+                )
+
+            print(f"📊 Battle saved to analytics database: {battle_id}")
+        except Exception as e:
+            print(f"⚠️  Could not save to analytics database: {e}")
 
         print(f"\n🏁 Battle complete! Winner: {winner.upper()}")
         print(f"   Creator: {final_scores['creator']:,}")

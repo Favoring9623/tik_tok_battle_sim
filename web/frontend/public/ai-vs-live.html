@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI vs Live - TikTok Battle Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Navigation */
+        .nav {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            color: #888;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            transition: all 0.3s;
+        }
+
+        .nav a:hover, .nav a.active {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        .ai-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        /* Setup Form */
+        .setup-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .setup-panel h2 {
+            margin-bottom: 20px;
+            color: #8b5cf6;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            background: rgba(0,0,0,0.3);
+            color: white;
+            font-size: 1em;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #8b5cf6;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Battle Arena */
+        .battle-arena {
+            display: none;
+        }
+
+        .battle-arena.active {
+            display: block;
+        }
+
+        .scoreboard {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 30px;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .team-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .team-card.ai {
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .team-card.live {
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        .team-card.winning {
+            transform: scale(1.02);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .team-card.ai.winning {
+            border-color: #3b82f6;
+            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.3);
+        }
+
+        .team-card.live.winning {
+            border-color: #ef4444;
+            box-shadow: 0 10px 40px rgba(239, 68, 68, 0.3);
+        }
+
+        .team-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .team-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .team-score {
+            font-size: 4em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .team-card.ai .team-score {
+            color: #3b82f6;
+        }
+
+        .team-card.live .team-score {
+            color: #ef4444;
+        }
+
+        .team-gifts {
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        .vs-container {
+            text-align: center;
+        }
+
+        .vs-text {
+            font-size: 2em;
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .timer {
+            font-size: 3em;
+            font-weight: bold;
+            color: #feca57;
+        }
+
+        .round-info {
+            color: #888;
+            margin-top: 10px;
+        }
+
+        /* Series Score */
+        .series-score {
+            text-align: center;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .series-score h3 {
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .series-display {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .series-display .ai-wins {
+            color: #3b82f6;
+        }
+
+        .series-display .live-wins {
+            color: #ef4444;
+        }
+
+        /* Progress Bar */
+        .progress-bar-container {
+            margin-bottom: 30px;
+        }
+
+        .progress-bar {
+            height: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .progress-ai {
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            height: 100%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            font-weight: bold;
+        }
+
+        .progress-live {
+            background: linear-gradient(90deg, #f87171, #ef4444);
+            height: 100%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            font-weight: bold;
+        }
+
+        /* Gift Feed */
+        .gift-feed {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .feed-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .feed-panel h3 {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .feed-panel.ai h3 {
+            color: #3b82f6;
+        }
+
+        .feed-panel.live h3 {
+            color: #ef4444;
+        }
+
+        .gift-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .gift-emoji {
+            font-size: 1.5em;
+        }
+
+        .gift-details {
+            flex: 1;
+        }
+
+        .gift-sender {
+            font-weight: bold;
+        }
+
+        .gift-name {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .gift-points {
+            color: #22c55e;
+            font-weight: bold;
+        }
+
+        .gift-multiplier {
+            color: #feca57;
+            font-size: 0.9em;
+        }
+
+        /* AI Team Panel */
+        .ai-team-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .ai-team-panel h3 {
+            color: #8b5cf6;
+            margin-bottom: 15px;
+        }
+
+        .ai-agents {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .agent-card {
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .agent-emoji {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .agent-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .agent-stats {
+            font-size: 0.9em;
+            color: #888;
+        }
+
+        /* Results Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .winner-emoji {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+
+        .winner-text {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .winner-text.ai {
+            color: #3b82f6;
+        }
+
+        .winner-text.live {
+            color: #ef4444;
+        }
+
+        .final-score {
+            font-size: 1.5em;
+            margin-bottom: 30px;
+        }
+
+        /* Status Messages */
+        .status-message {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-message.connecting {
+            border-left: 4px solid #feca57;
+        }
+
+        .status-message.connected {
+            border-left: 4px solid #22c55e;
+        }
+
+        .status-message.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .scoreboard {
+                grid-template-columns: 1fr;
+            }
+
+            .gift-feed {
+                grid-template-columns: 1fr;
+            }
+
+            .team-score {
+                font-size: 3em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="nav">
+            <a href="/">Dashboard</a>
+            <a href="/live">Live Battle</a>
+            <a href="/live-tournament">Tournament</a>
+            <a href="/ai-vs-live" class="active">AI vs Live</a>
+            <a href="/leaderboard">Leaderboard</a>
+            <a href="/analytics">Analytics</a>
+        </nav>
+
+        <!-- Header -->
+        <div class="header">
+            <h1>AI vs Live Battle <span class="ai-badge">AI</span></h1>
+            <p class="subtitle">Our AI team competes against real TikTok Live streamers</p>
+        </div>
+
+        <!-- Status Message -->
+        <div id="statusMessage" class="status-message" style="display: none;"></div>
+
+        <!-- Setup Panel -->
+        <div id="setupPanel" class="setup-panel">
+            <h2>Configure AI vs Live Battle</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Target Streamer</label>
+                    <input type="text" id="targetStreamer" placeholder="@username" value="@test_streamer">
+                </div>
+                <div class="form-group">
+                    <label>Mode</label>
+                    <select id="battleMode">
+                        <option value="simulation">Simulation (No TikTok)</option>
+                        <option value="live">Live (Real TikTok)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Format</label>
+                    <select id="battleFormat">
+                        <option value="bo1">Single Match</option>
+                        <option value="bo3" selected>Best of 3</option>
+                        <option value="bo5">Best of 5</option>
+                        <option value="bo7">Best of 7</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Round Duration (seconds)</label>
+                    <input type="number" id="roundDuration" value="60" min="30" max="600">
+                </div>
+                <div class="form-group">
+                    <label>AI Budget (coins/round)</label>
+                    <input type="number" id="aiBudget" value="50000" min="1000" step="1000">
+                </div>
+                <div class="form-group">
+                    <label>AI Team (optional)</label>
+                    <input type="text" id="aiTeam" placeholder="NovaWhale,PixelPixie,...">
+                </div>
+            </div>
+            <div class="form-row" style="margin-top: 20px;">
+                <button id="startBtn" class="btn btn-primary" onclick="startBattle()">
+                    Start AI vs Live Battle
+                </button>
+            </div>
+        </div>
+
+        <!-- Battle Arena (hidden until battle starts) -->
+        <div id="battleArena" class="battle-arena">
+            <!-- Series Score -->
+            <div class="series-score">
+                <h3>Series Score</h3>
+                <div class="series-display">
+                    <span class="ai-wins" id="aiWins">0</span>
+                    <span> - </span>
+                    <span class="live-wins" id="liveWins">0</span>
+                </div>
+                <div id="winsNeeded" style="color: #888; margin-top: 5px;">First to 2 wins</div>
+            </div>
+
+            <!-- Scoreboard -->
+            <div class="scoreboard">
+                <div class="team-card ai" id="aiTeamCard">
+                    <div class="team-icon">🤖</div>
+                    <div class="team-name">AI Team</div>
+                    <div class="team-score" id="aiScore">0</div>
+                    <div class="team-gifts" id="aiGifts">0 gifts</div>
+                </div>
+
+                <div class="vs-container">
+                    <div class="vs-text">VS</div>
+                    <div class="timer" id="timer">--:--</div>
+                    <div class="round-info">Round <span id="currentRound">1</span></div>
+                </div>
+
+                <div class="team-card live" id="liveTeamCard">
+                    <div class="team-icon">🔴</div>
+                    <div class="team-name" id="liveName">@streamer</div>
+                    <div class="team-score" id="liveScore">0</div>
+                    <div class="team-gifts" id="liveGifts">0 gifts</div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-bar-container">
+                <div class="progress-bar">
+                    <div class="progress-ai" id="progressAi" style="width: 50%;"></div>
+                    <div class="progress-live" id="progressLive" style="width: 50%;"></div>
+                </div>
+            </div>
+
+            <!-- Gift Feeds -->
+            <div class="gift-feed">
+                <div class="feed-panel ai">
+                    <h3>AI Team Gifts</h3>
+                    <div id="aiGiftFeed"></div>
+                </div>
+                <div class="feed-panel live">
+                    <h3>Live Stream Gifts</h3>
+                    <div id="liveGiftFeed"></div>
+                </div>
+            </div>
+
+            <!-- AI Team Panel -->
+            <div class="ai-team-panel">
+                <h3>AI Team Performance</h3>
+                <div class="ai-agents" id="aiAgents"></div>
+            </div>
+
+            <!-- Stop Button -->
+            <div style="text-align: center; margin-top: 20px;">
+                <button id="stopBtn" class="btn btn-danger" onclick="stopBattle()">
+                    Stop Battle
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Modal -->
+        <div id="resultsModal" class="modal">
+            <div class="modal-content">
+                <div class="winner-emoji" id="winnerEmoji">🏆</div>
+                <div class="winner-text" id="winnerText">AI TEAM WINS!</div>
+                <div class="final-score" id="finalScore">2 - 0</div>
+                <div id="finalStats"></div>
+                <button class="btn btn-primary" onclick="closeResults()" style="margin-top: 20px;">
+                    New Battle
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Socket.IO connection
+        const socket = io();
+
+        // State
+        let battleActive = false;
+        let aiGiftCount = 0;
+        let liveGiftCount = 0;
+
+        // Socket event handlers
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            showStatus('Connected to server', 'connected');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            showStatus('Disconnected from server', 'error');
+        });
+
+        socket.on('ai_vs_live_started', (data) => {
+            console.log('Battle started:', data);
+            battleActive = true;
+            document.getElementById('setupPanel').style.display = 'none';
+            document.getElementById('battleArena').classList.add('active');
+            document.getElementById('liveName').textContent = '@' + data.target;
+            document.getElementById('winsNeeded').textContent = `First to ${data.wins_needed} wins`;
+            aiGiftCount = 0;
+            liveGiftCount = 0;
+            hideStatus();
+        });
+
+        socket.on('ai_vs_live_connection', (data) => {
+            if (data.connected) {
+                showStatus(`Connected to ${data.username}`, 'connected');
+            } else {
+                showStatus(`Connecting to ${data.username}...`, 'connecting');
+            }
+        });
+
+        socket.on('ai_vs_live_ai_gift', (data) => {
+            aiGiftCount++;
+            updateScores(data.ai_score, data.live_score);
+            document.getElementById('aiGifts').textContent = `${aiGiftCount} gifts`;
+
+            const multiplierText = data.multiplier > 1 ? ` (x${data.multiplier})` : '';
+            addGiftToFeed('ai', {
+                emoji: data.emoji,
+                sender: data.agent,
+                gift: data.gift_name,
+                points: data.points,
+                multiplier: multiplierText
+            });
+        });
+
+        socket.on('ai_vs_live_live_gift', (data) => {
+            liveGiftCount++;
+            updateScores(data.ai_score, data.live_score);
+            document.getElementById('liveGifts').textContent = `${liveGiftCount} gifts`;
+
+            addGiftToFeed('live', {
+                emoji: '🎁',
+                sender: data.username,
+                gift: `${data.gift_name} x${data.repeat_count}`,
+                points: data.total_points,
+                multiplier: ''
+            });
+        });
+
+        socket.on('ai_vs_live_score_update', (data) => {
+            updateScores(data.ai_score, data.live_score);
+            updateTimer(data.time_remaining);
+            document.getElementById('currentRound').textContent = data.round;
+        });
+
+        socket.on('ai_vs_live_round_end', (data) => {
+            document.getElementById('aiWins').textContent = data.ai_wins;
+            document.getElementById('liveWins').textContent = data.live_wins;
+
+            // Reset gift counts for next round
+            aiGiftCount = 0;
+            liveGiftCount = 0;
+            document.getElementById('aiGifts').textContent = '0 gifts';
+            document.getElementById('liveGifts').textContent = '0 gifts';
+
+            // Clear feeds
+            document.getElementById('aiGiftFeed').innerHTML = '';
+            document.getElementById('liveGiftFeed').innerHTML = '';
+        });
+
+        socket.on('ai_vs_live_battle_end', (data) => {
+            battleActive = false;
+            showResults(data);
+        });
+
+        socket.on('ai_vs_live_stopped', () => {
+            battleActive = false;
+            resetUI();
+            showStatus('Battle stopped', 'connected');
+        });
+
+        socket.on('ai_vs_live_error', (data) => {
+            showStatus(data.error, 'error');
+            if (!battleActive) {
+                document.getElementById('startBtn').disabled = false;
+            }
+        });
+
+        // Functions
+        function startBattle() {
+            const target = document.getElementById('targetStreamer').value.trim();
+            const mode = document.getElementById('battleMode').value;
+            const format = document.getElementById('battleFormat').value;
+            const duration = parseInt(document.getElementById('roundDuration').value);
+            const budget = parseInt(document.getElementById('aiBudget').value);
+            const team = document.getElementById('aiTeam').value.trim();
+
+            if (!target) {
+                showStatus('Please enter a target streamer username', 'error');
+                return;
+            }
+
+            document.getElementById('startBtn').disabled = true;
+            showStatus('Starting battle...', 'connecting');
+
+            socket.emit('start_ai_vs_live', {
+                target: target,
+                mode: mode,
+                format: format,
+                duration: duration,
+                budget: budget,
+                team: team || null
+            });
+        }
+
+        function stopBattle() {
+            socket.emit('stop_ai_vs_live');
+        }
+
+        function updateScores(aiScore, liveScore) {
+            document.getElementById('aiScore').textContent = aiScore.toLocaleString();
+            document.getElementById('liveScore').textContent = liveScore.toLocaleString();
+
+            const total = aiScore + liveScore || 1;
+            const aiPercent = (aiScore / total) * 100;
+            const livePercent = (liveScore / total) * 100;
+
+            document.getElementById('progressAi').style.width = aiPercent + '%';
+            document.getElementById('progressLive').style.width = livePercent + '%';
+
+            // Update winning state
+            const aiCard = document.getElementById('aiTeamCard');
+            const liveCard = document.getElementById('liveTeamCard');
+
+            aiCard.classList.toggle('winning', aiScore > liveScore);
+            liveCard.classList.toggle('winning', liveScore > aiScore);
+        }
+
+        function updateTimer(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            document.getElementById('timer').textContent =
+                `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function addGiftToFeed(team, gift) {
+            const feedId = team === 'ai' ? 'aiGiftFeed' : 'liveGiftFeed';
+            const feed = document.getElementById(feedId);
+
+            const item = document.createElement('div');
+            item.className = 'gift-item';
+            item.innerHTML = `
+                <span class="gift-emoji">${gift.emoji}</span>
+                <div class="gift-details">
+                    <div class="gift-sender">${gift.sender}</div>
+                    <div class="gift-name">${gift.gift}${gift.multiplier ? `<span class="gift-multiplier">${gift.multiplier}</span>` : ''}</div>
+                </div>
+                <div class="gift-points">+${gift.points.toLocaleString()}</div>
+            `;
+
+            feed.insertBefore(item, feed.firstChild);
+
+            // Keep only last 50 items
+            while (feed.children.length > 50) {
+                feed.removeChild(feed.lastChild);
+            }
+        }
+
+        function showResults(data) {
+            const modal = document.getElementById('resultsModal');
+            const winnerEmoji = document.getElementById('winnerEmoji');
+            const winnerText = document.getElementById('winnerText');
+            const finalScore = document.getElementById('finalScore');
+            const finalStats = document.getElementById('finalStats');
+
+            if (data.winner === 'ai') {
+                winnerEmoji.textContent = '🤖🏆';
+                winnerText.textContent = 'AI TEAM WINS!';
+                winnerText.className = 'winner-text ai';
+            } else {
+                winnerEmoji.textContent = '🔴🏆';
+                winnerText.textContent = `@${data.target_streamer} WINS!`;
+                winnerText.className = 'winner-text live';
+            }
+
+            finalScore.textContent = data.series_score;
+
+            // Build stats HTML
+            let statsHtml = `
+                <div style="margin-top: 20px; text-align: left;">
+                    <p><strong>Total Points:</strong></p>
+                    <p style="color: #3b82f6;">AI Team: ${data.total_ai_score.toLocaleString()}</p>
+                    <p style="color: #ef4444;">Live: ${data.total_live_score.toLocaleString()}</p>
+                </div>
+            `;
+
+            if (data.ai_team && data.ai_team.length > 0) {
+                statsHtml += '<div style="margin-top: 15px;"><strong>AI Team Performance:</strong></div>';
+                data.ai_team.forEach(agent => {
+                    statsHtml += `<p>${agent.emoji} ${agent.name}: ${agent.gifts} gifts, ${agent.points.toLocaleString()} pts</p>`;
+                });
+            }
+
+            finalStats.innerHTML = statsHtml;
+            modal.classList.add('active');
+        }
+
+        function closeResults() {
+            document.getElementById('resultsModal').classList.remove('active');
+            resetUI();
+        }
+
+        function resetUI() {
+            document.getElementById('setupPanel').style.display = 'block';
+            document.getElementById('battleArena').classList.remove('active');
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('aiScore').textContent = '0';
+            document.getElementById('liveScore').textContent = '0';
+            document.getElementById('aiWins').textContent = '0';
+            document.getElementById('liveWins').textContent = '0';
+            document.getElementById('timer').textContent = '--:--';
+            document.getElementById('currentRound').textContent = '1';
+            document.getElementById('aiGifts').textContent = '0 gifts';
+            document.getElementById('liveGifts').textContent = '0 gifts';
+            document.getElementById('progressAi').style.width = '50%';
+            document.getElementById('progressLive').style.width = '50%';
+            document.getElementById('aiGiftFeed').innerHTML = '';
+            document.getElementById('liveGiftFeed').innerHTML = '';
+            aiGiftCount = 0;
+            liveGiftCount = 0;
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('statusMessage');
+            status.textContent = message;
+            status.className = 'status-message ' + type;
+            status.style.display = 'block';
+        }
+
+        function hideStatus() {
+            document.getElementById('statusMessage').style.display = 'none';
+        }
+
+        // Check initial status
+        fetch('/api/ai-vs-live/status')
+            .then(res => res.json())
+            .then(data => {
+                if (data.active_battle) {
+                    showStatus('A battle is already in progress', 'connecting');
+                    socket.emit('get_ai_vs_live_state');
+                }
+            });
+    </script>
+</body>
+</html>

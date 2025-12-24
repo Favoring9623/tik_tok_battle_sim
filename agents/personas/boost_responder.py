@@ -231,6 +231,14 @@ class BoostResponder(BaseAgent):
         opponent_score = battle.score_tracker.opponent_score
         creator_score = battle.score_tracker.creator_score
 
+        # === STRATEGIC INTELLIGENCE CHECK ===
+        # Use strategic intelligence if available for surrender/mode decisions
+        if self.strategic_intel and not self.has_surrendered:
+            should_gift, max_strategic_spend, tier, reason = self.should_gift_strategically(battle)
+            if not should_gift:
+                # Strategic intelligence says don't gift (possibly surrendered)
+                return
+
         # Check current phase status
         in_boost = self.phase_manager.boost1_active or self.phase_manager.boost2_active
         multiplier = self.phase_manager.get_current_multiplier()
@@ -269,9 +277,9 @@ class BoostResponder(BaseAgent):
         if our_x5_active:
             cooldown = 2  # Super short - maximize the x5 window!
         elif in_boost:
-            cooldown = self.boost_cooldown
+            cooldown = self.params['cooldown_boost']
         else:
-            cooldown = self.normal_cooldown
+            cooldown = self.params['cooldown_normal']
 
         # Cooldown check
         if current_time - self.last_action_time < cooldown:

@@ -19,6 +19,13 @@ from .visual_utils import (
     ASCIIFrames, BattleVisualizer, print_separator
 )
 
+# Import leaderboard (optional - won't fail if not available)
+try:
+    from .database import LeaderboardRepository
+    LEADERBOARD_AVAILABLE = True
+except ImportError:
+    LEADERBOARD_AVAILABLE = False
+
 
 class BattleEngine:
     """
@@ -74,6 +81,9 @@ class BattleEngine:
         self.progress_bar = BattleProgressBar(width=40)
         self.visualizer = BattleVisualizer(width=70)
         self._last_display_time = -1
+
+        # Agent stats tracking for leaderboard
+        self._agent_stats = {}  # agent_name -> {points, gifts, spent}
 
         # Subscribe to our own events for internal logic
         self.event_bus.subscribe(EventType.GIFT_SENT, self._handle_gift)
@@ -273,6 +283,13 @@ class BattleEngine:
         gift_name = event.data.get("gift", event.data.get("gift_name", "Gift"))
         agent_name = event.source or "Unknown"
         current_time = int(event.timestamp)
+        cost = event.data.get("cost", 0)
+
+        # Track agent stats for leaderboard
+        if agent_name not in self._agent_stats:
+            self._agent_stats[agent_name] = {'points': 0, 'gifts': 0, 'spent': 0}
+        self._agent_stats[agent_name]['gifts'] += 1
+        self._agent_stats[agent_name]['spent'] += cost
 
         # Apply multiplier if system is active
         final_multiplier = 1.0
@@ -300,6 +317,9 @@ class BattleEngine:
             final_points = base_points
 
         self.score_tracker.add_creator_points(final_points, current_time)
+
+        # Update agent points for leaderboard
+        self._agent_stats[agent_name]['points'] += final_points
 
         # Record action in analytics
         if self.analytics:
@@ -464,6 +484,31 @@ class BattleEngine:
         # Print analytics summary
         if self.analytics and not silent:
             self.analytics.print_summary()
+
+        # Update leaderboard with agent stats
+        if LEADERBOARD_AVAILABLE and self._agent_stats:
+            try:
+                creator_won = winner == "creator"
+                for agent_name, stats in self._agent_stats.items():
+                    # Find agent type from agent list
+                    agent_type = "AI Agent"
+                    for agent in self.agents:
+                        if getattr(agent, 'name', None) == agent_name:
+                            agent_type = getattr(agent, 'agent_type', getattr(agent, '__class__.__name__', 'AI Agent'))
+                            break
+
+                    LeaderboardRepository.update_agent_stats(
+                        agent_name=agent_name,
+                        agent_type=agent_type,
+                        points=stats['points'],
+                        gifts=stats['gifts'],
+                        spent=stats['spent'],
+                        won=creator_won
+                    )
+            except Exception as e:
+                # Don't fail battle if leaderboard update fails
+                if not silent:
+                    print(f"   [Leaderboard update failed: {e}]")
 
         self._is_running = False
 

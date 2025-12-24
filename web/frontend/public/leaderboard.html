@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard - TikTok Battle Simulator</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #ffd700, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #8b8fa3;
+            font-size: 1.1rem;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            color: #8b8fa3;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1);
+            transition: all 0.3s;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .summary-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .summary-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #ffd700;
+        }
+
+        .summary-card .label {
+            color: #8b8fa3;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        /* Tab Navigation */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .tab {
+            padding: 12px 30px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 25px;
+            color: #8b8fa3;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #ffd700, #ff6b6b);
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+
+        .tab:hover:not(.active) {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+
+        /* Sort Options */
+        .sort-options {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .sort-btn {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px;
+            color: #8b8fa3;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .sort-btn.active {
+            background: rgba(255,215,0,0.2);
+            border-color: #ffd700;
+            color: #ffd700;
+        }
+
+        .sort-btn:hover:not(.active) {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+
+        /* Leaderboard Table */
+        .leaderboard-panel {
+            display: none;
+        }
+
+        .leaderboard-panel.active {
+            display: block;
+        }
+
+        .leaderboard {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .leaderboard-header {
+            display: grid;
+            grid-template-columns: 60px 1fr repeat(5, 120px);
+            padding: 15px 20px;
+            background: rgba(255,255,255,0.05);
+            font-weight: 600;
+            color: #8b8fa3;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .leaderboard-row {
+            display: grid;
+            grid-template-columns: 60px 1fr repeat(5, 120px);
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: background 0.3s;
+            align-items: center;
+        }
+
+        .leaderboard-row:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .leaderboard-row:last-child {
+            border-bottom: none;
+        }
+
+        .rank {
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .rank-1 { color: #ffd700; }
+        .rank-2 { color: #c0c0c0; }
+        .rank-3 { color: #cd7f32; }
+
+        .rank-badge {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .rank-1 .rank-badge { background: linear-gradient(135deg, #ffd700, #ffed4a); }
+        .rank-2 .rank-badge { background: linear-gradient(135deg, #c0c0c0, #e8e8e8); color: #333; }
+        .rank-3 .rank-badge { background: linear-gradient(135deg, #cd7f32, #e6a05a); }
+
+        .name-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .agent-emoji {
+            font-size: 1.5rem;
+        }
+
+        .agent-name {
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+
+        .agent-type {
+            color: #8b8fa3;
+            font-size: 0.8rem;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .stat-value.highlight {
+            color: #ffd700;
+        }
+
+        /* Gifters specific */
+        .gifters-header {
+            grid-template-columns: 60px 1fr repeat(4, 120px);
+        }
+
+        .gifters-row {
+            grid-template-columns: 60px 1fr repeat(4, 120px);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #8b8fa3;
+        }
+
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #8b8fa3;
+        }
+
+        .loading .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #ffd700;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .leaderboard-header,
+            .leaderboard-row {
+                grid-template-columns: 50px 1fr repeat(3, 100px);
+            }
+            .leaderboard-header > *:nth-child(n+6),
+            .leaderboard-row > *:nth-child(n+6) {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .leaderboard-header,
+            .leaderboard-row {
+                grid-template-columns: 50px 1fr 80px 80px;
+            }
+            .leaderboard-header > *:nth-child(n+5),
+            .leaderboard-row > *:nth-child(n+5) {
+                display: none;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Top 3 Podium */
+        .podium {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+        }
+
+        .podium-spot {
+            text-align: center;
+            padding: 20px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            min-width: 150px;
+        }
+
+        .podium-spot.first {
+            order: 2;
+            background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,107,107,0.1));
+            border-color: rgba(255,215,0,0.3);
+            transform: scale(1.1);
+        }
+
+        .podium-spot.second {
+            order: 1;
+        }
+
+        .podium-spot.third {
+            order: 3;
+        }
+
+        .podium-rank {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .podium-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .podium-score {
+            color: #ffd700;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .podium-stat {
+            color: #8b8fa3;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Leaderboard</h1>
+            <p class="subtitle">Top performers across all battles</p>
+            <div class="nav-links">
+                <a href="/">Dashboard</a>
+                <a href="/strategic-battle">Strategic Battle</a>
+                <a href="/tournament">Tournament</a>
+                <a href="/analytics">Analytics</a>
+                <a href="/replay">Replay</a>
+                <a href="/live">Live</a>
+            </div>
+        </header>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid" id="summaryGrid">
+            <div class="summary-card">
+                <div class="icon">🤖</div>
+                <div class="value" id="totalAgents">-</div>
+                <div class="label">Total Agents</div>
+            </div>
+            <div class="summary-card">
+                <div class="icon">⚔️</div>
+                <div class="value" id="totalBattles">-</div>
+                <div class="label">Total Battles</div>
+            </div>
+            <div class="summary-card">
+                <div class="icon">👥</div>
+                <div class="value" id="totalGifters">-</div>
+                <div class="label">Top Gifters</div>
+            </div>
+            <div class="summary-card">
+                <div class="icon">💰</div>
+                <div class="value" id="totalCoins">-</div>
+                <div class="label">Coins Gifted</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="agents">AI Agents</button>
+            <button class="tab" data-tab="gifters">Top Gifters</button>
+        </div>
+
+        <!-- Agents Panel -->
+        <div class="leaderboard-panel active" id="agentsPanel">
+            <div class="sort-options">
+                <button class="sort-btn active" data-sort="total_points">Total Points</button>
+                <button class="sort-btn" data-sort="total_wins">Wins</button>
+                <button class="sort-btn" data-sort="total_battles">Battles</button>
+                <button class="sort-btn" data-sort="avg_points_per_battle">Avg Points</button>
+                <button class="sort-btn" data-sort="best_single_battle">Best Battle</button>
+            </div>
+
+            <!-- Podium for Top 3 -->
+            <div class="podium" id="agentsPodium"></div>
+
+            <div class="leaderboard">
+                <div class="leaderboard-header">
+                    <div>Rank</div>
+                    <div>Agent</div>
+                    <div>Total Points</div>
+                    <div>Wins</div>
+                    <div>Battles</div>
+                    <div>Avg Points</div>
+                </div>
+                <div id="agentsList" class="leaderboard-body">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading agents...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gifters Panel -->
+        <div class="leaderboard-panel" id="giftersPanel">
+            <div class="sort-options gifters-sort">
+                <button class="sort-btn active" data-sort="total_coins">Total Coins</button>
+                <button class="sort-btn" data-sort="total_gifts">Gifts Sent</button>
+                <button class="sort-btn" data-sort="total_battles">Battles</button>
+            </div>
+
+            <!-- Podium for Top 3 -->
+            <div class="podium" id="giftersPodium"></div>
+
+            <div class="leaderboard">
+                <div class="leaderboard-header gifters-header">
+                    <div>Rank</div>
+                    <div>Username</div>
+                    <div>Total Coins</div>
+                    <div>Gifts</div>
+                    <div>Battles</div>
+                </div>
+                <div id="giftersList" class="leaderboard-body">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading gifters...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Agent emoji mapping
+        const agentEmojis = {
+            'NovaWhale': '🐋',
+            'PixelPixie': '🧚‍♀️',
+            'GlitchMancer': '🌀',
+            'ShadowPatron': '👤',
+            'BoostResponder': '⚡',
+            'DefenseMaster': '🛡️',
+            'BudgetOptimizer': '💰',
+            'ChaoticTrickster': '🎪',
+            'SynergyCoordinator': '🤝',
+            'StrikeMaster': '🎯',
+            'Sentinel': '🛡️',
+            'Activator': '⚡',
+            'default': '🤖'
+        };
+
+        // Current state
+        let currentAgentSort = 'total_points';
+        let currentGifterSort = 'total_coins';
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                const tabName = tab.dataset.tab;
+                document.querySelectorAll('.leaderboard-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById(tabName + 'Panel').classList.add('active');
+            });
+        });
+
+        // Sort buttons for agents
+        document.querySelectorAll('#agentsPanel .sort-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#agentsPanel .sort-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentAgentSort = btn.dataset.sort;
+                loadAgents();
+            });
+        });
+
+        // Sort buttons for gifters
+        document.querySelectorAll('#giftersPanel .sort-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#giftersPanel .sort-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentGifterSort = btn.dataset.sort;
+                loadGifters();
+            });
+        });
+
+        // Format numbers
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num?.toLocaleString() || '0';
+        }
+
+        // Load summary
+        async function loadSummary() {
+            try {
+                const response = await fetch('/api/leaderboard/summary');
+                const data = await response.json();
+
+                document.getElementById('totalAgents').textContent = data.total_agents || 0;
+                document.getElementById('totalBattles').textContent = formatNumber(data.total_agent_battles || 0);
+                document.getElementById('totalGifters').textContent = data.total_gifters || 0;
+                document.getElementById('totalCoins').textContent = formatNumber(data.total_coins_gifted || 0);
+            } catch (err) {
+                console.error('Failed to load summary:', err);
+            }
+        }
+
+        // Render podium
+        function renderPodium(items, container, type) {
+            if (items.length < 3) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const top3 = items.slice(0, 3);
+            const positions = ['second', 'first', 'third'];
+            const medals = ['🥈', '🥇', '🥉'];
+
+            container.innerHTML = top3.map((item, index) => {
+                const name = type === 'agent' ? item.agent_name : item.username;
+                const emoji = type === 'agent' ? (agentEmojis[item.agent_name] || agentEmojis.default) : '👤';
+                const score = type === 'agent' ? formatNumber(item.total_points) : formatNumber(item.total_coins);
+                const stat = type === 'agent' ? `${item.total_wins} wins` : `${item.total_gifts} gifts`;
+
+                return `
+                    <div class="podium-spot ${positions[index]}">
+                        <div class="podium-rank">${medals[index]}</div>
+                        <div class="agent-emoji">${emoji}</div>
+                        <div class="podium-name">${name}</div>
+                        <div class="podium-score">${score}</div>
+                        <div class="podium-stat">${stat}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load agents
+        async function loadAgents() {
+            const container = document.getElementById('agentsList');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading agents...</div>';
+
+            try {
+                const response = await fetch(`/api/leaderboard/agents?sort=${currentAgentSort}&limit=50`);
+                const data = await response.json();
+
+                if (!data.agents || data.agents.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">🤖</div>
+                            <h3>No agents yet</h3>
+                            <p>Run some battles to see agent rankings!</p>
+                        </div>
+                    `;
+                    document.getElementById('agentsPodium').innerHTML = '';
+                    return;
+                }
+
+                // Render podium
+                renderPodium(data.agents, document.getElementById('agentsPodium'), 'agent');
+
+                // Render table (skip top 3 if showing podium)
+                const displayAgents = data.agents;
+                container.innerHTML = displayAgents.map((agent, index) => {
+                    const rank = index + 1;
+                    const emoji = agentEmojis[agent.agent_name] || agentEmojis.default;
+                    const rankClass = rank <= 3 ? `rank-${rank}` : '';
+
+                    return `
+                        <div class="leaderboard-row ${rankClass}">
+                            <div class="rank">
+                                <div class="rank-badge">${rank}</div>
+                            </div>
+                            <div class="name-cell">
+                                <span class="agent-emoji">${emoji}</span>
+                                <div>
+                                    <div class="agent-name">${agent.agent_name}</div>
+                                    <div class="agent-type">${agent.agent_type || 'AI Agent'}</div>
+                                </div>
+                            </div>
+                            <div class="stat-value highlight">${formatNumber(agent.total_points)}</div>
+                            <div class="stat-value">${agent.total_wins}</div>
+                            <div class="stat-value">${agent.total_battles}</div>
+                            <div class="stat-value">${formatNumber(Math.round(agent.avg_points_per_battle || 0))}</div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error('Failed to load agents:', err);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">⚠️</div>
+                        <h3>Failed to load</h3>
+                        <p>Could not fetch leaderboard data</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Load gifters
+        async function loadGifters() {
+            const container = document.getElementById('giftersList');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading gifters...</div>';
+
+            try {
+                const response = await fetch(`/api/leaderboard/gifters?sort=${currentGifterSort}&limit=50`);
+                const data = await response.json();
+
+                if (!data.gifters || data.gifters.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">👥</div>
+                            <h3>No gifters yet</h3>
+                            <p>Connect to live TikTok battles to track gifters!</p>
+                        </div>
+                    `;
+                    document.getElementById('giftersPodium').innerHTML = '';
+                    return;
+                }
+
+                // Render podium
+                renderPodium(data.gifters, document.getElementById('giftersPodium'), 'gifter');
+
+                // Render table
+                container.innerHTML = data.gifters.map((gifter, index) => {
+                    const rank = index + 1;
+                    const rankClass = rank <= 3 ? `rank-${rank}` : '';
+
+                    return `
+                        <div class="leaderboard-row gifters-row ${rankClass}">
+                            <div class="rank">
+                                <div class="rank-badge">${rank}</div>
+                            </div>
+                            <div class="name-cell">
+                                <span class="agent-emoji">👤</span>
+                                <div>
+                                    <div class="agent-name">${gifter.username}</div>
+                                    <div class="agent-type">Favorite: ${gifter.favorite_gift || 'N/A'}</div>
+                                </div>
+                            </div>
+                            <div class="stat-value highlight">${formatNumber(gifter.total_coins)}</div>
+                            <div class="stat-value">${formatNumber(gifter.total_gifts)}</div>
+                            <div class="stat-value">${gifter.total_battles}</div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error('Failed to load gifters:', err);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">⚠️</div>
+                        <h3>Failed to load</h3>
+                        <p>Could not fetch gifter data</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Socket connection for real-time updates
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        // Refresh leaderboard when battle ends
+        socket.on('battle_end', () => {
+            loadSummary();
+            loadAgents();
+        });
+
+        socket.on('live_battle_ended', () => {
+            loadSummary();
+            loadGifters();
+        });
+
+        // Initial load
+        loadSummary();
+        loadAgents();
+        loadGifters();
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            loadSummary();
+            if (document.getElementById('agentsPanel').classList.contains('active')) {
+                loadAgents();
+            } else {
+                loadGifters();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

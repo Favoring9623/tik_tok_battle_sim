@@ -33,12 +33,13 @@ from agents.personas.evolving_glitch_mancer import EvolvingGlitchMancer
 
 class EvolvingKinetik(BaseAgent):
     """
-    🔫 Evolving Final Sniper
+    🔫 Evolving Final Sniper with SNIPE MODE
 
-    Learns optimal timing and gift selection:
-    - Adjusts snipe window based on success
-    - Learns best gift for different deficit sizes
-    - Tracks timing effectiveness
+    Advanced sniper with full snipe execution like OpponentAI:
+    - Deploys glove for x5 multiplier in final seconds
+    - Sends multiple whale gifts until budget exhausted
+    - Counter-snipe capability against opponent's final push
+    - Learns optimal timing and gift selection
     """
 
     def __init__(self, db: Optional[BattleHistoryDB] = None):
@@ -63,6 +64,12 @@ class EvolvingKinetik(BaseAgent):
         self.has_acted = False
         self.action_taken = None
         self.action_time = None
+
+        # === SNIPE MODE STATE ===
+        self.snipe_mode_active = False
+        self.snipe_glove_used = False
+        self.snipe_gifts_sent = 0
+        self.snipe_total_points = 0
 
         # Load learned params and state if available
         self._load_learned_params()
@@ -92,12 +99,21 @@ class EvolvingKinetik(BaseAgent):
         self.has_acted = False
         self.action_taken = None
         self.action_time = None
+        # Reset snipe mode state
+        self.snipe_mode_active = False
+        self.snipe_glove_used = False
+        self.snipe_gifts_sent = 0
+        self.snipe_total_points = 0
 
     def decide_action(self, battle):
-        """Learning-enhanced decision making."""
-        if self.has_acted:
-            return
+        """
+        SNIPE MODE: Full snipe execution in final seconds.
 
+        Like OpponentAI, this agent:
+        1. Deploys glove for x5 in final seconds
+        2. Sends multiple whale gifts until budget exhausted
+        3. Continues attacking every tick in snipe window
+        """
         time_remaining = battle.time_manager.time_remaining()
         current_time = battle.time_manager.current_time
 
@@ -110,64 +126,133 @@ class EvolvingKinetik(BaseAgent):
         opponent_score = battle.score_tracker.opponent_score
         deficit = opponent_score - creator_score
 
-        # Build state for Q-learning
-        state = State(
-            time_remaining=time_remaining,
-            score_diff=creator_score - opponent_score,
-            multiplier=self.phase_manager.get_current_multiplier() if self.phase_manager else 1.0,
-            in_boost=self.phase_manager.boost1_active or self.phase_manager.boost2_active if self.phase_manager else False,
-            boost2_triggered=self.phase_manager.boost2_triggered if self.phase_manager else False,
-            phase="FINAL",
-            gloves_available=0,
-            power_ups_available=[]
-        )
+        # Check if we have x5 active
+        we_have_x5 = (self.phase_manager and
+                      self.phase_manager.active_glove_x5 and
+                      self.phase_manager.active_glove_owner == "creator")
 
-        # Q-learning suggests action (exploration vs exploitation)
-        suggested_action = self.q_learner.choose_action(state, [
-            ActionType.SEND_WHALE_GIFT,
-            ActionType.SEND_LARGE_GIFT,
-            ActionType.SEND_MEDIUM_GIFT,
-            ActionType.WAIT
-        ])
+        multiplier = self.phase_manager.get_current_multiplier() if self.phase_manager else 1.0
+        effective_multiplier = 5.0 if we_have_x5 else multiplier
 
-        # Map Q-action to actual gift (real TikTok coin values)
-        if deficit <= 0:
-            # We're winning, maybe wait
-            if suggested_action == ActionType.WAIT:
-                return
-            gift_name, points = "Lion", 29999
-        elif deficit > self.params['min_deficit_for_universe']:
-            gift_name, points = "TikTok Universe", 44999
-        elif deficit > self.params['min_deficit_for_lion']:
-            gift_name, points = "Lion", 29999
-        elif deficit > self.params['min_deficit_for_phoenix']:
-            gift_name, points = "Dragon Flame", 10000
-        else:
-            gift_name, points = "Lion", 29999
+        # === ACTIVATE SNIPE MODE ===
+        if not self.snipe_mode_active:
+            self.snipe_mode_active = True
+            print(f"\n{'='*60}")
+            print(f"🔫🎯 CREATOR SNIPE MODE ACTIVATED!")
+            print(f"   Time remaining: {time_remaining}s")
+            print(f"   Deficit: {deficit:,} | Score: {creator_score:,} vs {opponent_score:,}")
+            print(f"   Multiplier: x{effective_multiplier:.0f}")
+            print(f"{'='*60}")
 
-        # Execute action
-        print(f"\n🔫 EvolvingKinetik activating! Deficit: {deficit:,} points")
-        print(f"   Params: snipe_window={self.params['snipe_window']}s")
-        print(f"   🚀 Deploying {gift_name}!")
+        # === STEP 1: Deploy glove for x5 if available ===
+        if not self.snipe_glove_used and not we_have_x5 and self.phase_manager:
+            # Check if creator has gloves available (power_ups is a list of PowerUp objects)
+            creator_gloves = len([p for p in self.phase_manager.power_ups
+                                  if p.type == PowerUpType.GLOVE and p.owner == "creator" and not p.used])
+            if creator_gloves > 0:
+                if self.phase_manager.use_power_up(PowerUpType.GLOVE, "creator", current_time):
+                    self.snipe_glove_used = True
+                    print(f"   🥊 SNIPE GLOVE DEPLOYED! x5 ACTIVE for creator!")
+                    return  # Let glove activate, send gifts next tick
 
-        self.send_gift(battle, gift_name, points)
-        self.has_acted = True
-        self.action_taken = gift_name
-        self.action_time = current_time
+        # === STEP 2: Send whale gifts ===
+        # Find biggest affordable gift
+        whale_gifts = [
+            ("TikTok Universe", 44999),
+            ("Lion", 29999),
+            ("Dragon Flame", 10000),
+        ]
+
+        chosen_gift = None
+        chosen_cost = 0
+
+        for name, cost in whale_gifts:
+            if self.can_afford(name):
+                chosen_gift = name
+                chosen_cost = cost
+                break
+
+        # Fallback to medium gifts
+        if not chosen_gift:
+            medium_gifts = [("GG", 1000), ("Rosa Nebula", 299)]
+            for name, cost in medium_gifts:
+                if self.can_afford(name):
+                    chosen_gift = name
+                    chosen_cost = cost
+                    break
+
+        # Even small gifts in snipe
+        if not chosen_gift:
+            if self.can_afford("Rose"):
+                chosen_gift = "Rose"
+                chosen_cost = 1
+
+        if not chosen_gift:
+            return  # Nothing we can afford
+
+        # Calculate effective points
+        # Recalculate x5 status (might have changed this tick)
+        we_have_x5 = (self.phase_manager and
+                      self.phase_manager.active_glove_x5 and
+                      self.phase_manager.active_glove_owner == "creator")
+        effective_multiplier = 5.0 if we_have_x5 else multiplier
+        effective_points = int(chosen_cost * effective_multiplier)
+
+        # === STEP 3: Send the gift ===
+        if self.send_gift(battle, chosen_gift, chosen_cost):
+            self.snipe_gifts_sent += 1
+            self.snipe_total_points += effective_points
+
+            # Determine if this is a winning snipe
+            new_score = creator_score + effective_points
+            is_winning = new_score > opponent_score
+
+            # Epic snipe announcement
+            if is_winning and deficit > 0:
+                print(f"   💀 KILLING BLOW #{self.snipe_gifts_sent}! {chosen_gift}: {chosen_cost:,} × {effective_multiplier:.0f} = {effective_points:,}")
+                print(f"   📊 Score: {creator_score:,} + {effective_points:,} = {new_score:,} vs Opponent: {opponent_score:,}")
+            elif deficit > 0:
+                remaining_deficit = opponent_score - new_score
+                print(f"   🎯 SNIPE #{self.snipe_gifts_sent}: {chosen_gift}: {chosen_cost:,} × {effective_multiplier:.0f} = {effective_points:,}")
+                print(f"   📊 Still behind by {remaining_deficit:,}")
+            else:
+                print(f"   🛡️ DEFENSE #{self.snipe_gifts_sent}: {chosen_gift}: {chosen_cost:,} × {effective_multiplier:.0f} = {effective_points:,}")
+                print(f"   📊 Extending lead to {new_score - opponent_score:,}")
+
+            self.action_taken = chosen_gift
+            self.action_time = current_time
+
+            # Mark as acted only if budget exhausted (keeps attacking otherwise)
+            budget_status = self.get_budget_status()
+            if budget_status.get('current', float('inf')) < 100:
+                self.has_acted = True
+                print(f"   ✅ Snipe sequence complete. Sent {self.snipe_gifts_sent} gifts for {self.snipe_total_points:,} effective points")
 
     def learn_from_battle(self, won: bool, battle_stats: Dict):
-        """Update learning after battle."""
+        """Update learning after battle with snipe analysis."""
         reward = self.learning_agent.learn_from_battle(
             won=won,
             points_donated=battle_stats.get('points_donated', 0),
             battle_stats=battle_stats
         )
 
+        # Analyze snipe performance
+        if self.snipe_mode_active:
+            print(f"\n🔫 EvolvingKinetik Snipe Analysis:")
+            print(f"   Gifts sent: {self.snipe_gifts_sent}")
+            print(f"   Total effective points: {self.snipe_total_points:,}")
+            print(f"   Glove used: {'Yes' if self.snipe_glove_used else 'No'}")
+
+            if won:
+                # Successful snipe - reinforce timing
+                print(f"   ✅ Snipe successful! Strategy reinforced.")
+            else:
+                # Failed snipe - expand window
+                self.params['snipe_window'] = min(10, self.params['snipe_window'] + 0.5)
+                print(f"   ❌ Snipe failed. Window expanded to {self.params['snipe_window']}s")
+
         # Adjust parameters based on outcome
-        if won and self.action_taken:
-            # Successful timing, reinforce
-            pass
-        elif not won and self.action_taken:
+        if not won and self.action_taken:
             # Failed despite acting, maybe act earlier
             self.params['snipe_window'] = min(10, self.params['snipe_window'] + 0.5)
 
@@ -185,7 +270,12 @@ class EvolvingKinetik(BaseAgent):
             'params': self.params,
             'battles': self.learning_agent.total_battles,
             'win_rate': self.learning_agent.get_win_rate(),
-            'recent_performance': self.learning_agent.get_recent_performance(10)
+            'recent_performance': self.learning_agent.get_recent_performance(10),
+            'snipe_stats': {
+                'gifts_sent': self.snipe_gifts_sent,
+                'total_points': self.snipe_total_points,
+                'glove_used': self.snipe_glove_used
+            }
         }
 
 
@@ -784,7 +874,8 @@ def create_evolving_team(
 def create_mixed_strategic_team(
     phase_manager: AdvancedPhaseManager,
     db: Optional[BattleHistoryDB] = None,
-    budget_intelligence = None
+    budget_intelligence = None,
+    budget_manager = None
 ) -> List:
     """
     Create a mixed team of strategic + persona agents.
@@ -801,6 +892,12 @@ def create_mixed_strategic_team(
     🚀 BoostResponder - Maximizes boosts + counters opponent
     🧚‍♀️ PixelPixie    - Early momentum (constant small gifts)
     🌀 GlitchMancer   - Chaos factor (random bursts)
+
+    New: All agents now have StrategicIntelligence for:
+    - Surrender logic when deficit is unrecoverable
+    - Aggressive/defensive mode switching
+    - Catch-up optimization during boosts
+    - Budget-aware gift selection
     """
     # Create strategic agents
     kinetik = EvolvingKinetik(db=db)
@@ -831,6 +928,25 @@ def create_mixed_strategic_team(
     pixel_pixie.agent_type = "threshold_helper"
     # EvolvingGlitchMancer already has agent_type = "burst_master"
 
+    # Collect all agents
+    all_agents = [kinetik, strike_master, phase_tracker, loadout_master, boost_responder, pixel_pixie, evolving_glitch_mancer]
+
+    # === STRATEGIC INTELLIGENCE INTEGRATION ===
+    # Initialize strategic intelligence for all agents if budget_manager is provided
+    if budget_manager:
+        battle_duration = phase_manager.battle_duration if phase_manager else 300
+        strategic_agents_count = 0
+        for agent in all_agents:
+            agent.team = "creator"  # All agents on creator team
+            agent.budget_manager = budget_manager
+            if hasattr(agent, 'init_strategic_intelligence'):
+                agent.init_strategic_intelligence(budget_manager, battle_duration)
+                strategic_agents_count += 1
+
+        if strategic_agents_count > 0:
+            print(f"\n🧠 Strategic Intelligence enabled for {strategic_agents_count} creator agents")
+            print("   Features: Surrender logic, Aggressive/Defensive modes, Catch-up optimization")
+
     print("\n👥 Mixed Strategic Team Created:")
     print("   🔫 EvolvingKinetik      - Final sniper (last 5s)")
     print("   🥊 EvolvingStrikeMaster - Glove expert")
@@ -840,7 +956,7 @@ def create_mixed_strategic_team(
     print("   🧚‍♀️ PixelPixie           - Boost #2 threshold helper (roses)")
     print("   🌀 EvolvingGlitchMancer - LEARNING burst master (whale deployment)")
 
-    return [kinetik, strike_master, phase_tracker, loadout_master, boost_responder, pixel_pixie, evolving_glitch_mancer]
+    return all_agents
 
 
 def reset_evolving_team(agents: List):
@@ -848,6 +964,12 @@ def reset_evolving_team(agents: List):
     for agent in agents:
         if hasattr(agent, 'reset_for_battle'):
             agent.reset_for_battle()
+        # Reset strategic state (surrender flag, etc.)
+        if hasattr(agent, 'reset_strategic_state'):
+            agent.reset_strategic_state()
+        # Reset pattern tracking
+        if hasattr(agent, 'reset_pattern_tracking'):
+            agent.reset_pattern_tracking()
 
 
 def learn_from_battle_results(agents: List, won: bool, battle_stats: Dict) -> Dict[str, float]:

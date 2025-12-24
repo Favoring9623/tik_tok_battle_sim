@@ -23,3 +23,7 @@ openai>=1.0.0
 # Audio Processing
 # pydub>=0.25.1
 # soundfile>=0.12.0
+
+# API & Documentation
+PyYAML>=6.0
+markdown>=3.0

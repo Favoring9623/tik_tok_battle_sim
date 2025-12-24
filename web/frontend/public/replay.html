@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Replay - TikTok Battle Simulator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --tiktok-red: #FE2C55;
+            --tiktok-cyan: #25F4EE;
+            --tiktok-dark: #161823;
+            --tiktok-gray: #2F2F2F;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--tiktok-dark) 0%, #1a1a2e 100%);
+            color: white;
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        .navbar {
+            background: rgba(22, 24, 35, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-link {
+            color: rgba(255,255,255,0.7) !important;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--tiktok-cyan) !important;
+        }
+
+        .card {
+            background: rgba(47, 47, 47, 0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-weight: 600;
+        }
+
+        /* Replay List */
+        .replay-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .replay-item {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .replay-item:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--tiktok-cyan);
+            transform: translateX(4px);
+        }
+
+        .replay-item.active {
+            background: rgba(37, 244, 238, 0.15);
+            border-color: var(--tiktok-cyan);
+        }
+
+        .replay-item .winner-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .winner-creator {
+            background: var(--tiktok-cyan);
+            color: black;
+        }
+
+        .winner-opponent {
+            background: var(--tiktok-red);
+            color: white;
+        }
+
+        /* Player Container */
+        .player-container {
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        /* Score Display */
+        .score-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(90deg, rgba(37,244,238,0.2), rgba(254,44,85,0.2));
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .team-score {
+            text-align: center;
+            flex: 1;
+        }
+
+        .team-score.creator {
+            color: var(--tiktok-cyan);
+        }
+
+        .team-score.opponent {
+            color: var(--tiktok-red);
+        }
+
+        .score-value {
+            font-size: 3rem;
+            font-weight: 700;
+            line-height: 1;
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .team-name {
+            font-size: 1rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .vs-divider {
+            font-size: 1.5rem;
+            color: rgba(255,255,255,0.5);
+            padding: 0 20px;
+        }
+
+        /* Phase Indicator */
+        .phase-indicator {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .phase-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .phase-warmup { color: #ffc107; }
+        .phase-battle { color: #28a745; }
+        .phase-climax { color: var(--tiktok-red); }
+        .phase-overtime { color: #9c27b0; }
+        .phase-finished { color: #6c757d; }
+
+        /* Progress Bar / Seek */
+        .progress-container {
+            margin: 20px 0;
+        }
+
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 8px;
+        }
+
+        .seek-bar {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .seek-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--tiktok-cyan);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--tiktok-cyan);
+        }
+
+        .seek-bar::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: var(--tiktok-cyan);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        /* Playback Controls */
+        .playback-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+        }
+
+        .control-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.1);
+        }
+
+        .control-btn.play-pause {
+            width: 60px;
+            height: 60px;
+            background: var(--tiktok-cyan);
+            border-color: var(--tiktok-cyan);
+        }
+
+        .control-btn.play-pause:hover {
+            background: #1ed8d3;
+            box-shadow: 0 0 20px var(--tiktok-cyan);
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 20px;
+        }
+
+        .speed-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .speed-btn.active {
+            background: var(--tiktok-red);
+            border-color: var(--tiktok-red);
+        }
+
+        .speed-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Gift Feed */
+        .gift-feed {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .gift-event {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .gift-event .time {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.8rem;
+            min-width: 50px;
+        }
+
+        .gift-event .gift-icon {
+            font-size: 1.2rem;
+            margin: 0 10px;
+        }
+
+        .gift-event.creator {
+            border-left: 3px solid var(--tiktok-cyan);
+        }
+
+        .gift-event.opponent {
+            border-left: 3px solid var(--tiktok-red);
+        }
+
+        .gift-event .points {
+            margin-left: auto;
+            font-weight: 600;
+        }
+
+        .gift-event.creator .points { color: var(--tiktok-cyan); }
+        .gift-event.opponent .points { color: var(--tiktok-red); }
+
+        /* Power-up Events */
+        .power-up-event {
+            background: linear-gradient(90deg, rgba(255,193,7,0.2), transparent);
+            border-left: 3px solid #ffc107;
+        }
+
+        .power-up-event .gift-icon {
+            color: #ffc107;
+        }
+
+        /* Phase Events */
+        .phase-event {
+            background: linear-gradient(90deg, rgba(156,39,176,0.2), transparent);
+            border-left: 3px solid #9c27b0;
+            font-weight: 600;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: var(--tiktok-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-play-circle-fill me-2" style="color: var(--tiktok-red);"></i>
+                TikTok Battle Sim
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/strategic-battle">Strategic</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/tournament">Tournament</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/live">Live</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/analytics">Analytics</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/replay">Replay</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <div class="row">
+            <!-- Replay List Sidebar -->
+            <div class="col-lg-3 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-collection-play me-2"></i>Available Replays</span>
+                        <button class="btn btn-sm btn-outline-light" onclick="loadReplayList()">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="replayList" class="replay-list">
+                            <div class="loading-spinner">
+                                <div class="spinner"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Player Area -->
+            <div class="col-lg-9">
+                <div id="playerArea">
+                    <!-- Empty State -->
+                    <div id="emptyState" class="card">
+                        <div class="card-body empty-state">
+                            <i class="bi bi-play-circle"></i>
+                            <h4>Select a Battle to Replay</h4>
+                            <p>Choose a battle from the list to watch the replay</p>
+                        </div>
+                    </div>
+
+                    <!-- Player (hidden until battle selected) -->
+                    <div id="replayPlayer" class="player-container" style="display: none;">
+                        <!-- Battle Info Header -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 id="battleTitle" class="mb-0">
+                                <i class="bi bi-play-circle me-2"></i>Battle Replay
+                            </h5>
+                            <span id="battleDate" class="text-muted"></span>
+                        </div>
+
+                        <!-- Phase Indicator -->
+                        <div class="phase-indicator">
+                            <span class="phase-name" id="currentPhase">WARMUP</span>
+                        </div>
+
+                        <!-- Score Display -->
+                        <div class="score-display">
+                            <div class="team-score creator">
+                                <div class="score-value" id="creatorScore">0</div>
+                                <div class="team-name" id="creatorName">Creator Team</div>
+                            </div>
+                            <div class="vs-divider">VS</div>
+                            <div class="team-score opponent">
+                                <div class="score-value" id="opponentScore">0</div>
+                                <div class="team-name" id="opponentName">Opponent Team</div>
+                            </div>
+                        </div>
+
+                        <!-- Progress / Seek Bar -->
+                        <div class="progress-container">
+                            <div class="time-display">
+                                <span id="currentTime">0:00</span>
+                                <span id="totalTime">0:00</span>
+                            </div>
+                            <input type="range" class="seek-bar" id="seekBar" min="0" max="100" value="0">
+                        </div>
+
+                        <!-- Playback Controls -->
+                        <div class="playback-controls">
+                            <button class="control-btn" id="skipBackBtn" title="Skip Back 10s">
+                                <i class="bi bi-skip-backward-fill"></i>
+                            </button>
+                            <button class="control-btn" id="prevEventBtn" title="Previous Event">
+                                <i class="bi bi-skip-start-fill"></i>
+                            </button>
+                            <button class="control-btn play-pause" id="playPauseBtn" title="Play/Pause">
+                                <i class="bi bi-play-fill" id="playPauseIcon"></i>
+                            </button>
+                            <button class="control-btn" id="nextEventBtn" title="Next Event">
+                                <i class="bi bi-skip-end-fill"></i>
+                            </button>
+                            <button class="control-btn" id="skipForwardBtn" title="Skip Forward 10s">
+                                <i class="bi bi-skip-forward-fill"></i>
+                            </button>
+
+                            <div class="speed-control">
+                                <span class="text-muted me-2">Speed:</span>
+                                <button class="speed-btn" data-speed="0.5">0.5x</button>
+                                <button class="speed-btn active" data-speed="1">1x</button>
+                                <button class="speed-btn" data-speed="2">2x</button>
+                                <button class="speed-btn" data-speed="4">4x</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gift Feed -->
+                    <div class="card mt-4" id="giftFeedCard" style="display: none;">
+                        <div class="card-header">
+                            <i class="bi bi-gift me-2"></i>Event Feed
+                        </div>
+                        <div class="card-body">
+                            <div id="giftFeed" class="gift-feed">
+                                <!-- Events will be added here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // State
+        let currentReplay = null;
+        let currentEvents = [];
+        let playbackState = {
+            playing: false,
+            currentTime: 0,
+            duration: 0,
+            speed: 1,
+            eventIndex: 0
+        };
+        let playbackInterval = null;
+
+        // Gift emoji mapping
+        const giftEmojis = {
+            'Rose': '🌹',
+            'TikTok': '🎵',
+            'Like': '❤️',
+            'Heart': '💖',
+            'Fire': '🔥',
+            'GG': '🏆',
+            'Ice Cream': '🍦',
+            'Doughnut': '🍩',
+            'Finger Heart': '🫰',
+            'Love You': '💕',
+            'Perfume': '💐',
+            'Cap': '🧢',
+            'Weights': '💪',
+            'Birthday Cake': '🎂',
+            'Hand Hearts': '🙌',
+            'Corgi': '🐕',
+            'Gaming Chair': '🎮',
+            'Love You Kitty': '😻',
+            'Lucky Airdrop Box': '📦',
+            'Galaxy': '🌌',
+            'Lion': '🦁',
+            'Rocket': '🚀',
+            'Interstellar': '🌠',
+            'Phoenix': '🔥',
+            'TikTok Universe': '🌍',
+            'Rosa': '🌸',
+            'default': '🎁'
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadReplayList();
+            setupControls();
+        });
+
+        // Load replay list
+        async function loadReplayList() {
+            const listContainer = document.getElementById('replayList');
+            listContainer.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+
+            try {
+                const response = await fetch('/api/replay/list');
+                const data = await response.json();
+
+                if (data.replays && data.replays.length > 0) {
+                    listContainer.innerHTML = data.replays.map(replay => `
+                        <div class="replay-item" onclick="loadReplay('${replay.id}')" data-id="${replay.id}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="fw-bold">${formatDate(replay.started_at)}</div>
+                                    <small class="text-muted">${replay.event_count} events</small>
+                                </div>
+                                ${replay.winner ? `<span class="winner-badge ${replay.winner === 'creator' ? 'winner-creator' : 'winner-opponent'}">${replay.winner}</span>` : ''}
+                            </div>
+                            <div class="mt-2 small">
+                                <span style="color: var(--tiktok-cyan);">${replay.creator_score || 0}</span>
+                                <span class="text-muted mx-2">vs</span>
+                                <span style="color: var(--tiktok-red);">${replay.opponent_score || 0}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    listContainer.innerHTML = `
+                        <div class="empty-state">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mt-2 mb-0">No replays available</p>
+                            <small class="text-muted">Run a battle to create replays</small>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading replay list:', error);
+                listContainer.innerHTML = `
+                    <div class="text-center text-danger p-3">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <p class="mb-0">Failed to load replays</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Load a specific replay
+        async function loadReplay(battleId) {
+            try {
+                // Update active item
+                document.querySelectorAll('.replay-item').forEach(item => {
+                    item.classList.toggle('active', item.dataset.id === battleId);
+                });
+
+                const response = await fetch(`/api/replay/${battleId}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Failed to load replay: ' + data.error);
+                    return;
+                }
+
+                currentReplay = data;
+                currentEvents = data.events || [];
+
+                // Reset playback state
+                stopPlayback();
+                playbackState.currentTime = 0;
+                playbackState.eventIndex = 0;
+
+                // Calculate duration from last event
+                if (currentEvents.length > 0) {
+                    playbackState.duration = Math.max(...currentEvents.map(e => e.timestamp));
+                } else {
+                    playbackState.duration = data.battle.duration || 120;
+                }
+
+                // Update UI
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('replayPlayer').style.display = 'block';
+                document.getElementById('giftFeedCard').style.display = 'block';
+
+                document.getElementById('battleTitle').innerHTML = `
+                    <i class="bi bi-play-circle me-2"></i>Battle #${battleId.substring(0, 8)}
+                `;
+                document.getElementById('battleDate').textContent = formatDate(data.battle.created_at);
+
+                // Set initial scores
+                document.getElementById('creatorScore').textContent = '0';
+                document.getElementById('opponentScore').textContent = '0';
+                document.getElementById('creatorName').textContent = 'Creator Team';
+                document.getElementById('opponentName').textContent = 'Opponent Team';
+
+                // Update seek bar
+                document.getElementById('seekBar').max = playbackState.duration;
+                document.getElementById('seekBar').value = 0;
+                document.getElementById('currentTime').textContent = formatTime(0);
+                document.getElementById('totalTime').textContent = formatTime(playbackState.duration);
+
+                // Clear gift feed
+                document.getElementById('giftFeed').innerHTML = '';
+
+                // Set initial phase
+                updatePhase('warmup');
+
+            } catch (error) {
+                console.error('Error loading replay:', error);
+                alert('Failed to load replay');
+            }
+        }
+
+        // Setup playback controls
+        function setupControls() {
+            // Play/Pause
+            document.getElementById('playPauseBtn').addEventListener('click', togglePlayback);
+
+            // Skip buttons
+            document.getElementById('skipBackBtn').addEventListener('click', () => seek(-10));
+            document.getElementById('skipForwardBtn').addEventListener('click', () => seek(10));
+
+            // Event navigation
+            document.getElementById('prevEventBtn').addEventListener('click', goToPrevEvent);
+            document.getElementById('nextEventBtn').addEventListener('click', goToNextEvent);
+
+            // Seek bar
+            const seekBar = document.getElementById('seekBar');
+            seekBar.addEventListener('input', (e) => {
+                seekToTime(parseFloat(e.target.value));
+            });
+
+            // Speed buttons
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    playbackState.speed = parseFloat(e.target.dataset.speed);
+                });
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (!currentReplay) return;
+
+                switch(e.key) {
+                    case ' ':
+                        e.preventDefault();
+                        togglePlayback();
+                        break;
+                    case 'ArrowLeft':
+                        seek(-5);
+                        break;
+                    case 'ArrowRight':
+                        seek(5);
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        changeSpeed(1);
+                        break;
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        changeSpeed(-1);
+                        break;
+                }
+            });
+        }
+
+        // Toggle playback
+        function togglePlayback() {
+            if (playbackState.playing) {
+                stopPlayback();
+            } else {
+                startPlayback();
+            }
+        }
+
+        // Start playback
+        function startPlayback() {
+            if (!currentReplay) return;
+
+            playbackState.playing = true;
+            document.getElementById('playPauseIcon').className = 'bi bi-pause-fill';
+
+            // Find starting event index
+            playbackState.eventIndex = currentEvents.findIndex(e => e.timestamp > playbackState.currentTime);
+            if (playbackState.eventIndex === -1) playbackState.eventIndex = currentEvents.length;
+
+            playbackInterval = setInterval(() => {
+                // Increment time based on speed
+                playbackState.currentTime += 0.1 * playbackState.speed;
+
+                // Process events up to current time
+                while (playbackState.eventIndex < currentEvents.length &&
+                       currentEvents[playbackState.eventIndex].timestamp <= playbackState.currentTime) {
+                    processEvent(currentEvents[playbackState.eventIndex]);
+                    playbackState.eventIndex++;
+                }
+
+                // Update UI
+                updateTimeDisplay();
+
+                // Check if finished
+                if (playbackState.currentTime >= playbackState.duration) {
+                    stopPlayback();
+                    playbackState.currentTime = playbackState.duration;
+                    updateTimeDisplay();
+                }
+            }, 100);
+        }
+
+        // Stop playback
+        function stopPlayback() {
+            playbackState.playing = false;
+            document.getElementById('playPauseIcon').className = 'bi bi-play-fill';
+
+            if (playbackInterval) {
+                clearInterval(playbackInterval);
+                playbackInterval = null;
+            }
+        }
+
+        // Seek relative
+        function seek(seconds) {
+            seekToTime(playbackState.currentTime + seconds);
+        }
+
+        // Seek to specific time
+        async function seekToTime(time) {
+            time = Math.max(0, Math.min(time, playbackState.duration));
+            playbackState.currentTime = time;
+
+            // Get state at this time
+            if (currentReplay) {
+                try {
+                    const response = await fetch(`/api/replay/${currentReplay.battle.id}/state?time=${time}`);
+                    const state = await response.json();
+
+                    // Update scores
+                    document.getElementById('creatorScore').textContent = state.creator_score || 0;
+                    document.getElementById('opponentScore').textContent = state.opponent_score || 0;
+
+                    // Update phase
+                    if (state.phase) {
+                        updatePhase(state.phase);
+                    }
+
+                    // Rebuild gift feed with events up to this time
+                    rebuildGiftFeed(time);
+
+                } catch (error) {
+                    console.error('Error seeking:', error);
+                }
+            }
+
+            // Find event index for this time
+            playbackState.eventIndex = currentEvents.findIndex(e => e.timestamp > time);
+            if (playbackState.eventIndex === -1) playbackState.eventIndex = currentEvents.length;
+
+            updateTimeDisplay();
+        }
+
+        // Go to previous event
+        function goToPrevEvent() {
+            if (playbackState.eventIndex > 0) {
+                playbackState.eventIndex--;
+                seekToTime(currentEvents[playbackState.eventIndex].timestamp);
+            }
+        }
+
+        // Go to next event
+        function goToNextEvent() {
+            if (playbackState.eventIndex < currentEvents.length) {
+                seekToTime(currentEvents[playbackState.eventIndex].timestamp);
+                playbackState.eventIndex++;
+            }
+        }
+
+        // Change speed
+        function changeSpeed(direction) {
+            const speeds = [0.5, 1, 2, 4];
+            const currentIndex = speeds.indexOf(playbackState.speed);
+            const newIndex = Math.max(0, Math.min(speeds.length - 1, currentIndex + direction));
+
+            playbackState.speed = speeds[newIndex];
+
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.classList.toggle('active', parseFloat(btn.dataset.speed) === playbackState.speed);
+            });
+        }
+
+        // Process an event
+        function processEvent(event) {
+            const feed = document.getElementById('giftFeed');
+
+            switch (event.event_type) {
+                case 'gift_sent':
+                    addGiftEvent(event);
+                    updateScoreFromEvent(event);
+                    break;
+                case 'phase_change':
+                    addPhaseEvent(event);
+                    updatePhase(event.data.new_phase || event.data.phase);
+                    break;
+                case 'power_up':
+                    addPowerUpEvent(event);
+                    break;
+                case 'score_update':
+                    document.getElementById('creatorScore').textContent = event.data.creator_score || 0;
+                    document.getElementById('opponentScore').textContent = event.data.opponent_score || 0;
+                    break;
+                case 'glove_activated':
+                case 'glove_ended':
+                    addSpecialEvent(event);
+                    break;
+            }
+
+            // Scroll to bottom
+            feed.scrollTop = feed.scrollHeight;
+        }
+
+        // Add gift event to feed
+        function addGiftEvent(event) {
+            const feed = document.getElementById('giftFeed');
+            const data = event.data;
+            const isCreator = data.team === 'creator';
+            const giftName = data.gift_name || 'Gift';
+            const emoji = giftEmojis[giftName] || giftEmojis.default;
+
+            feed.innerHTML += `
+                <div class="gift-event ${isCreator ? 'creator' : 'opponent'}">
+                    <span class="time">${formatTime(event.timestamp)}</span>
+                    <span class="gift-icon">${emoji}</span>
+                    <span>${data.agent_name || 'Agent'} sent ${giftName}</span>
+                    <span class="points">+${data.points || 0}</span>
+                </div>
+            `;
+        }
+
+        // Add phase event to feed
+        function addPhaseEvent(event) {
+            const feed = document.getElementById('giftFeed');
+            const phase = event.data.new_phase || event.data.phase || 'unknown';
+
+            feed.innerHTML += `
+                <div class="gift-event phase-event">
+                    <span class="time">${formatTime(event.timestamp)}</span>
+                    <span class="gift-icon">🎬</span>
+                    <span>Phase changed to ${phase.toUpperCase()}</span>
+                </div>
+            `;
+        }
+
+        // Add power-up event to feed
+        function addPowerUpEvent(event) {
+            const feed = document.getElementById('giftFeed');
+            const data = event.data;
+
+            feed.innerHTML += `
+                <div class="gift-event power-up-event">
+                    <span class="time">${formatTime(event.timestamp)}</span>
+                    <span class="gift-icon">⚡</span>
+                    <span>${data.power_up || 'Power-up'} activated!</span>
+                </div>
+            `;
+        }
+
+        // Add special event to feed
+        function addSpecialEvent(event) {
+            const feed = document.getElementById('giftFeed');
+            const isGloveStart = event.event_type === 'glove_activated';
+
+            feed.innerHTML += `
+                <div class="gift-event ${isGloveStart ? 'power-up-event' : ''}">
+                    <span class="time">${formatTime(event.timestamp)}</span>
+                    <span class="gift-icon">${isGloveStart ? '🥊' : '✅'}</span>
+                    <span>${isGloveStart ? 'GLOVE BATTLE ACTIVATED!' : 'Glove battle ended'}</span>
+                </div>
+            `;
+        }
+
+        // Update score from gift event
+        function updateScoreFromEvent(event) {
+            const data = event.data;
+            if (data.team === 'creator' && data.total_score !== undefined) {
+                document.getElementById('creatorScore').textContent = data.total_score;
+            } else if (data.team === 'opponent' && data.total_score !== undefined) {
+                document.getElementById('opponentScore').textContent = data.total_score;
+            }
+        }
+
+        // Update phase display
+        function updatePhase(phase) {
+            const phaseEl = document.getElementById('currentPhase');
+            phaseEl.textContent = phase.toUpperCase();
+            phaseEl.className = 'phase-name phase-' + phase.toLowerCase();
+        }
+
+        // Rebuild gift feed up to a time
+        function rebuildGiftFeed(maxTime) {
+            const feed = document.getElementById('giftFeed');
+            feed.innerHTML = '';
+
+            currentEvents
+                .filter(e => e.timestamp <= maxTime)
+                .forEach(event => {
+                    switch (event.event_type) {
+                        case 'gift_sent':
+                            addGiftEvent(event);
+                            break;
+                        case 'phase_change':
+                            addPhaseEvent(event);
+                            break;
+                        case 'power_up':
+                            addPowerUpEvent(event);
+                            break;
+                        case 'glove_activated':
+                        case 'glove_ended':
+                            addSpecialEvent(event);
+                            break;
+                    }
+                });
+        }
+
+        // Update time display
+        function updateTimeDisplay() {
+            document.getElementById('currentTime').textContent = formatTime(playbackState.currentTime);
+            document.getElementById('seekBar').value = playbackState.currentTime;
+        }
+
+        // Format time as M:SS
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Format date
+        function formatDate(dateStr) {
+            if (!dateStr) return 'Unknown';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+    </script>
+</body>
+</html>

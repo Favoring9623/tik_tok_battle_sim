@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Controls - TikTok Battle</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <style>
+        :root {
+            --tiktok-red: #FE2C55;
+            --tiktok-cyan: #25F4EE;
+            --tiktok-dark: #161823;
+            --gold: #FFD700;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--tiktok-dark) 0%, #1a1a2e 100%);
+            color: white;
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        .navbar {
+            background: rgba(22, 24, 35, 0.95) !important;
+            backdrop-filter: blur(10px);
+        }
+
+        .card {
+            background: rgba(47, 47, 47, 0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+        }
+
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-weight: 600;
+        }
+
+        /* Stats Cards */
+        .stat-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+
+        .stat-card.creator .stat-value { color: var(--tiktok-cyan); }
+        .stat-card.opponent .stat-value { color: var(--tiktok-red); }
+        .stat-card.viewers .stat-value { color: var(--gold); }
+
+        /* Vote Bar */
+        .vote-bar-container {
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .vote-bar {
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            margin-bottom: 12px;
+        }
+
+        .vote-bar-creator {
+            background: linear-gradient(90deg, var(--tiktok-cyan), #1ed8d3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            transition: width 0.5s ease;
+        }
+
+        .vote-bar-opponent {
+            background: linear-gradient(90deg, #ff1744, var(--tiktok-red));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            transition: width 0.5s ease;
+        }
+
+        .vote-labels {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .vote-labels span { font-weight: 600; }
+        .vote-labels .creator { color: var(--tiktok-cyan); }
+        .vote-labels .opponent { color: var(--tiktok-red); }
+
+        /* Control Buttons */
+        .control-btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-reset {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background: #c82333;
+            color: white;
+        }
+
+        .btn-broadcast {
+            background: var(--tiktok-cyan);
+            color: black;
+        }
+
+        .btn-broadcast:hover {
+            background: #1ed8d3;
+            color: black;
+        }
+
+        /* QR Code Section */
+        .qr-section {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .qr-placeholder {
+            width: 150px;
+            height: 150px;
+            background: white;
+            border-radius: 12px;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+        }
+
+        .audience-url {
+            background: rgba(0,0,0,0.4);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
+            color: var(--tiktok-cyan);
+        }
+
+        /* Activity Log */
+        .activity-log {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .activity-entry {
+            padding: 8px 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .activity-entry .time {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.8rem;
+        }
+
+        .activity-entry.vote { border-left: 3px solid #9c27b0; }
+        .activity-entry.powerup { border-left: 3px solid var(--gold); }
+        .activity-entry.join { border-left: 3px solid #28a745; }
+
+        /* Power-up Controls */
+        .powerup-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .powerup-toggle .name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .powerup-toggle .icon {
+            font-size: 1.5rem;
+        }
+
+        .form-switch .form-check-input:checked {
+            background-color: var(--tiktok-cyan);
+            border-color: var(--tiktok-cyan);
+        }
+
+        .nav-link {
+            color: rgba(255,255,255,0.7) !important;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--tiktok-cyan) !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-play-circle-fill me-2" style="color: var(--tiktok-red);"></i>
+                Host Controls
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Dashboard</a>
+                <a class="nav-link" href="/strategic-battle">Battle</a>
+                <a class="nav-link" href="/audience" target="_blank">Audience View</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <!-- Stats Row -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="stat-card viewers">
+                    <div class="stat-value" id="viewerCount">0</div>
+                    <div class="stat-label">Active Viewers</div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="stat-card creator">
+                    <div class="stat-value" id="creatorVotes">0</div>
+                    <div class="stat-label">Creator Votes</div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="stat-card opponent">
+                    <div class="stat-value" id="opponentVotes">0</div>
+                    <div class="stat-label">Opponent Votes</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Vote Results -->
+            <div class="col-lg-8 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-bar-chart-fill me-2"></i>Audience Votes</span>
+                        <button class="btn btn-sm btn-reset" onclick="resetVotes()">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Votes
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="vote-bar-container">
+                            <div class="vote-bar">
+                                <div class="vote-bar-creator" id="voteBarCreator" style="width: 50%">
+                                    <span id="creatorPercent">50%</span>
+                                </div>
+                                <div class="vote-bar-opponent" id="voteBarOpponent" style="width: 50%">
+                                    <span id="opponentPercent">50%</span>
+                                </div>
+                            </div>
+                            <div class="vote-labels">
+                                <span class="creator">Creator Team</span>
+                                <span class="opponent">Opponent Team</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="control-btn btn-broadcast" onclick="broadcastVoteResults()">
+                                <i class="bi bi-broadcast me-2"></i>Broadcast to OBS
+                            </button>
+                            <button class="control-btn btn-outline-light" onclick="announceLeader()">
+                                <i class="bi bi-megaphone me-2"></i>Announce Leader
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audience Link -->
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-link-45deg me-2"></i>Share with Audience
+                    </div>
+                    <div class="card-body qr-section">
+                        <div class="qr-placeholder">
+                            <i class="bi bi-qr-code"></i>
+                        </div>
+                        <div class="audience-url" id="audienceUrl">
+                            Loading...
+                        </div>
+                        <button class="btn btn-sm btn-outline-light mt-3" onclick="copyAudienceUrl()">
+                            <i class="bi bi-clipboard me-1"></i>Copy Link
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Power-up Controls -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-lightning-fill me-2"></i>Power-up Settings
+                    </div>
+                    <div class="card-body">
+                        <div class="powerup-toggle">
+                            <div class="name">
+                                <span class="icon">🚀</span>
+                                <span>Score Boost</span>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="toggleBoost" checked>
+                            </div>
+                        </div>
+                        <div class="powerup-toggle">
+                            <div class="name">
+                                <span class="icon">❄️</span>
+                                <span>Freeze Opponent</span>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="toggleFreeze" checked>
+                            </div>
+                        </div>
+                        <div class="powerup-toggle">
+                            <div class="name">
+                                <span class="icon">✨</span>
+                                <span>Double Points</span>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="toggleDouble" checked>
+                            </div>
+                        </div>
+                        <div class="powerup-toggle">
+                            <div class="name">
+                                <span class="icon">🎲</span>
+                                <span>Random Effect</span>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="toggleRandom" checked>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="mb-3">
+                            <label class="form-label">Cooldown Duration (seconds)</label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary" value="30" min="5" max="120">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-activity me-2"></i>Activity Log</span>
+                        <button class="btn btn-sm btn-outline-light" onclick="clearLog()">Clear</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="activity-log" id="activityLog">
+                            <div class="activity-entry">
+                                <span>Waiting for activity...</span>
+                                <span class="time">--:--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        // State
+        let state = {
+            creatorVotes: 0,
+            opponentVotes: 0,
+            viewerCount: 0
+        };
+
+        socket.on('connect', () => {
+            console.log('Host connected');
+            fetchInitialState();
+        });
+
+        socket.on('vote_update', (data) => {
+            state.creatorVotes = data.creator || 0;
+            state.opponentVotes = data.opponent || 0;
+            updateVoteDisplay();
+            addLogEntry(`Vote received`, 'vote');
+        });
+
+        socket.on('viewer_count', (data) => {
+            state.viewerCount = data.count || 0;
+            document.getElementById('viewerCount').textContent = state.viewerCount;
+        });
+
+        socket.on('powerup_triggered', (data) => {
+            addLogEntry(`Power-up: ${data.powerup}`, 'powerup');
+        });
+
+        async function fetchInitialState() {
+            try {
+                const response = await fetch('/api/audience/votes');
+                const data = await response.json();
+                state.creatorVotes = data.votes?.creator || 0;
+                state.opponentVotes = data.votes?.opponent || 0;
+                state.viewerCount = data.total_viewers || 0;
+                updateVoteDisplay();
+                document.getElementById('viewerCount').textContent = state.viewerCount;
+            } catch (e) {
+                console.error('Failed to fetch state:', e);
+            }
+        }
+
+        function updateVoteDisplay() {
+            const total = state.creatorVotes + state.opponentVotes || 1;
+            const creatorPercent = Math.round((state.creatorVotes / total) * 100);
+            const opponentPercent = 100 - creatorPercent;
+
+            document.getElementById('creatorVotes').textContent = state.creatorVotes;
+            document.getElementById('opponentVotes').textContent = state.opponentVotes;
+
+            document.getElementById('voteBarCreator').style.width = creatorPercent + '%';
+            document.getElementById('voteBarOpponent').style.width = opponentPercent + '%';
+
+            document.getElementById('creatorPercent').textContent = creatorPercent + '%';
+            document.getElementById('opponentPercent').textContent = opponentPercent + '%';
+        }
+
+        async function resetVotes() {
+            if (!confirm('Reset all audience votes?')) return;
+
+            try {
+                await fetch('/api/audience/reset', { method: 'POST' });
+                state.creatorVotes = 0;
+                state.opponentVotes = 0;
+                updateVoteDisplay();
+                addLogEntry('Votes reset', 'join');
+            } catch (e) {
+                console.error('Failed to reset votes:', e);
+            }
+        }
+
+        function broadcastVoteResults() {
+            socket.emit('broadcast_votes', {
+                creator: state.creatorVotes,
+                opponent: state.opponentVotes
+            });
+            addLogEntry('Vote results broadcast to OBS', 'powerup');
+        }
+
+        function announceLeader() {
+            const leader = state.creatorVotes > state.opponentVotes ? 'Creator' :
+                          state.opponentVotes > state.creatorVotes ? 'Opponent' : 'Tied';
+            socket.emit('announce_leader', { leader });
+            addLogEntry(`Announced leader: ${leader}`, 'powerup');
+        }
+
+        function copyAudienceUrl() {
+            const url = document.getElementById('audienceUrl').textContent;
+            navigator.clipboard.writeText(url);
+            alert('Link copied!');
+        }
+
+        function addLogEntry(message, type = '') {
+            const log = document.getElementById('activityLog');
+            const entry = document.createElement('div');
+            entry.className = 'activity-entry ' + type;
+
+            const now = new Date();
+            const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            entry.innerHTML = `<span>${message}</span><span class="time">${time}</span>`;
+            log.insertBefore(entry, log.firstChild);
+
+            // Limit entries
+            while (log.children.length > 50) {
+                log.lastChild.remove();
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('activityLog').innerHTML = '';
+        }
+
+        // Set audience URL
+        document.getElementById('audienceUrl').textContent = window.location.origin + '/audience';
+    </script>
+</body>
+</html>

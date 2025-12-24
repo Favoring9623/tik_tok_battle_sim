@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Control Center - TikTok Live Fest</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f0f23 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo h1 {
+            font-size: 1.5em;
+            background: linear-gradient(90deg, #00d9ff, #ff00d9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .status-badge.idle { background: rgba(100, 100, 100, 0.5); }
+        .status-badge.running { background: rgba(0, 255, 136, 0.3); color: #00ff88; animation: pulse 2s infinite; }
+        .status-badge.error { background: rgba(255, 68, 68, 0.3); color: #ff4444; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel h2 {
+            font-size: 1.1em;
+            color: #00d9ff;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Control Panel */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #aaa;
+            font-size: 0.85em;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 0.95em;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .strategy-btn {
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: transparent;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.85em;
+        }
+
+        .strategy-btn:hover { border-color: rgba(0, 217, 255, 0.5); }
+        .strategy-btn.active { border-color: #00d9ff; background: rgba(0, 217, 255, 0.1); }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            color: #000;
+        }
+
+        .btn-danger {
+            background: linear-gradient(90deg, #ff4444, #ff0066);
+            color: #fff;
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Battle Monitor */
+        .score-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 25px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .team-score {
+            text-align: center;
+        }
+
+        .team-score .label {
+            font-size: 0.8em;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .team-score .score {
+            font-size: 2.2em;
+            font-weight: bold;
+        }
+
+        .team-score.us .score { color: #00ff88; }
+        .team-score.them .score { color: #ff4444; }
+
+        .vs-badge {
+            font-size: 1.2em;
+            color: #666;
+            padding: 10px;
+        }
+
+        .gap-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .gap-fill {
+            height: 100%;
+            transition: width 0.3s, background 0.3s;
+        }
+
+        .gap-fill.winning { background: linear-gradient(90deg, #00ff88, #00d9ff); }
+        .gap-fill.losing { background: linear-gradient(90deg, #ff4444, #ff0066); }
+        .gap-fill.tied { background: #ffaa00; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .info-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .info-box .value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+
+        .info-box .label {
+            font-size: 0.75em;
+            color: #888;
+            margin-top: 3px;
+        }
+
+        /* Decision Feed */
+        .decision-feed {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .decision-item {
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid #666;
+            font-size: 0.9em;
+        }
+
+        .decision-item.send { border-left-color: #00ff88; }
+        .decision-item.wait { border-left-color: #666; }
+        .decision-item.critical { border-left-color: #ff0066; background: rgba(255, 0, 102, 0.1); }
+
+        .decision-item .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .decision-item .time { color: #666; font-size: 0.85em; }
+        .decision-item .action { font-weight: bold; }
+        .decision-item .reason { color: #aaa; }
+
+        /* Stats Panel */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: #888; }
+        .stat-value { font-weight: bold; color: #00d9ff; }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .quick-btn {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.85em;
+        }
+
+        .quick-btn:hover {
+            background: rgba(0, 217, 255, 0.2);
+            border-color: #00d9ff;
+        }
+
+        /* Timer */
+        .timer-display {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .timer-display .time {
+            font-size: 2.5em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .timer-display .label {
+            font-size: 0.8em;
+            color: #888;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>Battle Control Center</h1>
+            <span style="color: #888;">TikTok Live Fest Support</span>
+        </div>
+        <div class="status-badge idle" id="statusBadge">Idle</div>
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="panel">
+            <h2>Configuration</h2>
+
+            <div class="form-group">
+                <label>Target Streamer</label>
+                <input type="text" id="targetStreamer" placeholder="@username">
+            </div>
+
+            <div class="form-group">
+                <label>Gift</label>
+                <select id="giftSelect">
+                    <option value="Fest Pop">Fest Pop (1 coin)</option>
+                    <option value="Rose">Rose (1 coin)</option>
+                    <option value="Fest Cheers">Fest Cheers (5 coins)</option>
+                    <option value="Fest Party">Fest Party (10 coins)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>AI Strategy</label>
+                <div class="strategy-grid">
+                    <button class="strategy-btn active" data-strategy="smart">Smart</button>
+                    <button class="strategy-btn" data-strategy="aggressive">Aggressive</button>
+                    <button class="strategy-btn" data-strategy="defensive">Defensive</button>
+                    <button class="strategy-btn" data-strategy="sniper">Sniper</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Mode</label>
+                <select id="modeSelect">
+                    <option value="supporter">Supporter (AI + Gifts)</option>
+                    <option value="observer">Observer (No Gifts)</option>
+                    <option value="hybrid">Hybrid (AI + Manual)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Duration (seconds)</label>
+                <input type="number" id="duration" value="300" min="60" max="3600">
+            </div>
+
+            <div class="form-group">
+                <label>Max Gifts/Minute</label>
+                <input type="number" id="maxPerMinute" value="500" min="10" max="1000">
+            </div>
+
+            <button class="btn btn-primary" id="startBtn" onclick="startPlatform()">
+                Start AI Support
+            </button>
+
+            <button class="btn btn-danger" id="stopBtn" onclick="stopPlatform()" style="display: none;">
+                Stop Platform
+            </button>
+
+            <div class="quick-actions">
+                <button class="quick-btn" onclick="pausePlatform()">Pause</button>
+                <button class="quick-btn" onclick="resumePlatform()">Resume</button>
+            </div>
+        </div>
+
+        <!-- Battle Monitor -->
+        <div class="panel">
+            <h2>Battle Monitor</h2>
+
+            <div class="score-display">
+                <div class="team-score us">
+                    <div class="label">OUR SCORE</div>
+                    <div class="score" id="ourScore">0</div>
+                </div>
+                <div class="vs-badge">VS</div>
+                <div class="team-score them">
+                    <div class="label">OPPONENT</div>
+                    <div class="score" id="theirScore">0</div>
+                </div>
+            </div>
+
+            <div class="gap-bar">
+                <div class="gap-fill tied" id="gapFill" style="width: 50%;"></div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-box">
+                    <div class="value" id="gapValue">0</div>
+                    <div class="label">GAP</div>
+                </div>
+                <div class="info-box">
+                    <div class="value" id="urgencyValue">-</div>
+                    <div class="label">URGENCY</div>
+                </div>
+                <div class="info-box">
+                    <div class="value" id="cpsValue">0</div>
+                    <div class="label">CPS</div>
+                </div>
+            </div>
+
+            <div class="timer-display">
+                <div class="label">TIME REMAINING</div>
+                <div class="time" id="timeRemaining">0:00</div>
+            </div>
+
+            <h3 style="color: #888; font-size: 0.9em; margin-bottom: 10px;">Decision Feed</h3>
+            <div class="decision-feed" id="decisionFeed">
+                <div class="decision-item wait">
+                    <div class="header">
+                        <span class="action">WAITING</span>
+                        <span class="time">--:--</span>
+                    </div>
+                    <div class="reason">Configure and start the platform</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Panel -->
+        <div class="panel">
+            <h2>Statistics</h2>
+
+            <div class="stat-row">
+                <span class="stat-label">Gifts Sent</span>
+                <span class="stat-value" id="giftsSent">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Failed</span>
+                <span class="stat-value" id="giftsFailed">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Decisions</span>
+                <span class="stat-value" id="decisions">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Battles</span>
+                <span class="stat-value" id="battles">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Wins</span>
+                <span class="stat-value" id="wins">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Losses</span>
+                <span class="stat-value" id="losses">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Strategy</span>
+                <span class="stat-value" id="currentStrategy">smart</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Elapsed</span>
+                <span class="stat-value" id="elapsed">0:00</span>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <h3 style="color: #888; font-size: 0.9em; margin-bottom: 10px;">Change Strategy</h3>
+                <div class="strategy-grid">
+                    <button class="quick-btn" onclick="setStrategy('smart')">Smart</button>
+                    <button class="quick-btn" onclick="setStrategy('aggressive')">Aggressive</button>
+                    <button class="quick-btn" onclick="setStrategy('defensive')">Defensive</button>
+                    <button class="quick-btn" onclick="setStrategy('sniper')">Sniper</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let selectedStrategy = 'smart';
+        let isRunning = false;
+        let startTime = null;
+
+        // Strategy selection
+        document.querySelectorAll('.strategy-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.strategy-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedStrategy = btn.dataset.strategy;
+                document.getElementById('currentStrategy').textContent = selectedStrategy;
+            });
+        });
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function addDecision(decision) {
+            const feed = document.getElementById('decisionFeed');
+            const item = document.createElement('div');
+
+            let cls = decision.should_send ? 'send' : 'wait';
+            if (decision.urgency === 'critical') cls = 'critical';
+
+            item.className = `decision-item ${cls}`;
+
+            const now = new Date();
+            const time = now.toTimeString().slice(0, 5);
+
+            item.innerHTML = `
+                <div class="header">
+                    <span class="action">${decision.should_send ? 'SEND ' + decision.quantity : 'WAIT'}</span>
+                    <span class="time">${time}</span>
+                </div>
+                <div class="reason">${decision.reason}</div>
+            `;
+
+            feed.insertBefore(item, feed.firstChild);
+
+            while (feed.children.length > 30) {
+                feed.removeChild(feed.lastChild);
+            }
+        }
+
+        function updateScore(data) {
+            document.getElementById('ourScore').textContent = data.our_score.toLocaleString();
+            document.getElementById('theirScore').textContent = data.opponent_score.toLocaleString();
+
+            const gap = data.gap;
+            document.getElementById('gapValue').textContent = (gap >= 0 ? '+' : '') + gap.toLocaleString();
+
+            const gapFill = document.getElementById('gapFill');
+            const total = data.our_score + data.opponent_score;
+            const pct = total > 0 ? (data.our_score / total * 100) : 50;
+            gapFill.style.width = pct + '%';
+            gapFill.className = 'gap-fill ' + (gap > 0 ? 'winning' : gap < 0 ? 'losing' : 'tied');
+
+            document.getElementById('timeRemaining').textContent = formatTime(data.time_remaining);
+        }
+
+        function updateStats(stats) {
+            if (stats) {
+                document.getElementById('giftsSent').textContent = (stats.gifts_sent || 0).toLocaleString();
+                document.getElementById('giftsFailed').textContent = stats.gifts_failed || 0;
+                document.getElementById('decisions').textContent = stats.decisions_made || 0;
+                document.getElementById('battles').textContent = stats.battles_monitored || 0;
+                document.getElementById('wins').textContent = stats.wins || 0;
+                document.getElementById('losses').textContent = stats.losses || 0;
+            }
+        }
+
+        function startPlatform() {
+            const target = document.getElementById('targetStreamer').value.trim();
+            if (!target) {
+                alert('Please enter a target streamer');
+                return;
+            }
+
+            const config = {
+                target: target.replace('@', ''),
+                strategy: selectedStrategy,
+                mode: document.getElementById('modeSelect').value,
+                duration: parseInt(document.getElementById('duration').value),
+                gift: document.getElementById('giftSelect').value,
+                max_per_minute: parseInt(document.getElementById('maxPerMinute').value)
+            };
+
+            socket.emit('start_battle_platform', config);
+        }
+
+        function stopPlatform() {
+            socket.emit('stop_battle_platform');
+        }
+
+        function pausePlatform() {
+            socket.emit('platform_pause');
+        }
+
+        function resumePlatform() {
+            socket.emit('platform_resume');
+        }
+
+        function setStrategy(strategy) {
+            socket.emit('platform_set_strategy', { strategy: strategy });
+        }
+
+        // Socket events
+        socket.on('platform_started', (data) => {
+            isRunning = true;
+            startTime = Date.now();
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'block';
+            document.getElementById('statusBadge').className = 'status-badge running';
+            document.getElementById('statusBadge').textContent = 'Running - @' + data.target;
+            document.getElementById('currentStrategy').textContent = data.strategy;
+        });
+
+        socket.on('platform_stopped', (data) => {
+            isRunning = false;
+            document.getElementById('startBtn').style.display = 'block';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('statusBadge').className = 'status-badge idle';
+            document.getElementById('statusBadge').textContent = 'Stopped';
+        });
+
+        socket.on('platform_score', (data) => {
+            updateScore(data);
+        });
+
+        socket.on('platform_decision', (data) => {
+            addDecision(data);
+            document.getElementById('urgencyValue').textContent = data.urgency;
+            document.getElementById('cpsValue').textContent = data.cps;
+            if (data.score) {
+                updateScore(data.score);
+            }
+        });
+
+        socket.on('platform_gift_sent', (data) => {
+            if (data.success) {
+                document.getElementById('giftsSent').textContent =
+                    (parseInt(document.getElementById('giftsSent').textContent.replace(/,/g, '')) + data.sent).toLocaleString();
+            } else {
+                document.getElementById('giftsFailed').textContent =
+                    parseInt(document.getElementById('giftsFailed').textContent) + data.failed;
+            }
+        });
+
+        socket.on('platform_state', (stats) => {
+            updateStats(stats);
+        });
+
+        socket.on('platform_strategy_changed', (data) => {
+            document.getElementById('currentStrategy').textContent = data.strategy;
+        });
+
+        socket.on('platform_paused', () => {
+            document.getElementById('statusBadge').textContent += ' (Paused)';
+        });
+
+        socket.on('platform_resumed', () => {
+            const badge = document.getElementById('statusBadge');
+            badge.textContent = badge.textContent.replace(' (Paused)', '');
+        });
+
+        socket.on('platform_error', (data) => {
+            alert('Error: ' + data.error);
+            document.getElementById('statusBadge').className = 'status-badge error';
+            document.getElementById('statusBadge').textContent = 'Error';
+        });
+
+        // Update elapsed time
+        setInterval(() => {
+            if (isRunning && startTime) {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('elapsed').textContent = formatTime(elapsed);
+            }
+        }, 1000);
+
+        // Request state on connect
+        socket.on('connect', () => {
+            socket.emit('get_platform_state');
+        });
+    </script>
+</body>
+</html>
