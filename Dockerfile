@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers (optional - for TikTok integration)
+# Install Playwright browsers (optional)
 RUN playwright install chromium --with-deps || true
 
 # Copy application code
@@ -29,5 +29,5 @@ ENV PYTHONUNBUFFERED=1
 ENV FLASK_DEBUG=false
 ENV PORT=5000
 
-# Run with gunicorn using wsgi entry point
-CMD gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:${PORT:-5000} wsgi:app
+# Simple Python startup to see errors
+CMD ["python", "wsgi.py"]
