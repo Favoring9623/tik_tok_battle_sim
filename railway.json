@@ -6,9 +6,9 @@
   },
   "deploy": {
     "numReplicas": 1,
-    "startCommand": "gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT 'web.backend.app:app'",
+    "startCommand": "gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT wsgi:app",
     "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 30,
+    "healthcheckTimeout": 60,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }
