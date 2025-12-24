@@ -354,6 +354,140 @@ def handle_battle_update_request(data):
         emit('battle_update', active_battles[battle_id])
 
 
+# Demo Battle System (works without TikTokLive)
+demo_battle_active = False
+
+@socketio.on('start_demo_battle')
+def handle_start_demo_battle(data):
+    """Start a demo battle simulation for video recording."""
+    global demo_battle_active
+
+    if demo_battle_active:
+        emit('demo_error', {'error': 'Demo battle already running'})
+        return
+
+    creator = data.get('creator', 'QuantumEdge_AI')
+    opponent = data.get('opponent', 'NeonStrike_Bot')
+    duration = int(data.get('duration', 120))
+
+    print(f"\n{'='*60}")
+    print(f"🎮 DEMO BATTLE STARTING")
+    print(f"   {creator} vs {opponent}")
+    print(f"   Duration: {duration}s")
+    print(f"{'='*60}\n")
+
+    demo_battle_active = True
+    socketio.start_background_task(run_demo_battle, creator, opponent, duration)
+    emit('demo_battle_started', {'creator': creator, 'opponent': opponent, 'duration': duration})
+
+
+def run_demo_battle(creator: str, opponent: str, duration: int):
+    """Run a demo battle with simulated gifts."""
+    global demo_battle_active
+    import random
+    import time
+    import uuid
+
+    battle_id = f"demo_{uuid.uuid4().hex[:8]}"
+
+    # Gift catalog for demo
+    gifts = [
+        {'name': 'Rose', 'coins': 1, 'emoji': '🌹'},
+        {'name': 'Ice Cream', 'coins': 10, 'emoji': '🍦'},
+        {'name': 'Doughnut', 'coins': 30, 'emoji': '🍩'},
+        {'name': 'Cap', 'coins': 99, 'emoji': '🧢'},
+        {'name': 'Fest Pop', 'coins': 100, 'emoji': '🎉'},
+        {'name': 'TikTok Universe', 'coins': 500, 'emoji': '🌌'},
+        {'name': 'Lion', 'coins': 29999, 'emoji': '🦁'},
+        {'name': 'Dragon Flame', 'coins': 10000, 'emoji': '🐉'},
+    ]
+
+    agents = ['PixelPixie', 'GlitchMancer', 'BoostResponder', 'StrikeMaster', 'PhaseTracker']
+
+    creator_score = 0
+    opponent_score = 0
+
+    # Emit battle start
+    socketio.emit('demo_battle_update', {
+        'type': 'start',
+        'battle_id': battle_id,
+        'creator': creator,
+        'opponent': opponent,
+        'creator_score': 0,
+        'opponent_score': 0,
+        'time_remaining': duration
+    })
+
+    start_time = time.time()
+    last_boost = 0
+    multiplier = 1.0
+
+    while demo_battle_active and (time.time() - start_time) < duration:
+        elapsed = int(time.time() - start_time)
+        time_remaining = duration - elapsed
+
+        # Random boost phases
+        if elapsed > 0 and elapsed % 30 == 0 and elapsed != last_boost:
+            last_boost = elapsed
+            multiplier = random.choice([1.0, 2.0, 3.0, 5.0])
+            phase_name = {1.0: 'Normal', 2.0: 'Boost x2', 3.0: 'Boost x3', 5.0: 'MEGA x5'}[multiplier]
+            socketio.emit('demo_battle_update', {
+                'type': 'phase',
+                'phase': phase_name,
+                'multiplier': multiplier
+            })
+
+        # Generate random gifts
+        for _ in range(random.randint(1, 3)):
+            team = random.choice(['creator', 'opponent'])
+            gift = random.choice(gifts)
+            agent = random.choice(agents) if team == 'creator' else 'Opponent_AI'
+            points = int(gift['coins'] * multiplier)
+
+            if team == 'creator':
+                creator_score += points
+            else:
+                opponent_score += points
+
+            socketio.emit('demo_battle_update', {
+                'type': 'gift',
+                'team': team,
+                'agent': agent,
+                'gift_name': gift['name'],
+                'gift_emoji': gift['emoji'],
+                'coins': gift['coins'],
+                'points': points,
+                'multiplier': multiplier,
+                'creator_score': creator_score,
+                'opponent_score': opponent_score,
+                'time_remaining': time_remaining
+            })
+
+        time.sleep(0.5)
+
+    # Battle ended
+    winner = 'creator' if creator_score > opponent_score else 'opponent'
+    socketio.emit('demo_battle_update', {
+        'type': 'end',
+        'winner': winner,
+        'creator': creator,
+        'opponent': opponent,
+        'creator_score': creator_score,
+        'opponent_score': opponent_score
+    })
+
+    demo_battle_active = False
+    print(f"🏆 Demo battle ended: {creator if winner == 'creator' else opponent} wins!")
+
+
+@socketio.on('stop_demo_battle')
+def handle_stop_demo_battle():
+    """Stop the current demo battle."""
+    global demo_battle_active
+    demo_battle_active = False
+    emit('demo_battle_stopped', {})
+
+
 # Battle Event Handlers (called by battle engine)
 
 def broadcast_battle_start(battle_data: Dict[str, Any]):
