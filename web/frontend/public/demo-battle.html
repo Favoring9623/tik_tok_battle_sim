@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Battle Demo - Live Simulation</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
+        }
+        .battle-arena {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .team {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px;
+            min-width: 300px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .team.creator { border-color: #4ecdc4; box-shadow: 0 0 30px rgba(78, 205, 196, 0.3); }
+        .team.opponent { border-color: #ff6b6b; box-shadow: 0 0 30px rgba(255, 107, 107, 0.3); }
+        .team.winning { transform: scale(1.05); }
+        .team-name { font-size: 1.5em; margin-bottom: 10px; }
+        .team-score {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .team.creator .team-score { color: #4ecdc4; }
+        .team.opponent .team-score { color: #ff6b6b; }
+        .vs {
+            font-size: 2em;
+            color: #feca57;
+            align-self: center;
+        }
+        .phase-indicator {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .timer {
+            font-size: 2em;
+            color: #feca57;
+            margin-bottom: 20px;
+        }
+        .gift-feed {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            width: 100%;
+            max-width: 800px;
+            height: 300px;
+            overflow-y: auto;
+        }
+        .gift-event {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 10px;
+            animation: slideIn 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .gift-event.creator { background: rgba(78, 205, 196, 0.2); border-left: 4px solid #4ecdc4; }
+        .gift-event.opponent { background: rgba(255, 107, 107, 0.2); border-left: 4px solid #ff6b6b; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .gift-emoji { font-size: 1.5em; }
+        .gift-points { font-weight: bold; color: #feca57; }
+        .start-btn {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            border: none;
+            padding: 20px 50px;
+            font-size: 1.5em;
+            border-radius: 50px;
+            cursor: pointer;
+            color: white;
+            margin: 20px;
+            transition: transform 0.2s;
+        }
+        .start-btn:hover { transform: scale(1.1); }
+        .start-btn:disabled { background: gray; cursor: not-allowed; }
+        .status { color: #48dbfb; margin-top: 10px; }
+        .winner-banner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #feca57, #ff6b6b);
+            padding: 40px 80px;
+            border-radius: 20px;
+            font-size: 2.5em;
+            animation: pop 0.5s ease-out;
+            z-index: 100;
+            display: none;
+        }
+        @keyframes pop {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>TikTok Battle Simulator</h1>
+        <p>AI-Powered Gift Strategy Demo</p>
+    </div>
+
+    <div class="phase-indicator" id="phase">Battle Phase (x1)</div>
+    <div class="timer" id="timer">02:00</div>
+
+    <div class="battle-arena">
+        <div class="team creator" id="creator-team">
+            <div class="team-name" id="creator-name">QuantumEdge_AI</div>
+            <div class="team-score" id="creator-score">0</div>
+            <div>Creator Team</div>
+        </div>
+        <div class="vs">VS</div>
+        <div class="team opponent" id="opponent-team">
+            <div class="team-name" id="opponent-name">NeonStrike_Bot</div>
+            <div class="team-score" id="opponent-score">0</div>
+            <div>Opponent Team</div>
+        </div>
+    </div>
+
+    <button class="start-btn" id="start-btn" onclick="startDemo()">Start Demo Battle</button>
+    <div class="status" id="status">Ready to battle!</div>
+
+    <div class="gift-feed" id="gift-feed"></div>
+
+    <div class="winner-banner" id="winner-banner"></div>
+
+    <script>
+        const socket = io();
+        let battleActive = false;
+
+        socket.on('connect', () => {
+            document.getElementById('status').textContent = 'Connected to server';
+        });
+
+        socket.on('demo_battle_started', (data) => {
+            battleActive = true;
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('creator-name').textContent = data.creator;
+            document.getElementById('opponent-name').textContent = data.opponent;
+            document.getElementById('status').textContent = 'Battle in progress!';
+            document.getElementById('gift-feed').innerHTML = '';
+        });
+
+        socket.on('demo_battle_update', (data) => {
+            if (data.type === 'start') {
+                document.getElementById('creator-score').textContent = '0';
+                document.getElementById('opponent-score').textContent = '0';
+            }
+            else if (data.type === 'gift') {
+                // Update scores
+                document.getElementById('creator-score').textContent = data.creator_score.toLocaleString();
+                document.getElementById('opponent-score').textContent = data.opponent_score.toLocaleString();
+
+                // Update timer
+                const mins = Math.floor(data.time_remaining / 60);
+                const secs = data.time_remaining % 60;
+                document.getElementById('timer').textContent =
+                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+                // Update winning indicator
+                const creatorTeam = document.getElementById('creator-team');
+                const opponentTeam = document.getElementById('opponent-team');
+                creatorTeam.classList.toggle('winning', data.creator_score > data.opponent_score);
+                opponentTeam.classList.toggle('winning', data.opponent_score > data.creator_score);
+
+                // Add gift event to feed
+                const feed = document.getElementById('gift-feed');
+                const event = document.createElement('div');
+                event.className = `gift-event ${data.team}`;
+                event.innerHTML = `
+                    <span class="gift-emoji">${data.gift_emoji}</span>
+                    <span><strong>${data.agent}</strong> sent ${data.gift_name}</span>
+                    <span class="gift-points">+${data.points.toLocaleString()} pts</span>
+                    ${data.multiplier > 1 ? `<span style="color: #ff6b6b;">(x${data.multiplier})</span>` : ''}
+                `;
+                feed.insertBefore(event, feed.firstChild);
+
+                // Keep feed manageable
+                while (feed.children.length > 50) {
+                    feed.removeChild(feed.lastChild);
+                }
+            }
+            else if (data.type === 'phase') {
+                document.getElementById('phase').textContent = `${data.phase} (x${data.multiplier})`;
+                document.getElementById('phase').style.background =
+                    data.multiplier >= 5 ? 'linear-gradient(45deg, #ff6b6b, #feca57)' :
+                    data.multiplier >= 3 ? 'linear-gradient(45deg, #feca57, #48dbfb)' :
+                    data.multiplier >= 2 ? 'linear-gradient(45deg, #48dbfb, #4ecdc4)' :
+                    'linear-gradient(45deg, #667eea, #764ba2)';
+            }
+            else if (data.type === 'end') {
+                battleActive = false;
+                document.getElementById('start-btn').disabled = false;
+                const winner = data.winner === 'creator' ? data.creator : data.opponent;
+                const banner = document.getElementById('winner-banner');
+                banner.textContent = `${winner} WINS!`;
+                banner.style.display = 'block';
+                document.getElementById('status').textContent = 'Battle ended!';
+                setTimeout(() => { banner.style.display = 'none'; }, 5000);
+            }
+        });
+
+        function startDemo() {
+            socket.emit('start_demo_battle', {
+                creator: 'QuantumEdge_AI',
+                opponent: 'NeonStrike_Bot',
+                duration: 90
+            });
+        }
+    </script>
+</body>
+</html>

@@ -180,6 +180,14 @@ def control_center_page():
     return send_from_directory('../frontend/public', 'control-center.html')
 
 
+@app.route('/demo')
+@app.route('/demo-battle')
+@app.route('/demo-battle.html')
+def demo_battle_page():
+    """Serve the Demo Battle page for video recording."""
+    return send_from_directory('../frontend/public', 'demo-battle.html')
+
+
 @app.route('/api/health')
 def health_check():
     """Health check endpoint for deployment."""
