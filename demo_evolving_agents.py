@@ -117,6 +117,19 @@ def run_training_session(
 
         engine._tick = wrapped_tick
 
+        # CRITICAL FIX: Subscribe to GIFT_SENT events to track Boost #2 progress
+        from core.event_bus import EventType
+
+        def record_gift_for_phase_manager(event):
+            """Record gifts in phase manager for Boost #2 threshold tracking."""
+            gift_name = event.data.get("gift", event.data.get("gift_name", "Gift"))
+            points = event.data.get("points", 0)
+            current_time = int(event.timestamp)
+            # All agents in this team are "creator" side
+            phase_manager.record_gift(gift_name, points, "creator", current_time)
+
+        engine.event_bus.subscribe(EventType.GIFT_SENT, record_gift_for_phase_manager)
+
         # Run battle (silent for speed)
         try:
             engine.run(silent=True)
@@ -340,6 +353,17 @@ def run_comparison_test(
 
         engine._tick = make_wrapped_tick(phase_manager)
 
+        # CRITICAL FIX: Subscribe to GIFT_SENT events for Boost #2 tracking
+        from core.event_bus import EventType
+        def make_gift_recorder(pm):
+            def record_gift(event):
+                gift_name = event.data.get("gift", "Gift")
+                points = event.data.get("points", 0)
+                current_time = int(event.timestamp)
+                pm.record_gift(gift_name, points, "creator", current_time)
+            return record_gift
+        engine.event_bus.subscribe(EventType.GIFT_SENT, make_gift_recorder(phase_manager))
+
         try:
             engine.run(silent=True)
             if engine.analytics.winner == 'creator':
@@ -376,6 +400,17 @@ def run_comparison_test(
             return wrapped_tick
 
         engine._tick = make_wrapped_tick(phase_manager)
+
+        # CRITICAL FIX: Subscribe to GIFT_SENT events for Boost #2 tracking
+        from core.event_bus import EventType
+        def make_gift_recorder(pm):
+            def record_gift(event):
+                gift_name = event.data.get("gift", "Gift")
+                points = event.data.get("points", 0)
+                current_time = int(event.timestamp)
+                pm.record_gift(gift_name, points, "creator", current_time)
+            return record_gift
+        engine.event_bus.subscribe(EventType.GIFT_SENT, make_gift_recorder(phase_manager))
 
         try:
             engine.run(silent=True)
