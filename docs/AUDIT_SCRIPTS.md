@@ -177,7 +177,112 @@ Scripts connectés à l'API TikTok Live pour tester en conditions réelles.
 
 ## PROCHAINES ÉTAPES
 
-1. [ ] Consolider les Q-tables entre Demo et Live
+1. [x] Consolider les Q-tables entre Demo et Live
 2. [ ] Ajouter métriques de transfert learning
 3. [ ] Créer pipeline CI/CD pour validation agents
 4. [ ] Implémenter A/B testing en production
+
+---
+
+## AUDIT 2025-12-27 - MISE À JOUR
+
+### État des Agents Entraînés (SQLite)
+
+| Agent | Battles | Wins | Win Rate | Epsilon |
+|-------|---------|------|----------|---------|
+| EvolvingKinetik | 66 | 66 | **100%** | 0.35 |
+| EvolvingStrikeMaster | 66 | 66 | **100%** | 0.35 |
+| EvolvingPhaseTracker | 66 | 66 | **100%** | 0.35 |
+| EvolvingLoadoutMaster | 66 | 66 | **100%** | 0.35 |
+
+### Bug Corrigé: Boost #2 Progress Tracking
+
+**Problème:** Le progress du Boost #2 restait à 0% car `phase_manager.record_gift()` n'était jamais appelé.
+
+**Solution:** Ajout d'un subscriber `GIFT_SENT` dans `demo_evolving_agents.py`:
+```python
+engine.event_bus.subscribe(EventType.GIFT_SENT, record_gift_for_phase_manager)
+```
+
+### Architecture de Fusion Demo ↔ Live
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                       DEMO (Entraînement)                       │
+│  ┌──────────────────┐    ┌──────────────────────────────────┐  │
+│  │ demo_evolving_   │    │        SQLite Database           │  │
+│  │ agents.py        │ → │  - agent_learning_state          │  │
+│  │                  │    │  - agent_performance             │  │
+│  │ EvolvingKinetik  │    │  - q_tables                      │  │
+│  │ EvolvingStrike   │    │  - strategy_params               │  │
+│  │ EvolvingPhase    │    └──────────────────────────────────┘  │
+│  │ EvolvingLoadout  │                    │                     │
+│  └──────────────────┘                    ↓                     │
+└──────────────────────────────────────────│─────────────────────┘
+                                           │
+                    ┌──────────────────────┴─────────────────────┐
+                    │          Pont de Transfert                  │
+                    │  live_learning_engine.py                    │
+                    │  - VirtualGift decisions                    │
+                    │  - BattleExperience tracking               │
+                    │  - Shadow mode comparison                   │
+                    └──────────────────────┬─────────────────────┘
+                                           │
+┌──────────────────────────────────────────│─────────────────────┐
+│                       LIVE (Production)                         │
+│                                          ↓                     │
+│  ┌──────────────────┐    ┌──────────────────────────────────┐  │
+│  │ train_live_      │    │     TikTok Live Connector         │  │
+│  │ tiktok.py        │ ← │  - EulerStream API                │  │
+│  │                  │    │  - Real gift events               │  │
+│  │ run_ai_vs_       │    │  - Score tracking                 │  │
+│  │ live.py          │    └──────────────────────────────────┘  │
+│  └──────────────────┘                                          │
+│                                                                │
+│  ┌──────────────────┐    ┌──────────────────────────────────┐  │
+│  │ ai_vs_live_      │    │      Live Detection               │  │
+│  │ engine.py        │ ← │  - LiveBurstDetector              │  │
+│  │                  │    │  - LiveFestDetector               │  │
+│  │ Counter-attack   │    │  - Counter-attack system          │  │
+│  │ Burst response   │    └──────────────────────────────────┘  │
+│  └──────────────────┘                                          │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### Scripts Validés - Workflow Recommandé
+
+#### Phase 1: Entraînement Intensif (Demo)
+```bash
+# Entraînement 50+ battles pour consolider l'apprentissage
+python demo_evolving_agents.py --battles 50
+
+# Validation visuelle avec dashboard web
+python demo_web_strategic_battle.py
+```
+
+#### Phase 2: Test Live Passif (Observation)
+```bash
+# Observer un stream sans intervenir
+python train_live_tiktok.py --mode single --username @streamer
+
+# Mode shadow: comparer AI vs vrais gifters
+python train_live_tiktok.py --mode shadow --username @streamer
+```
+
+#### Phase 3: Test Live Actif (Challenge)
+```bash
+# AI vs Streamer - match unique
+python run_ai_vs_live.py --target @streamer --duration 120
+
+# Tournoi Best-of-3
+python run_ai_vs_live.py --target @streamer --format bo3
+```
+
+### Connexion TikTok Live
+
+| Composant | Status |
+|-----------|--------|
+| EulerStream API | ✅ Configurée |
+| TikTokLiveConnector | ✅ Opérationnel |
+| LiveBattleConnector | ✅ Prêt |
+| Gift Sender | ⚠️ Requiert authentification |
