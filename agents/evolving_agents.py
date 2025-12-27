@@ -52,8 +52,17 @@ class EvolvingKinetik(BaseAgent):
             'snipe_window': 5,  # Seconds before end to act
             'min_deficit_for_universe': 30000,  # Use Universe if deficit > 30k
             'min_deficit_for_lion': 15000,      # Use Lion if deficit > 15k
-            'min_deficit_for_phoenix': 5000     # Use Phoenix if deficit > 5k
+            'min_deficit_for_phoenix': 5000,    # Use Phoenix if deficit > 5k
+            # Early aggression params (NEW)
+            'early_aggression': True,           # Enable early gift sending
+            'early_deficit_threshold': 100,     # React when behind by this much
+            'early_gift_interval': 15,          # Seconds between early gifts
+            'mid_battle_push': True,            # Push at 50% battle time
         }
+
+        # Early aggression state
+        self.last_early_gift_time = 0
+        self.mid_push_done = False
 
         # Learning state
         self.learning_agent = LearningAgent(name=self.name, agent_type=self.agent_type)
@@ -104,27 +113,75 @@ class EvolvingKinetik(BaseAgent):
         self.snipe_glove_used = False
         self.snipe_gifts_sent = 0
         self.snipe_total_points = 0
+        # Reset early aggression state
+        self.last_early_gift_time = 0
+        self.mid_push_done = False
 
     def decide_action(self, battle):
         """
-        SNIPE MODE: Full snipe execution in final seconds.
+        HYBRID MODE: Early aggression + Final snipe execution.
 
-        Like OpponentAI, this agent:
-        1. Deploys glove for x5 in final seconds
-        2. Sends multiple whale gifts until budget exhausted
-        3. Continues attacking every tick in snipe window
+        Strategy:
+        1. Early aggression when opponent is ahead
+        2. Mid-battle push at 50% time
+        3. Final snipe in last 5 seconds with whale gifts
         """
         time_remaining = battle.time_manager.time_remaining()
         current_time = battle.time_manager.current_time
-
-        # Only act within snipe window
-        if time_remaining > self.params['snipe_window']:
-            return
+        battle_duration = battle.time_manager.battle_duration
 
         # Get current state
         creator_score = battle.score_tracker.creator_score
         opponent_score = battle.score_tracker.opponent_score
         deficit = opponent_score - creator_score
+
+        # === EARLY AGGRESSION MODE ===
+        if self.params.get('early_aggression', True) and time_remaining > self.params['snipe_window']:
+            # Check if we should send an early gift
+            time_since_last = current_time - self.last_early_gift_time
+
+            # Mid-battle push (at 50% time)
+            if self.params.get('mid_battle_push', True) and not self.mid_push_done:
+                if current_time >= battle_duration * 0.5:
+                    self.mid_push_done = True
+                    print(f"\n🔫 EvolvingKinetik: MID-BATTLE PUSH!")
+                    if self.can_afford("Lion"):
+                        self.send_gift(battle, "Lion", 29999)
+                        print(f"   💰 Sent Lion (29,999 pts) at mid-battle")
+                        self.last_early_gift_time = current_time
+                        return
+                    elif self.can_afford("GG"):
+                        self.send_gift(battle, "GG", 1000)
+                        print(f"   💰 Sent GG (1,000 pts) at mid-battle")
+                        self.last_early_gift_time = current_time
+                        return
+
+            # React when opponent is ahead
+            if deficit > self.params.get('early_deficit_threshold', 100):
+                if time_since_last >= self.params.get('early_gift_interval', 15):
+                    print(f"\n🔫 EvolvingKinetik: EARLY RESPONSE! (deficit: {deficit:,})")
+
+                    # Choose gift based on deficit
+                    if deficit > 5000 and self.can_afford("Lion"):
+                        self.send_gift(battle, "Lion", 29999)
+                        print(f"   💰 Sent Lion to counter large deficit")
+                    elif deficit > 1000 and self.can_afford("GG"):
+                        self.send_gift(battle, "GG", 1000)
+                        print(f"   💰 Sent GG to counter deficit")
+                    elif self.can_afford("Rosa Nebula"):
+                        self.send_gift(battle, "Rosa Nebula", 299)
+                        print(f"   💰 Sent Rosa Nebula to counter deficit")
+                    elif self.can_afford("Doughnut"):
+                        self.send_gift(battle, "Doughnut", 30)
+                        print(f"   💰 Sent Doughnut to counter deficit")
+
+                    self.last_early_gift_time = current_time
+                    return
+
+            # Not in snipe window yet, and no early action needed
+            return
+
+        # === SNIPE MODE (Final seconds) ===
 
         # Check if we have x5 active
         we_have_x5 = (self.phase_manager and
