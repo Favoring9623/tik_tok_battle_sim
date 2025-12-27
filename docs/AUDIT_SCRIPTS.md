@@ -60,8 +60,9 @@ Scripts connectés à l'API TikTok Live pour tester en conditions réelles.
 
 | Script | Description | Prérequis |
 |--------|-------------|-----------|
-| `train_live_tiktok.py` | **PRINCIPAL** - Entraînement sur streams réels | TikTokLive + EulerStream |
-| `run_ai_vs_live.py` | AI vs Streamer réel | TikTokLive |
+| `run_evolved_vs_live.py` | **NOUVEAU** - Agents entraînés vs Live stream | TikTokLive + EulerStream |
+| `train_live_tiktok.py` | Entraînement sur streams réels | TikTokLive + EulerStream |
+| `run_ai_vs_live.py` | AI vs Streamer réel (agents simples) | TikTokLive |
 | `run_live_tournament.py` | Tournoi sur streams réels | TikTokLive |
 
 ### Scripts Gift Sender (Envoi réel)
@@ -286,3 +287,46 @@ python run_ai_vs_live.py --target @streamer --format bo3
 | TikTokLiveConnector | ✅ Opérationnel |
 | LiveBattleConnector | ✅ Prêt |
 | Gift Sender | ⚠️ Requiert authentification |
+
+---
+
+## NOUVEAU SCRIPT: run_evolved_vs_live.py
+
+### Description
+Script qui connecte les **agents entraînés** (EvolvingKinetik, EvolvingStrikeMaster, etc.)
+directement aux streams TikTok Live réels.
+
+### Fonctionnalités
+- Charge les agents avec leurs stratégies apprises (66 battles, 100% WR)
+- Connexion temps réel via EulerStream API
+- Tracking des gifts live vs AI virtual gifts
+- Gestion des déconnexions/pauses de stream
+
+### Usage
+```bash
+# Battle contre un streamer live
+python run_evolved_vs_live.py --target @streamer --duration 180
+
+# Battle court (60s)
+python run_evolved_vs_live.py --target @streamer --duration 60
+```
+
+### Test Validé (2025-12-27)
+
+**Stream testé:** @arielcito_mx (Room ID: 7588647876817849144)
+
+| Métrique | Résultat |
+|----------|----------|
+| Connexion | ✅ EulerStream API |
+| Gifts capturés | Doughnut x12, Finger Heart x13 |
+| Agents chargés | 4 agents avec 100% WR |
+
+**Simulation Battle (60s):**
+
+| Agent | Action | Résultat |
+|-------|--------|----------|
+| 🔫 EvolvingKinetik | 6x TikTok Universe (snipe) | 269,994 pts |
+| 🥊 EvolvingStrikeMaster | 4x GLOVE (learned timing) | 400 pts |
+| 🧰 EvolvingLoadoutMaster | FOG + TIME BONUS | Power-ups déployés |
+
+**Score Final:** AI 270,594 vs Opponent 5,768 = **VICTOIRE**
