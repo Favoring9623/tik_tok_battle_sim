@@ -358,13 +358,16 @@ class BudgetBattleEngine:
         # Agent reports
         print(f"\n  👥 {Colors.BLUE}Agent Performance:{Colors.END}")
         for agent in self.team:
-            if hasattr(agent, 'get_spending_report'):
+            total_agent_spent = 0
+            if hasattr(agent, 'coins_spent_by_phase'):
+                total_agent_spent = sum(agent.coins_spent_by_phase.values())
+            elif hasattr(agent, 'get_spending_report'):
                 agent_report = agent.get_spending_report()
                 total_agent_spent = sum(
                     p.get('coins', 0)
                     for p in agent_report.get('by_phase', {}).values()
                 )
-                print(f"     {agent.emoji} {agent.name}: {total_agent_spent:,} coins spent")
+            print(f"     {agent.emoji} {agent.name}: {total_agent_spent:,} coins spent")
 
         # Learning
         print(f"\n  📚 {Colors.GREEN}Learning Update:{Colors.END}")

@@ -300,9 +300,9 @@ class BudgetAwareKinetik(BaseAgent):
         return {
             'by_phase': {
                 p.value: {
-                    'coins': self.coins_spent_by_phase[p],
-                    'gifts': self.gifts_sent_by_phase[p],
-                    'allocation': self.allocation[p]
+                    'coins': self.coins_spent_by_phase.get(p, 0),
+                    'gifts': self.gifts_sent_by_phase.get(p, 0),
+                    'allocation': self.allocation.get(p, 0)
                 }
                 for p in BattlePhase if p in self.coins_spent_by_phase
             },
@@ -318,12 +318,13 @@ class BudgetAwareBoostResponder(BaseAgent):
     Budget-Aware Boost Maximizer
 
     Saves budget specifically for boost windows to maximize multiplier value.
+    Also handles Boost #2 threshold qualification.
 
     Budget allocation:
     - Opening: 5%
     - Mid-battle: 5%
     - Boost #1: 35%
-    - Boost #2: 45%
+    - Boost #2: 45% (includes threshold qualification)
     - Snipe: 10% (support role)
     """
 
@@ -347,7 +348,8 @@ class BudgetAwareBoostResponder(BaseAgent):
         }
 
         self.params = {
-            'boost_gift_cooldown': 3,  # Fast during boosts
+            'boost_gift_cooldown': 2,  # Fast during boosts
+            'threshold_cooldown': 1,   # Very fast during threshold qualification
             'normal_cooldown': 30,     # Slow otherwise
             'min_boost_spend': 1000,   # Minimum per boost gift
         }
@@ -357,6 +359,7 @@ class BudgetAwareBoostResponder(BaseAgent):
         self.coins_spent_by_phase: Dict[BattlePhase, int] = {p: 0 for p in BattlePhase}
         self.boost_gifts_sent = 0
         self.boost_points_earned = 0
+        self.threshold_contributions = 0
 
         self.learning_agent = LearningAgent(name=self.name, agent_type=self.agent_type)
         if db:
@@ -370,6 +373,7 @@ class BudgetAwareBoostResponder(BaseAgent):
         self.coins_spent_by_phase = {p: 0 for p in BattlePhase}
         self.boost_gifts_sent = 0
         self.boost_points_earned = 0
+        self.threshold_contributions = 0
 
     def _get_phase_budget(self, phase: BattlePhase) -> int:
         total = self.budget.total_coins
@@ -388,25 +392,41 @@ class BudgetAwareBoostResponder(BaseAgent):
         )
         self.coins_spent_by_phase[phase] += gift.coins
 
+    def _select_gift_for_amount(self, target: int, max_budget: int) -> Optional[GiftChoice]:
+        """Select best gift to reach a target amount within budget."""
+        affordable = [g for g in GIFT_CATALOG if g.coins <= max_budget]
+        if not affordable:
+            return None
+
+        # Find gift closest to target without going over budget
+        # Prefer gifts that get us close to or above target
+        candidates = [g for g in affordable if g.coins >= target]
+        if candidates:
+            return min(candidates, key=lambda g: g.coins)  # Smallest that meets target
+
+        # If nothing meets target, get the biggest we can afford
+        return max(affordable, key=lambda g: g.coins)
+
     def _select_boost_gift(self, budget: int, multiplier: float) -> Optional[GiftChoice]:
         """Select gift optimized for boost multiplier."""
         # During boosts, prefer larger gifts to maximize multiplier benefit
-        affordable = [g for g in GIFT_CATALOG if g.coins <= budget]
+        effective_budget = min(budget, self.budget.remaining_coins)
+        affordable = [g for g in GIFT_CATALOG if g.coins <= effective_budget]
         if not affordable:
             return None
 
         # For boosts, bigger is better (multiplied returns)
         # But cap at reasonable size based on multiplier
-        effective_max = budget
+        effective_max = effective_budget
         if multiplier >= 3:
             # x3 or higher: go big
-            effective_max = budget
+            effective_max = effective_budget
         elif multiplier >= 2:
             # x2: moderate
-            effective_max = min(budget, 10000)
+            effective_max = min(effective_budget, 15000)
         else:
             # x1.5 or less: conservative
-            effective_max = min(budget, 5000)
+            effective_max = min(effective_budget, 5000)
 
         candidates = [g for g in affordable if g.coins <= effective_max]
         if not candidates:
@@ -416,14 +436,20 @@ class BudgetAwareBoostResponder(BaseAgent):
         return max(candidates, key=lambda g: g.coins)
 
     def decide_action(self, battle):
-        """Focus spending on boost windows."""
+        """Focus spending on boost windows and threshold qualification."""
         if not self.phase_manager:
             return
 
         current_time = battle.time_manager.current_time
         time_remaining = battle.time_manager.time_remaining()
 
-        # Determine if we're in a boost
+        # === PRIORITY 1: BOOST #2 THRESHOLD QUALIFICATION ===
+        if self.phase_manager.boost2_threshold_window_active:
+            if not self.phase_manager.boost2_creator_qualified:
+                self._handle_threshold_qualification(battle, current_time)
+                return
+
+        # Determine if we're in an active boost
         in_boost1 = self.phase_manager.boost1_active
         in_boost2 = self.phase_manager.boost2_active
         in_boost = in_boost1 or in_boost2
@@ -448,24 +474,27 @@ class BudgetAwareBoostResponder(BaseAgent):
         # Get phase budget
         phase_budget = self._get_phase_budget(phase)
 
-        # === BOOST WINDOWS: Spend aggressively ===
+        # === PRIORITY 2: ACTIVE BOOST WINDOWS ===
         if in_boost:
             cooldown = self.params['boost_gift_cooldown']
             if current_time - self.last_gift_time < cooldown:
                 return
 
-            if phase_budget < self.params['min_boost_spend']:
-                # Try to borrow from other phases if boost is active
+            # During boosts, use full boost allocation aggressively
+            available_budget = min(phase_budget, self.budget.remaining_coins)
+
+            # Borrow from other phases if needed
+            if available_budget < self.params['min_boost_spend']:
                 for borrow_phase in [BattlePhase.MID_BATTLE, BattlePhase.OPENING]:
                     extra = self._get_phase_budget(borrow_phase)
                     if extra > 0:
-                        phase_budget += extra
+                        available_budget += extra
                         break
 
-            if phase_budget < 100:
+            if available_budget < 100:
                 return
 
-            gift = self._select_boost_gift(min(phase_budget, self.budget.remaining_coins), multiplier)
+            gift = self._select_boost_gift(available_budget, multiplier)
             if gift:
                 effective = int(gift.points * multiplier)
                 if self.send_gift(battle, gift.name, gift.points):
@@ -489,13 +518,55 @@ class BudgetAwareBoostResponder(BaseAgent):
             return
 
         # Very conservative spending outside boosts
-        max_spend = min(phase_budget, 50, self.budget.remaining_coins)  # Max 50 coins outside boosts
+        max_spend = min(phase_budget, 50, self.budget.remaining_coins)
         affordable = [g for g in GIFT_CATALOG if g.coins <= max_spend]
         if affordable:
             gift = min(affordable, key=lambda g: g.coins)
             if self.send_gift(battle, gift.name, gift.points):
                 self._spend_from_budget(gift, phase)
                 self.last_gift_time = current_time
+
+    def _handle_threshold_qualification(self, battle, current_time: int):
+        """Handle Boost #2 threshold qualification - spend aggressively to qualify."""
+        cooldown = self.params['threshold_cooldown']
+        if current_time - self.last_gift_time < cooldown:
+            return
+
+        # Get threshold info
+        threshold = self.phase_manager.boost2_threshold
+        creator_points = self.phase_manager.boost2_creator_points
+        remaining_needed = threshold - creator_points
+
+        if remaining_needed <= 0:
+            return  # Already qualified
+
+        # Use Boost #2 budget for qualification
+        phase = BattlePhase.BOOST_2
+        phase_budget = self._get_phase_budget(phase)
+        available = min(phase_budget, self.budget.remaining_coins)
+
+        if available < 100:
+            # Try to borrow
+            for borrow_phase in [BattlePhase.MID_BATTLE, BattlePhase.OPENING, BattlePhase.BOOST_1]:
+                extra = self._get_phase_budget(borrow_phase)
+                if extra > 0:
+                    available = min(available + extra, self.budget.remaining_coins)
+                    break
+
+        if available < 1:
+            return
+
+        # Select gift to work toward threshold
+        gift = self._select_gift_for_amount(remaining_needed, available)
+        if gift:
+            if self.send_gift(battle, gift.name, gift.points):
+                self._spend_from_budget(gift, phase)
+                self.threshold_contributions += gift.coins
+                self.last_gift_time = current_time
+
+                progress = (creator_points + gift.coins) / threshold * 100
+                print(f"🚀 BudgetBooster: THRESHOLD! {gift.name} ({gift.coins:,}) → {progress:.0f}% qualified")
+                print(f"   💰 Need: {max(0, remaining_needed - gift.coins):,} more | Budget: {self.budget.remaining_coins:,}")
 
     def learn_from_battle(self, won: bool, battle_stats: Dict) -> float:
         """Learn from boost efficiency."""
