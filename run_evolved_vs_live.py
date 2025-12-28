@@ -53,7 +53,7 @@ class EvolvedVsLiveEngine:
     def __init__(
         self,
         target_streamer: str,
-        battle_duration: int = 180,
+        battle_duration: int = 300,  # 5 minutes standard TikTok battle
         db_path: str = "data/evolved_vs_live.db"
     ):
         self.target = target_streamer.lstrip("@")
@@ -163,8 +163,24 @@ class EvolvedVsLiveEngine:
         if not await self.connect():
             return None
 
+        # === BATTLE ENTRY TIMING DETECTION ===
+        # If live_score > 0, we're joining mid-battle
+        entry_offset = 0
+        if self.live_score > 0:
+            # Estimate battle progress based on live score
+            # Assume average gift rate of ~1 pt/second during active battle
+            estimated_elapsed = min(self.live_score, self.battle_duration * 0.8)
+            entry_offset = int(estimated_elapsed)
+            print(f"{Colors.CYAN}⏱️  Detected mid-battle entry!{Colors.END}")
+            print(f"   Live score: {self.live_score:,} pts → Estimated {entry_offset}s elapsed")
+            print(f"   Adjusting battle timing...\n")
+
         print(f"{Colors.BOLD}{Colors.YELLOW}{'─'*60}{Colors.END}")
-        print(f"{Colors.BOLD}{Colors.YELLOW}  🎮 BATTLE START{Colors.END}")
+        if entry_offset > 0:
+            remaining = self.battle_duration - entry_offset
+            print(f"{Colors.BOLD}{Colors.YELLOW}  🎮 JOINING BATTLE (est. {remaining}s remaining){Colors.END}")
+        else:
+            print(f"{Colors.BOLD}{Colors.YELLOW}  🎮 BATTLE START{Colors.END}")
         print(f"{Colors.BOLD}{Colors.YELLOW}{'─'*60}{Colors.END}\n")
 
         # Create a minimal battle engine for agents to interact with BEFORE starting
@@ -182,7 +198,9 @@ class EvolvedVsLiveEngine:
         self.phase_manager.opponent_score = self.live_score
 
         self.is_running = True
-        self.start_time = time.time()
+        # Adjust start time if joining mid-battle
+        self.start_time = time.time() - entry_offset
+        self._entry_offset = entry_offset
 
         # Add our evolved agents
         for agent in self.team:
@@ -258,7 +276,7 @@ class EvolvedVsLiveEngine:
                         self.swarm.broadcast_signal("boost_detected", {'multiplier': 2.0})
 
                 # Let agents act
-                engine.time_manager._current_time = self.current_time
+                engine.time_manager.current_time = self.current_time
                 for agent in self.team:
                     try:
                         agent.act(engine)
@@ -316,7 +334,7 @@ class EvolvedVsLiveEngine:
 async def main():
     parser = argparse.ArgumentParser(description="Evolved AI vs Live TikTok Battle")
     parser.add_argument('-t', '--target', required=True, help='TikTok streamer username')
-    parser.add_argument('-d', '--duration', type=int, default=180, help='Battle duration (default: 180s)')
+    parser.add_argument('-d', '--duration', type=int, default=300, help='Battle duration (default: 300s = 5 min)')
 
     args = parser.parse_args()
 

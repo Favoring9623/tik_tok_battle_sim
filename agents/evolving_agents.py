@@ -194,10 +194,40 @@ class EvolvingKinetik(BaseAgent):
                         self.last_early_gift_time = current_time
                         return
 
+            # === PERIODIC MID-BATTLE GIFTS (maintain pressure) ===
+            mid_gift_interval = self.params.get('mid_gift_interval', 30)  # Every 30s
+            if time_since_last >= mid_gift_interval and current_time > 10:
+                # Scale gift size based on battle progress
+                progress = current_time / battle_duration  # 0.0 to 1.0
+
+                if progress < 0.3:
+                    # Early battle: small gifts
+                    gift_name, gift_pts = "Doughnut", 30
+                elif progress < 0.6:
+                    # Mid battle: medium gifts
+                    if self.can_afford("Rosa Nebula"):
+                        gift_name, gift_pts = "Rosa Nebula", 299
+                    else:
+                        gift_name, gift_pts = "Doughnut", 30
+                else:
+                    # Late battle: bigger gifts
+                    if self.can_afford("GG"):
+                        gift_name, gift_pts = "GG", 1000
+                    elif self.can_afford("Rosa Nebula"):
+                        gift_name, gift_pts = "Rosa Nebula", 299
+                    else:
+                        gift_name, gift_pts = "Doughnut", 30
+
+                if self.can_afford(gift_name):
+                    print(f"\n🔫 EvolvingKinetik: MID-BATTLE GIFT ({int(progress*100)}% through)")
+                    self.send_gift(battle, gift_name, gift_pts)
+                    self.last_early_gift_time = current_time
+                    return
+
             # React when opponent is ahead
-            if deficit > self.params.get('early_deficit_threshold', 100):
-                if time_since_last >= self.params.get('early_gift_interval', 15):
-                    print(f"\n🔫 EvolvingKinetik: EARLY RESPONSE! (deficit: {deficit:,})")
+            if deficit > self.params.get('early_deficit_threshold', 10):
+                if time_since_last >= self.params.get('early_gift_interval', 10):
+                    print(f"\n🔫 EvolvingKinetik: DEFICIT RESPONSE! (behind by {deficit:,})")
 
                     # Choose gift based on deficit
                     if deficit > 5000 and self.can_afford("Lion"):
@@ -206,7 +236,7 @@ class EvolvingKinetik(BaseAgent):
                     elif deficit > 1000 and self.can_afford("GG"):
                         self.send_gift(battle, "GG", 1000)
                         print(f"   💰 Sent GG to counter deficit")
-                    elif self.can_afford("Rosa Nebula"):
+                    elif deficit > 100 and self.can_afford("Rosa Nebula"):
                         self.send_gift(battle, "Rosa Nebula", 299)
                         print(f"   💰 Sent Rosa Nebula to counter deficit")
                     elif self.can_afford("Doughnut"):
@@ -216,7 +246,7 @@ class EvolvingKinetik(BaseAgent):
                     self.last_early_gift_time = current_time
                     return
 
-            # Not in snipe window yet, and no early action needed
+            # Not in snipe window yet, and no action triggered
             return
 
         # === SNIPE MODE (Final seconds) ===
@@ -885,10 +915,9 @@ class EvolvingLoadoutMaster(BaseAgent):
         self.time_bonus_used = False
         self.power_ups_used = []
         # Reset try flags
-        if hasattr(self, '_boost_glove_tried'):
-            del self._boost_glove_tried
-        if hasattr(self, '_final_glove_tried'):
-            del self._final_glove_tried
+        for attr in ['_boost_glove_tried', '_final_glove_tried', '_fog_tried', '_time_bonus_tried']:
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     def decide_action(self, battle):
         """Strategic power-up deployment with swarm signals."""
@@ -944,18 +973,20 @@ class EvolvingLoadoutMaster(BaseAgent):
                     self.hammer_used = True
                     self.power_ups_used.append('HAMMER')
 
-        # FOG: When ahead, use in final 30s to hide lead
-        if not self.fog_used and in_final_30s:
+        # FOG: When ahead, use in final 30s to hide lead (only try once)
+        if not self.fog_used and in_final_30s and not hasattr(self, '_fog_tried'):
             if lead >= self.params['fog_lead_threshold']:
-                print(f"🧰 EvolvingLoadoutMaster: Deploying FOG to hide lead!")
+                self._fog_tried = True
                 if self.phase_manager.use_power_up(PowerUpType.FOG, "creator", current_time):
+                    print(f"🧰 EvolvingLoadoutMaster: FOG deployed to hide lead!")
                     self.fog_used = True
                     self.power_ups_used.append('FOG')
 
-        # TIME BONUS: Use in last 5 seconds ONLY (best strategy)
-        if not self.time_bonus_used and time_remaining <= 5:
-            print(f"🧰 EvolvingLoadoutMaster: Deploying TIME BONUS in final 5 seconds!")
+        # TIME BONUS: Use in last 5 seconds ONLY (only try once)
+        if not self.time_bonus_used and time_remaining <= 5 and not hasattr(self, '_time_bonus_tried'):
+            self._time_bonus_tried = True
             if self.phase_manager.use_power_up(PowerUpType.TIME_BONUS, "creator", current_time):
+                print(f"🧰 EvolvingLoadoutMaster: TIME BONUS deployed!")
                 self.time_bonus_used = True
                 self.power_ups_used.append('TIME_BONUS')
 
