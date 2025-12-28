@@ -70,6 +70,10 @@ class BaseAgent(ABC):
         self.surrender_time = None
         self.current_strategy_mode = None
 
+        # === SWARM INTELLIGENCE ===
+        self.swarm_signals: list = []  # Queue of pending swarm signals
+        self.agent_type: str = "generic"  # For swarm role detection
+
     def act(self, battle):
         """
         Main action method called each battle tick.
@@ -324,6 +328,69 @@ class BaseAgent(ABC):
         self.detected_pattern = None
         self.counter_strategy = {}
         self.pattern_adaptation_active = False
+
+    # === SWARM INTELLIGENCE METHODS ===
+
+    def receive_swarm_signal(self, signal: str, data: Dict):
+        """
+        Receive a signal from the swarm coordinator.
+
+        Signals:
+        - boost_detected: A boost phase has started
+        - snipe_window: Final seconds, time for snipe
+        - deficit_alert: We're behind, need response
+        - converge: Focus all agents on coordinated attack
+        - scatter: Spread out actions
+        - whale_incoming: Prepare for big gift
+
+        Args:
+            signal: Signal type
+            data: Signal-specific data
+        """
+        self.swarm_signals.append({
+            'signal': signal,
+            'data': data,
+            'processed': False
+        })
+
+    def process_swarm_signals(self) -> list:
+        """
+        Process pending swarm signals.
+
+        Returns:
+            List of signals that should influence action
+        """
+        active_signals = []
+        for sig in self.swarm_signals:
+            if not sig['processed']:
+                active_signals.append(sig)
+                sig['processed'] = True
+
+        # Keep only recent unprocessed signals (max 5)
+        self.swarm_signals = [s for s in self.swarm_signals if not s['processed']][-5:]
+
+        return active_signals
+
+    def has_swarm_signal(self, signal_type: str) -> bool:
+        """Check if there's a pending signal of given type."""
+        return any(
+            s['signal'] == signal_type and not s['processed']
+            for s in self.swarm_signals
+        )
+
+    def get_swarm_recommendation(self) -> Optional[str]:
+        """
+        Get the recommended action from swarm signals.
+
+        Returns:
+            Action string or None
+        """
+        for sig in self.swarm_signals:
+            if not sig['processed']:
+                data = sig.get('data', {})
+                if 'recommendation' in data:
+                    return data['recommendation']
+        return None
 
     # === STRATEGIC INTELLIGENCE METHODS ===
 

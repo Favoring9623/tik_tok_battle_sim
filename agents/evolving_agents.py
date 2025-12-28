@@ -30,6 +30,9 @@ from agents.personas.glitch_mancer import GlitchMancer
 from agents.personas.boost_responder import BoostResponder
 from agents.personas.evolving_glitch_mancer import EvolvingGlitchMancer
 
+# Import swarm intelligence
+from agents.swarm import SwarmMaster, create_swarm_master, SwarmState, BattleRole
+
 
 class EvolvingKinetik(BaseAgent):
     """
@@ -921,9 +924,22 @@ class EvolvingLoadoutMaster(BaseAgent):
 
 def create_evolving_team(
     phase_manager: AdvancedPhaseManager,
-    db: Optional[BattleHistoryDB] = None
-) -> List:
-    """Create a team of evolving agents."""
+    db: Optional[BattleHistoryDB] = None,
+    enable_swarm: bool = True,
+    swarm_pattern: str = "clustered"
+) -> tuple:
+    """
+    Create a team of evolving agents with optional swarm intelligence.
+
+    Args:
+        phase_manager: Phase manager for battle phases
+        db: Database for learning persistence
+        enable_swarm: Enable swarm coordination (default True)
+        swarm_pattern: Swarm pattern ("distributed", "hierarchical", "clustered", "synchronized")
+
+    Returns:
+        Tuple of (agents_list, swarm_master) if enable_swarm, else (agents_list, None)
+    """
     kinetik = EvolvingKinetik(db=db)
     strike_master = EvolvingStrikeMaster(db=db)
     phase_tracker = EvolvingPhaseTracker(db=db)
@@ -935,7 +951,19 @@ def create_evolving_team(
     phase_tracker.set_phase_manager(phase_manager)
     loadout_master.set_phase_manager(phase_manager)
 
-    return [kinetik, strike_master, phase_tracker, loadout_master]
+    agents = [kinetik, strike_master, phase_tracker, loadout_master]
+
+    # Create swarm master if enabled
+    swarm = None
+    if enable_swarm:
+        swarm = create_swarm_master(
+            agents=agents,
+            pattern=swarm_pattern
+        )
+        print(f"\n🐝 Swarm Intelligence: {swarm_pattern.upper()} pattern")
+        print(f"   Agents: {len(agents)} | Entanglements: {swarm.get_swarm_status()['entanglements']}")
+
+    return agents, swarm
 
 
 def create_mixed_strategic_team(

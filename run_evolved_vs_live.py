@@ -30,6 +30,7 @@ from agents.evolving_agents import (
     EvolvingPhaseTracker,
     EvolvingLoadoutMaster
 )
+from agents.swarm import SwarmMaster, SwarmState
 from core.battle_history import BattleHistoryDB
 
 
@@ -63,8 +64,13 @@ class EvolvedVsLiveEngine:
         self.phase_manager = AdvancedPhaseManager(battle_duration=battle_duration)
         self.db = BattleHistoryDB(db_path)
 
-        # Create trained team
-        self.team = create_evolving_team(self.phase_manager, db=self.db)
+        # Create trained team with swarm intelligence
+        self.team, self.swarm = create_evolving_team(
+            self.phase_manager,
+            db=self.db,
+            enable_swarm=True,
+            swarm_pattern="clustered"
+        )
 
         # Live connector
         self.connector = None
@@ -215,6 +221,31 @@ class EvolvedVsLiveEngine:
                 # Update phase manager
                 self.phase_manager.update(self.current_time)
 
+                # === SWARM COORDINATION ===
+                if self.swarm:
+                    # Update swarm context
+                    time_remaining = self.battle_duration - self.current_time
+                    deficit = self.live_score - self.ai_score
+
+                    self.swarm.set_battle_context({
+                        'time_remaining': time_remaining,
+                        'deficit': deficit,
+                        'creator_score': self.ai_score,
+                        'opponent_score': self.live_score,
+                        'boost_active': self.phase_manager.boost1_active or self.phase_manager.boost2_active
+                    })
+
+                    # Get swarm decision
+                    decision = self.swarm.get_swarm_decision()
+
+                    # Broadcast signals based on conditions
+                    if time_remaining <= 5:
+                        self.swarm.broadcast_signal("snipe_window", {'urgency': 'critical'})
+                    elif deficit > 500:
+                        self.swarm.broadcast_signal("deficit_alert", {'deficit': deficit})
+                    elif self.phase_manager.boost1_active or self.phase_manager.boost2_active:
+                        self.swarm.broadcast_signal("boost_detected", {'multiplier': 2.0})
+
                 # Let agents act
                 engine.time_manager._current_time = self.current_time
                 for agent in self.team:
@@ -254,11 +285,20 @@ class EvolvedVsLiveEngine:
         if self.live_gifts:
             print(f"\n  📊 Live Gifts Received: {len(self.live_gifts)}")
 
+        # Swarm stats
+        if self.swarm:
+            status = self.swarm.get_swarm_status()
+            print(f"\n  🐝 Swarm Stats:")
+            print(f"     Decisions: {status['decisions_made']}")
+            print(f"     Pattern: {status['pattern']}")
+            print(f"     State: {status['state']}")
+
         return {
             'winner': winner,
             'ai_score': self.ai_score,
             'live_score': self.live_score,
-            'live_gifts': self.live_gifts
+            'live_gifts': self.live_gifts,
+            'swarm_stats': self.swarm.get_swarm_status() if self.swarm else None
         }
 
 
