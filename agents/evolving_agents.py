@@ -53,11 +53,12 @@ class EvolvingKinetik(BaseAgent):
             'min_deficit_for_universe': 30000,  # Use Universe if deficit > 30k
             'min_deficit_for_lion': 15000,      # Use Lion if deficit > 15k
             'min_deficit_for_phoenix': 5000,    # Use Phoenix if deficit > 5k
-            # Early aggression params (NEW)
+            # Early aggression params (TUNED for live battles)
             'early_aggression': True,           # Enable early gift sending
-            'early_deficit_threshold': 100,     # React when behind by this much
-            'early_gift_interval': 15,          # Seconds between early gifts
+            'early_deficit_threshold': 10,      # React when behind by just 10 pts
+            'early_gift_interval': 10,          # Seconds between early gifts
             'mid_battle_push': True,            # Push at 50% battle time
+            'opening_gift': True,               # Send gift at battle start
         }
 
         # Early aggression state
@@ -139,6 +140,15 @@ class EvolvingKinetik(BaseAgent):
         if self.params.get('early_aggression', True) and time_remaining > self.params['snipe_window']:
             # Check if we should send an early gift
             time_since_last = current_time - self.last_early_gift_time
+
+            # Opening gift (send something at the start)
+            if self.params.get('opening_gift', True) and current_time < 5 and creator_score == 0:
+                print(f"\n🔫 EvolvingKinetik: OPENING GIFT!")
+                if self.can_afford("Doughnut"):
+                    self.send_gift(battle, "Doughnut", 30)
+                    print(f"   💰 Opening Doughnut to establish presence")
+                    self.last_early_gift_time = current_time
+                    return
 
             # Mid-battle push (at 50% time)
             if self.params.get('mid_battle_push', True) and not self.mid_push_done:

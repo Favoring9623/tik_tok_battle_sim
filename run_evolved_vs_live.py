@@ -76,6 +76,7 @@ class EvolvedVsLiveEngine:
         self.is_running = False
         self.start_time = None
         self.current_time = 0
+        self._engine = None  # Will be set during battle for live score injection
 
     async def connect(self) -> bool:
         """Connect to live stream."""
@@ -94,6 +95,11 @@ class EvolvedVsLiveEngine:
                     'coins': event.total_coins,
                     'points': event.total_points
                 })
+                # CRITICAL: Inject live score into engine so agents can see it
+                if hasattr(self, '_engine') and self._engine:
+                    self._engine.score_tracker.opponent_score = self.live_score
+                # Also update phase manager for deficit tracking
+                self.phase_manager.opponent_score = self.live_score
                 print(f"\n  🔴 {Colors.RED}{event.username}{Colors.END}: {event.gift_name} "
                       f"x{event.repeat_count} ({Colors.YELLOW}{event.total_coins:,} coins{Colors.END}, "
                       f"{Colors.GREEN}+{event.total_points:,} pts{Colors.END})")
@@ -151,16 +157,22 @@ class EvolvedVsLiveEngine:
         print(f"{Colors.BOLD}{Colors.YELLOW}  🎮 BATTLE START{Colors.END}")
         print(f"{Colors.BOLD}{Colors.YELLOW}{'─'*60}{Colors.END}\n")
 
-        self.is_running = True
-        self.start_time = time.time()
-
-        # Create a minimal battle engine for agents to interact with
+        # Create a minimal battle engine for agents to interact with BEFORE starting
         engine = BattleEngine(
             battle_duration=self.battle_duration,
             tick_speed=1.0,
             enable_multipliers=False,
             enable_analytics=True
         )
+        # Store engine reference for live score injection
+        self._engine = engine
+
+        # Sync any live score accumulated during connection
+        engine.score_tracker.opponent_score = self.live_score
+        self.phase_manager.opponent_score = self.live_score
+
+        self.is_running = True
+        self.start_time = time.time()
 
         # Add our evolved agents
         for agent in self.team:
@@ -172,6 +184,8 @@ class EvolvedVsLiveEngine:
         def on_ai_gift(event):
             points = event.data.get("points", 0)
             self.ai_score += points
+            # Update phase manager creator score for deficit tracking
+            self.phase_manager.creator_score = self.ai_score
             agent_name = event.source or "Agent"
             gift_name = event.data.get("gift", "Gift")
             print(f"  🔵 {Colors.BLUE}{agent_name}{Colors.END}: {gift_name} "
@@ -207,7 +221,7 @@ class EvolvedVsLiveEngine:
                     try:
                         agent.act(engine)
                     except Exception as e:
-                        pass
+                        print(f"⚠️ Agent {agent.name} error: {e}")
 
                 # Small delay
                 await asyncio.sleep(0.5)
