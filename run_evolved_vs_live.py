@@ -84,6 +84,10 @@ class EvolvedVsLiveEngine:
         self.current_time = 0
         self._engine = None  # Will be set during battle for live score injection
 
+        # Swarm signal tracking (avoid spam)
+        self._last_signal_time = {}
+        self._signal_cooldown = 5  # Seconds between same signal type
+
     async def connect(self) -> bool:
         """Connect to live stream."""
         print(f"\n{Colors.YELLOW}🔌 Connecting to @{self.target}...{Colors.END}")
@@ -238,12 +242,19 @@ class EvolvedVsLiveEngine:
                     # Get swarm decision
                     decision = self.swarm.get_swarm_decision()
 
-                    # Broadcast signals based on conditions
-                    if time_remaining <= 5:
+                    # Broadcast signals based on conditions (with cooldown to avoid spam)
+                    def can_signal(signal_type):
+                        last = self._last_signal_time.get(signal_type, 0)
+                        if self.current_time - last >= self._signal_cooldown:
+                            self._last_signal_time[signal_type] = self.current_time
+                            return True
+                        return False
+
+                    if time_remaining <= 5 and can_signal("snipe_window"):
                         self.swarm.broadcast_signal("snipe_window", {'urgency': 'critical'})
-                    elif deficit > 500:
+                    if deficit > 50 and can_signal("deficit_alert"):
                         self.swarm.broadcast_signal("deficit_alert", {'deficit': deficit})
-                    elif self.phase_manager.boost1_active or self.phase_manager.boost2_active:
+                    if (self.phase_manager.boost1_active or self.phase_manager.boost2_active) and can_signal("boost_detected"):
                         self.swarm.broadcast_signal("boost_detected", {'multiplier': 2.0})
 
                 # Let agents act

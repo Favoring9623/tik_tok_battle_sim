@@ -129,6 +129,7 @@ class EvolvingKinetik(BaseAgent):
         1. Early aggression when opponent is ahead
         2. Mid-battle push at 50% time
         3. Final snipe in last 5 seconds with whale gifts
+        4. Respond to swarm signals
         """
         time_remaining = battle.time_manager.time_remaining()
         current_time = battle.time_manager.current_time
@@ -138,6 +139,30 @@ class EvolvingKinetik(BaseAgent):
         creator_score = battle.score_tracker.creator_score
         opponent_score = battle.score_tracker.opponent_score
         deficit = opponent_score - creator_score
+
+        # === SWARM SIGNAL HANDLING ===
+        if self.has_swarm_signal("snipe_window"):
+            # Urgent snipe signal from swarm - force snipe mode
+            self.process_swarm_signals()
+            # Fall through to snipe mode below (message handled there)
+
+        if self.has_swarm_signal("deficit_alert"):
+            signals = self.process_swarm_signals()
+            for sig in signals:
+                if sig['signal'] == 'deficit_alert':
+                    swarm_deficit = sig['data'].get('deficit', 0)
+                    # Only respond once per signal
+                    if current_time - self.last_early_gift_time >= 5:
+                        print(f"\n🐝 EvolvingKinetik: DEFICIT ALERT! ({swarm_deficit:,})")
+                        # Send immediate response gift
+                        if self.can_afford("GG"):
+                            self.send_gift(battle, "GG", 1000)
+                            self.last_early_gift_time = current_time
+                            return
+                        elif self.can_afford("Rosa Nebula"):
+                            self.send_gift(battle, "Rosa Nebula", 299)
+                            self.last_early_gift_time = current_time
+                            return
 
         # === EARLY AGGRESSION MODE ===
         if self.params.get('early_aggression', True) and time_remaining > self.params['snipe_window']:
@@ -414,7 +439,7 @@ class EvolvingStrikeMaster(BaseAgent):
         self.glove_history = []
 
     def decide_action(self, battle):
-        """Learning-enhanced glove timing."""
+        """Learning-enhanced glove timing with swarm signals."""
         if self.gloves_sent >= self.params['max_gloves_per_battle']:
             return
 
@@ -423,6 +448,22 @@ class EvolvingStrikeMaster(BaseAgent):
 
         # Respect cooldown
         if current_time - self.last_glove_time < self.params['cooldown']:
+            return
+
+        # === SWARM SIGNAL HANDLING ===
+        swarm_boost_signal = self.has_swarm_signal("boost_detected")
+        swarm_deficit_signal = self.has_swarm_signal("deficit_alert")
+
+        if swarm_boost_signal or swarm_deficit_signal:
+            self.process_swarm_signals()
+            if swarm_boost_signal:
+                print(f"\n🐝 EvolvingStrikeMaster: BOOST SIGNAL from swarm!")
+            if swarm_deficit_signal:
+                print(f"\n🐝 EvolvingStrikeMaster: DEFICIT ALERT - deploying GLOVE!")
+            # Force glove send
+            self.send_gift(battle, "GLOVE", 100)
+            self.gloves_sent += 1
+            self.last_glove_time = current_time
             return
 
         # Build state
@@ -843,9 +884,14 @@ class EvolvingLoadoutMaster(BaseAgent):
         self.fog_used = False
         self.time_bonus_used = False
         self.power_ups_used = []
+        # Reset try flags
+        if hasattr(self, '_boost_glove_tried'):
+            del self._boost_glove_tried
+        if hasattr(self, '_final_glove_tried'):
+            del self._final_glove_tried
 
     def decide_action(self, battle):
-        """Strategic power-up deployment."""
+        """Strategic power-up deployment with swarm signals."""
         if not self.phase_manager:
             return
 
@@ -855,22 +901,36 @@ class EvolvingLoadoutMaster(BaseAgent):
         opponent_score = battle.score_tracker.opponent_score
         lead = creator_score - opponent_score
 
+        # === SWARM SIGNAL HANDLING ===
+        if self.has_swarm_signal("deficit_alert") and not self.fog_used:
+            self.process_swarm_signals()
+            # When behind, use hammer if opponent has x5
+            if (self.phase_manager.active_glove_x5 and
+                self.phase_manager.active_glove_owner == "opponent" and
+                not self.hammer_used):
+                print(f"\n🐝 EvolvingLoadoutMaster: DEFICIT ALERT - deploying HAMMER!")
+                if self.phase_manager.use_power_up(PowerUpType.HAMMER, "creator", current_time):
+                    self.hammer_used = True
+                    self.power_ups_used.append('HAMMER')
+
         # Check boost status
         in_boost = self.phase_manager.boost1_active or self.phase_manager.boost2_active
         in_final_30s = self.phase_manager.is_in_final_30s(current_time)
 
         # GLOVE: Use during boosts for guaranteed x5 activation (30s duration)
         if self.gloves_used < 2 and not self.phase_manager.active_glove_x5:
-            # Use glove during boost (first priority)
-            if in_boost:
-                print(f"🧰 EvolvingLoadoutMaster: Deploying GLOVE during boost!")
+            # Use glove during boost (first priority) - only try once
+            if in_boost and not hasattr(self, '_boost_glove_tried'):
+                self._boost_glove_tried = True
                 if self.phase_manager.use_power_up(PowerUpType.GLOVE, "creator", current_time):
+                    print(f"🧰 EvolvingLoadoutMaster: GLOVE deployed during boost!")
                     self.gloves_used += 1
                     self.power_ups_used.append('GLOVE')
             # Use glove in final 30s (second priority)
-            elif in_final_30s and self.gloves_used == 0:
-                print(f"🧰 EvolvingLoadoutMaster: Deploying GLOVE in final 30s!")
+            elif in_final_30s and self.gloves_used == 0 and not hasattr(self, '_final_glove_tried'):
+                self._final_glove_tried = True
                 if self.phase_manager.use_power_up(PowerUpType.GLOVE, "creator", current_time):
+                    print(f"🧰 EvolvingLoadoutMaster: GLOVE deployed in final 30s!")
                     self.gloves_used += 1
                     self.power_ups_used.append('GLOVE')
 
