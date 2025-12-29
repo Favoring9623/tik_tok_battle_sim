@@ -1,18 +1,18 @@
 """
-Pressure Engine - Dynamic psychological warfare for TikTok battles.
+Pressure Engine v2 - Strategic psychological warfare for TikTok battles.
 
-Instead of fixed phase allocations, this engine:
-1. Tracks opponent behavior and reaction patterns
-2. Applies pressure to force opponent responses
-3. Uses psychological tactics (bursts, feints, tempo changes)
-4. Adapts spending based on opponent reactions, not time phases
+Key strategic elements:
+1. Boost periods (x2, x3) - maximize multiplied points
+2. Power-ups (gloves, hammer, frog, time) - tactical advantages
+3. Final 5-second snipe window - defensive or offensive
+4. Meaningful probes (2000+ coins) - not roses
+5. Context-aware counter-attacks
 """
 
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, List, Dict, Tuple
 import time
-import random
 
 
 class OpponentState(Enum):
@@ -24,15 +24,40 @@ class OpponentState(Enum):
     EXHAUSTED = "exhausted"       # Budget likely depleted
 
 
+class BattlePhase(Enum):
+    """Current battle phase."""
+    OPENING = "opening"           # First 60s - establish position
+    MID_BATTLE = "mid_battle"     # 60-180s - main engagement
+    LATE_GAME = "late_game"       # 180-240s - prepare for finish
+    ENDGAME = "endgame"           # 240-295s - final push
+    SNIPE_WINDOW = "snipe_window" # Last 5s - critical moment
+
+
+class PowerUpType(Enum):
+    """TikTok battle power-ups."""
+    GLOVES = "gloves"             # 2x next gift value
+    HAMMER = "hammer"             # Damage to opponent
+    FROG = "frog"                 # Random bonus
+    TIME_BONUS = "time_bonus"     # Extra seconds
+
+
 class PressureTactic(Enum):
-    """Available psychological tactics."""
-    SHOW_STRENGTH = "show_strength"     # Big gift to intimidate
-    PROBE = "probe"                      # Small gift to test reaction
-    TEMPO_BURST = "tempo_burst"          # Rapid small gifts
-    PATIENCE = "patience"                # Wait and observe
-    COUNTER_PUNCH = "counter_punch"      # Respond bigger than opponent
-    BAIT = "bait"                        # Small gift to bait overreaction
-    FINISH = "finish"                    # Go for the kill
+    """Available tactical moves."""
+    # Offensive
+    SHOW_STRENGTH = "show_strength"     # Big gift to intimidate (15k+)
+    COUNTER_STRIKE = "counter_strike"   # Respond strategically to opponent
+    BOOST_MAXIMIZE = "boost_maximize"   # All-in during boost
+    SNIPE_OFFENSIVE = "snipe_offensive" # Final 5s attack to win
+
+    # Defensive
+    SNIPE_DEFENSIVE = "snipe_defensive" # Final 5s defense
+    PATIENCE = "patience"               # Wait and observe
+    RESERVE = "reserve"                 # Save budget for later
+
+    # Probing / Pressure
+    PRESSURE_TEST = "pressure_test"     # Meaningful probe (2k+ coins)
+    TEMPO_CONTROL = "tempo_control"     # Control the rhythm
+    BAIT = "bait"                       # Provoke overreaction
 
 
 @dataclass
@@ -40,7 +65,27 @@ class OpponentAction:
     """Record of an opponent gift."""
     timestamp: float
     points: int
-    cumulative_score: int
+    gift_name: str = ""
+    is_power_up: bool = False
+    power_up_type: Optional[PowerUpType] = None
+
+
+@dataclass
+class BoostWindow:
+    """Active boost window."""
+    multiplier: float
+    start_time: float
+    duration: int = 20
+    coins_spent: int = 0
+    points_earned: int = 0
+
+    @property
+    def time_remaining(self) -> float:
+        return max(0, self.duration - (time.time() - self.start_time))
+
+    @property
+    def is_active(self) -> bool:
+        return self.time_remaining > 0
 
 
 @dataclass
@@ -56,309 +101,487 @@ class PressureState:
 
     # Time
     time_remaining: int = 300
-    battle_start: float = field(default_factory=time.time)
+    battle_duration: int = 300
 
     # Opponent tracking
     opponent_actions: List[OpponentAction] = field(default_factory=list)
     opponent_state: OpponentState = OpponentState.PASSIVE
-    opponent_reaction_time: float = 0.0  # How fast they respond to us
-    opponent_avg_gift_size: int = 0
+    opponent_last_big_gift_time: float = 0.0
+    opponent_estimated_budget_used: int = 0
 
-    # Our tracking
-    our_last_action_time: float = 0.0
-    our_last_action_points: int = 0
-    waiting_for_reaction: bool = False
+    # Power-up state
+    ai_has_gloves: bool = False
+    opponent_has_gloves: bool = False
 
-    # Boost state
-    in_boost: bool = False
-    boost_multiplier: float = 1.0
-    boost_time_remaining: int = 0
+    # Boost tracking
+    current_boost: Optional[BoostWindow] = None
+    boost_history: List[BoostWindow] = field(default_factory=list)
+
+    # Our action tracking
+    last_action_time: float = 0.0
+    last_action_cost: int = 0
+
+    # Snipe tracking
+    snipe_reserve: int = 0  # Reserved for final 5s
 
 
-class PressureEngine:
+class StrategicPressureEngine:
     """
-    Dynamic pressure-based decision engine.
+    Strategic pressure engine with boost/power-up awareness.
 
-    Core philosophy: Force the opponent to react to US, not the other way around.
-    We control the tempo and apply psychological pressure.
+    Key principles:
+    1. Boost windows are PRIORITY - maximize multiplied points
+    2. Power-ups change the game - track and respond
+    3. Final 5 seconds are CRITICAL - always have snipe reserve
+    4. Probes must be meaningful - 2000+ coins minimum
+    5. Counter-attacks are contextual - timing matters
     """
 
-    # Reaction window - how long to wait for opponent response
-    REACTION_WINDOW = 8.0  # seconds
+    # Gift thresholds (meaningful amounts)
+    MIN_PROBE = 2000           # Minimum to provoke reaction
+    MEDIUM_GIFT = 5000         # Standard pressure
+    BIG_GIFT = 15000           # Show strength
+    WHALE_GIFT = 30000         # Intimidation
+    SNIPE_GIFT = 45000         # Final snipe
 
-    # Gift size thresholds
-    PROBE_SIZE = 1000       # Small test gift
-    MEDIUM_SIZE = 5000      # Standard pressure
-    SHOW_SIZE = 20000       # Intimidation
-    FINISH_SIZE = 50000     # Closing gift
+    # Big gift detection threshold
+    BIG_GIFT_THRESHOLD = 10000
 
-    def __init__(self, total_budget: int):
+    # Snipe reserve percentage
+    SNIPE_RESERVE_PCT = 0.15   # Reserve 15% for final 5s
+
+    def __init__(self, total_budget: int, battle_duration: int = 300):
         self.total_budget = total_budget
-        self.state = PressureState(budget_remaining=total_budget)
-        self.tactic_history: List[Tuple[float, PressureTactic, int]] = []
+        self.battle_duration = battle_duration
+        self.state = PressureState(
+            budget_remaining=total_budget,
+            battle_duration=battle_duration,
+            snipe_reserve=int(total_budget * self.SNIPE_RESERVE_PCT)
+        )
 
-    def update_scores(self, ai_score: int, opponent_score: int, time_remaining: int):
-        """Update current battle state."""
-        self.state.ai_score = ai_score
-        self.state.opponent_score = opponent_score
+    @property
+    def phase(self) -> BattlePhase:
+        """Determine current battle phase."""
+        remaining = self.state.time_remaining
+        if remaining <= 5:
+            return BattlePhase.SNIPE_WINDOW
+        elif remaining <= 60:
+            return BattlePhase.ENDGAME
+        elif remaining <= 120:
+            return BattlePhase.LATE_GAME
+        elif remaining <= 240:
+            return BattlePhase.MID_BATTLE
+        else:
+            return BattlePhase.OPENING
+
+    @property
+    def score_diff(self) -> int:
+        """Current score differential (positive = AI ahead)."""
+        return self.state.ai_score - self.state.opponent_score
+
+    @property
+    def available_budget(self) -> int:
+        """Budget available for non-snipe actions."""
+        if self.phase == BattlePhase.SNIPE_WINDOW:
+            return self.state.budget_remaining
+        return max(0, self.state.budget_remaining - self.state.snipe_reserve)
+
+    def update_time(self, time_remaining: int):
+        """Update time remaining."""
         self.state.time_remaining = time_remaining
 
-    def record_opponent_action(self, points: int):
-        """Record an opponent gift and analyze behavior."""
+    def update_scores(self, ai_score: int, opponent_score: int):
+        """Update scores."""
+        self.state.ai_score = ai_score
+        self.state.opponent_score = opponent_score
+
+    def record_opponent_gift(self, points: int, gift_name: str = "",
+                              is_power_up: bool = False,
+                              power_up_type: Optional[PowerUpType] = None):
+        """Record opponent gift and analyze."""
         now = time.time()
+
         action = OpponentAction(
             timestamp=now,
             points=points,
-            cumulative_score=self.state.opponent_score
+            gift_name=gift_name,
+            is_power_up=is_power_up,
+            power_up_type=power_up_type
         )
         self.state.opponent_actions.append(action)
 
-        # Update reaction tracking
-        if self.state.waiting_for_reaction:
-            reaction_time = now - self.state.our_last_action_time
-            if reaction_time < self.REACTION_WINDOW:
-                # They reacted to our move!
-                self.state.opponent_reaction_time = (
-                    self.state.opponent_reaction_time * 0.7 + reaction_time * 0.3
-                )
-            self.state.waiting_for_reaction = False
+        # Track big gifts
+        if points >= self.BIG_GIFT_THRESHOLD:
+            self.state.opponent_last_big_gift_time = now
 
-        # Update average gift size
-        if self.state.opponent_actions:
-            recent = self.state.opponent_actions[-10:]  # Last 10 gifts
-            self.state.opponent_avg_gift_size = sum(a.points for a in recent) // len(recent)
+        # Track opponent budget usage (estimate)
+        self.state.opponent_estimated_budget_used += points
 
-        # Analyze opponent state
-        self._analyze_opponent_state()
+        # Track power-ups
+        if is_power_up and power_up_type == PowerUpType.GLOVES:
+            self.state.opponent_has_gloves = True
 
-    def _analyze_opponent_state(self):
-        """Determine opponent's psychological state."""
+        self._analyze_opponent()
+
+    def _analyze_opponent(self):
+        """Analyze opponent behavior."""
         actions = self.state.opponent_actions
-        if len(actions) < 2:
+        if len(actions) < 3:
             self.state.opponent_state = OpponentState.PASSIVE
             return
 
-        recent = actions[-5:] if len(actions) >= 5 else actions
-        time_span = recent[-1].timestamp - recent[0].timestamp if len(recent) > 1 else 1
+        recent = actions[-10:]
+        now = time.time()
 
         # Calculate metrics
-        gift_rate = len(recent) / max(time_span, 1)  # gifts per second
-        avg_size = sum(a.points for a in recent) / len(recent)
-        size_variance = sum((a.points - avg_size) ** 2 for a in recent) / len(recent)
+        time_span = now - recent[0].timestamp if recent else 1
+        gift_rate = len(recent) / max(time_span, 1)
+        avg_points = sum(a.points for a in recent) / len(recent)
+        big_gifts = sum(1 for a in recent if a.points >= self.BIG_GIFT_THRESHOLD)
 
-        # Classify state
-        if gift_rate > 0.5 and avg_size > self.MEDIUM_SIZE:
-            # Fast, big gifts = panicking
+        # Classify
+        if big_gifts >= 3 and gift_rate > 0.2:
             self.state.opponent_state = OpponentState.PANICKING
-        elif gift_rate > 0.3:
-            # Fast gifts = aggressive
+        elif gift_rate > 0.3 or avg_points > self.MEDIUM_GIFT:
             self.state.opponent_state = OpponentState.AGGRESSIVE
-        elif gift_rate < 0.05 and len(actions) > 10:
-            # Slowed way down after activity = exhausted
+        elif gift_rate < 0.05 and self.state.opponent_estimated_budget_used > 50000:
             self.state.opponent_state = OpponentState.EXHAUSTED
-        elif self.state.opponent_reaction_time > 0 and self.state.opponent_reaction_time < 5:
-            # Responding to our moves = reactive
+        elif gift_rate > 0.1:
             self.state.opponent_state = OpponentState.REACTIVE
         else:
             self.state.opponent_state = OpponentState.PASSIVE
 
-    def record_our_action(self, points: int, cost: int):
-        """Record our gift and start watching for reaction."""
-        now = time.time()
-        self.state.our_last_action_time = now
-        self.state.our_last_action_points = points
-        self.state.waiting_for_reaction = True
+    def start_boost(self, multiplier: float, duration: int = 20):
+        """Start a boost window."""
+        self.state.current_boost = BoostWindow(
+            multiplier=multiplier,
+            start_time=time.time(),
+            duration=duration
+        )
+
+    def end_boost(self):
+        """End current boost and record stats."""
+        if self.state.current_boost:
+            self.state.boost_history.append(self.state.current_boost)
+            self.state.current_boost = None
+
+    def set_power_up(self, power_up: PowerUpType, is_ai: bool = True):
+        """Record power-up acquisition."""
+        if power_up == PowerUpType.GLOVES:
+            if is_ai:
+                self.state.ai_has_gloves = True
+            else:
+                self.state.opponent_has_gloves = True
+
+    def use_gloves(self):
+        """Mark AI gloves as used."""
+        self.state.ai_has_gloves = False
+
+    def record_our_action(self, cost: int, points: int):
+        """Record our gift."""
+        self.state.last_action_time = time.time()
+        self.state.last_action_cost = cost
         self.state.budget_spent += cost
         self.state.budget_remaining -= cost
         self.state.ai_score += points
 
-    def set_boost(self, active: bool, multiplier: float = 1.0, time_remaining: int = 0):
-        """Update boost state."""
-        self.state.in_boost = active
-        self.state.boost_multiplier = multiplier
-        self.state.boost_time_remaining = time_remaining
+        # Track boost spending
+        if self.state.current_boost and self.state.current_boost.is_active:
+            self.state.current_boost.coins_spent += cost
+            self.state.current_boost.points_earned += points
 
-    def decide_tactic(self) -> Tuple[PressureTactic, int]:
+    def decide_action(self) -> Tuple[PressureTactic, int, str]:
         """
-        Decide next tactic based on game state.
+        Decide next action based on strategic context.
 
-        Returns: (tactic, recommended_spend)
+        Returns: (tactic, recommended_spend, reason)
         """
-        state = self.state
-        score_diff = state.ai_score - state.opponent_score
-        budget_pct = state.budget_remaining / self.total_budget
-        time_pct = state.time_remaining / 300
+        phase = self.phase
+        boost = self.state.current_boost
+
+        # === SNIPE WINDOW (Last 5 seconds) ===
+        if phase == BattlePhase.SNIPE_WINDOW:
+            return self._snipe_decision()
 
         # === BOOST PRIORITY ===
-        if state.in_boost:
-            return self._boost_tactic()
+        if boost and boost.is_active:
+            return self._boost_decision()
 
-        # === ENDGAME (last 60 seconds) ===
-        if state.time_remaining <= 60:
-            return self._endgame_tactic(score_diff)
+        # === RESPOND TO OPPONENT BIG GIFT ===
+        if self._should_counter():
+            return self._counter_decision()
 
-        # === RESPOND TO OPPONENT STATE ===
+        # === PHASE-BASED TACTICS ===
+        if phase == BattlePhase.OPENING:
+            return self._opening_decision()
+        elif phase == BattlePhase.MID_BATTLE:
+            return self._mid_battle_decision()
+        elif phase == BattlePhase.LATE_GAME:
+            return self._late_game_decision()
+        elif phase == BattlePhase.ENDGAME:
+            return self._endgame_decision()
 
-        if state.opponent_state == OpponentState.PANICKING:
-            # They're panicking - stay patient, let them waste budget
-            return (PressureTactic.PATIENCE, 0)
+        return (PressureTactic.PATIENCE, 0, "Default patience")
 
-        if state.opponent_state == OpponentState.EXHAUSTED:
-            # They're out - small gifts to secure, save for snipe defense
-            return (PressureTactic.PROBE, self.PROBE_SIZE)
+    def _snipe_decision(self) -> Tuple[PressureTactic, int, str]:
+        """Critical final 5 seconds decision."""
+        diff = self.score_diff
+        budget = self.state.budget_remaining
 
-        if state.opponent_state == OpponentState.AGGRESSIVE:
-            # Match aggression but smartly
-            if score_diff < 0:
-                # Behind - need to counter
-                return (PressureTactic.COUNTER_PUNCH, int(state.opponent_avg_gift_size * 1.2))
-            else:
-                # Ahead - let them burn budget
-                return (PressureTactic.PATIENCE, 0)
+        if diff < 0:
+            # BEHIND - Must snipe to win
+            needed = abs(diff) + 1000  # Buffer
+            spend = min(budget, needed, self.SNIPE_GIFT)
+            return (PressureTactic.SNIPE_OFFENSIVE, spend,
+                    f"Behind by {abs(diff):,} - offensive snipe")
 
-        # === PROACTIVE PRESSURE ===
+        elif diff < 5000:
+            # CLOSE - Defensive snipe ready
+            # Wait and watch, respond if opponent attacks
+            return (PressureTactic.SNIPE_DEFENSIVE, min(budget, self.SNIPE_GIFT),
+                    f"Close lead ({diff:,}) - defensive snipe ready")
 
-        # Early game - establish dominance
-        if time_pct > 0.7:
-            if score_diff < 0:
-                # Behind early - show strength
-                return (PressureTactic.SHOW_STRENGTH, self.SHOW_SIZE)
-            else:
-                # Ahead or even - probe and control tempo
-                return (PressureTactic.PROBE, self.PROBE_SIZE)
-
-        # Mid game - pressure and bait
-        if time_pct > 0.3:
-            if state.opponent_state == OpponentState.REACTIVE:
-                # They react to us - bait them into overspending
-                return (PressureTactic.BAIT, self.MEDIUM_SIZE)
-            elif state.opponent_state == OpponentState.PASSIVE:
-                # They're passive - tempo burst to force reaction
-                return (PressureTactic.TEMPO_BURST, self.PROBE_SIZE * 3)
-            else:
-                # Default: measured pressure
-                return (PressureTactic.PROBE, self.MEDIUM_SIZE)
-
-        # Late game approach - prepare for finish
-        return (PressureTactic.PATIENCE, 0)
-
-    def _boost_tactic(self) -> Tuple[PressureTactic, int]:
-        """Tactic during boost window."""
-        state = self.state
-
-        # Calculate optimal spend for boost
-        # Goal: maximize points * multiplier while considering opponent
-
-        if state.boost_time_remaining > 15:
-            # Early boost - medium pressure
-            return (PressureTactic.TEMPO_BURST, self.MEDIUM_SIZE)
-        elif state.boost_time_remaining > 5:
-            # Mid boost - bigger push
-            spend = min(state.budget_remaining * 0.15, self.SHOW_SIZE)
-            return (PressureTactic.SHOW_STRENGTH, int(spend))
         else:
-            # Boost ending - final burst
-            spend = min(state.budget_remaining * 0.1, self.FINISH_SIZE)
-            return (PressureTactic.FINISH, int(spend))
+            # COMFORTABLE LEAD - Still defend
+            return (PressureTactic.SNIPE_DEFENSIVE, min(budget, diff + 5000),
+                    f"Comfortable lead ({diff:,}) - snipe defense ready")
 
-    def _endgame_tactic(self, score_diff: int) -> Tuple[PressureTactic, int]:
-        """Tactic for final 60 seconds."""
-        state = self.state
+    def _boost_decision(self) -> Tuple[PressureTactic, int, str]:
+        """Maximize boost window value."""
+        boost = self.state.current_boost
+        time_left = boost.time_remaining
+        mult = boost.multiplier
+        available = self.available_budget
 
-        if state.time_remaining <= 15:
-            # Final seconds - all or nothing
-            if score_diff < 0:
-                # Behind - MUST catch up
-                needed = abs(score_diff) + 1000  # Buffer
-                spend = min(state.budget_remaining, needed)
-                return (PressureTactic.FINISH, spend)
+        # Calculate optimal spend based on remaining boost time
+        if time_left > 15:
+            # Early boost - ramp up
+            spend = min(available * 0.2, self.MEDIUM_GIFT)
+            return (PressureTactic.BOOST_MAXIMIZE, int(spend),
+                    f"Boost x{mult} ({time_left:.0f}s left) - ramping up")
+
+        elif time_left > 8:
+            # Mid boost - push harder
+            spend = min(available * 0.3, self.BIG_GIFT)
+            return (PressureTactic.BOOST_MAXIMIZE, int(spend),
+                    f"Boost x{mult} ({time_left:.0f}s left) - pushing")
+
+        elif time_left > 3:
+            # Late boost - maximize
+            spend = min(available * 0.4, self.WHALE_GIFT)
+            return (PressureTactic.BOOST_MAXIMIZE, int(spend),
+                    f"Boost x{mult} ({time_left:.0f}s left) - maximizing")
+
+        else:
+            # Boost ending - final push
+            spend = min(available * 0.25, self.BIG_GIFT)
+            return (PressureTactic.BOOST_MAXIMIZE, int(spend),
+                    f"Boost x{mult} ending - final push")
+
+    def _should_counter(self) -> bool:
+        """Check if we should counter opponent's recent big gift."""
+        if not self.state.opponent_actions:
+            return False
+
+        last_action = self.state.opponent_actions[-1]
+        time_since = time.time() - last_action.timestamp
+
+        # Counter if opponent sent big gift in last 5 seconds
+        return (last_action.points >= self.BIG_GIFT_THRESHOLD and
+                time_since < 5 and
+                self.score_diff < 0)
+
+    def _counter_decision(self) -> Tuple[PressureTactic, int, str]:
+        """Strategic counter to opponent's big gift."""
+        last_gift = self.state.opponent_actions[-1].points
+        diff = self.score_diff
+        available = self.available_budget
+
+        # Counter with enough to take lead plus buffer
+        needed = abs(diff) + 2000
+        spend = min(available, needed, self.WHALE_GIFT)
+
+        # If we have gloves, this is doubled - spend less
+        if self.state.ai_has_gloves:
+            spend = spend // 2
+
+        return (PressureTactic.COUNTER_STRIKE, int(spend),
+                f"Counter opponent's {last_gift:,} gift - need {needed:,} to lead")
+
+    def _opening_decision(self) -> Tuple[PressureTactic, int, str]:
+        """Opening phase (first 60s) - establish position."""
+        diff = self.score_diff
+        available = self.available_budget
+        opp_state = self.state.opponent_state
+
+        if diff < -5000:
+            # Behind significantly - show strength
+            spend = min(available * 0.15, self.BIG_GIFT)
+            return (PressureTactic.SHOW_STRENGTH, int(spend),
+                    f"Behind {abs(diff):,} in opening - establishing position")
+
+        elif opp_state == OpponentState.PASSIVE:
+            # Opponent passive - probe to gauge
+            return (PressureTactic.PRESSURE_TEST, self.MIN_PROBE,
+                    "Probing passive opponent")
+
+        elif opp_state == OpponentState.AGGRESSIVE:
+            # Opponent aggressive early - let them spend
+            return (PressureTactic.PATIENCE, 0,
+                    "Opponent aggressive - conserving")
+
+        else:
+            # Control tempo
+            return (PressureTactic.TEMPO_CONTROL, self.MIN_PROBE,
+                    "Opening tempo control")
+
+    def _mid_battle_decision(self) -> Tuple[PressureTactic, int, str]:
+        """Mid battle (60-180s) - main engagement."""
+        diff = self.score_diff
+        available = self.available_budget
+        opp_state = self.state.opponent_state
+
+        if opp_state == OpponentState.PANICKING:
+            # Opponent panicking - let them exhaust
+            return (PressureTactic.PATIENCE, 0,
+                    "Opponent panicking - letting them exhaust")
+
+        elif opp_state == OpponentState.EXHAUSTED:
+            # Opponent exhausted - light pressure to maintain
+            return (PressureTactic.TEMPO_CONTROL, self.MIN_PROBE,
+                    "Opponent exhausted - maintaining lead")
+
+        elif diff < -10000:
+            # Way behind - need to push
+            spend = min(available * 0.2, self.BIG_GIFT)
+            return (PressureTactic.SHOW_STRENGTH, int(spend),
+                    f"Behind {abs(diff):,} mid-battle - pushing")
+
+        elif diff > 10000:
+            # Comfortable lead - control
+            return (PressureTactic.PATIENCE, 0,
+                    f"Leading by {diff:,} - controlling")
+
+        else:
+            # Close battle - pressure test
+            return (PressureTactic.PRESSURE_TEST, self.MEDIUM_GIFT,
+                    "Close battle - pressure testing")
+
+    def _late_game_decision(self) -> Tuple[PressureTactic, int, str]:
+        """Late game (180-240s) - prepare for finish."""
+        diff = self.score_diff
+        available = self.available_budget
+
+        if diff < -15000:
+            # Need to close gap before endgame
+            spend = min(available * 0.25, self.BIG_GIFT)
+            return (PressureTactic.SHOW_STRENGTH, int(spend),
+                    f"Behind {abs(diff):,} late game - closing gap")
+
+        elif diff < 0:
+            # Slightly behind - measured push
+            spend = min(available * 0.15, self.MEDIUM_GIFT)
+            return (PressureTactic.TEMPO_CONTROL, int(spend),
+                    "Slightly behind - measured push")
+
+        else:
+            # Ahead - reserve for endgame
+            return (PressureTactic.RESERVE, 0,
+                    f"Leading {diff:,} - reserving for endgame")
+
+    def _endgame_decision(self) -> Tuple[PressureTactic, int, str]:
+        """Endgame (last 60s, before snipe window)."""
+        diff = self.score_diff
+        available = self.available_budget
+        time_left = self.state.time_remaining
+
+        if diff < -20000:
+            # Way behind - all-in push
+            spend = min(available * 0.5, self.WHALE_GIFT)
+            return (PressureTactic.SHOW_STRENGTH, int(spend),
+                    f"Way behind ({diff:,}) in endgame - all-in")
+
+        elif diff < 0:
+            # Behind - strategic push based on time
+            if time_left > 30:
+                spend = min(available * 0.3, self.BIG_GIFT)
+                return (PressureTactic.SHOW_STRENGTH, int(spend),
+                        f"Behind {abs(diff):,} with {time_left}s - pushing")
             else:
-                # Ahead - defend against snipe
-                # Keep enough to counter a big gift
-                return (PressureTactic.PATIENCE, 0)
+                # Save more for snipe
+                spend = min(available * 0.2, self.MEDIUM_GIFT)
+                return (PressureTactic.TEMPO_CONTROL, int(spend),
+                        f"Behind {abs(diff):,} - saving for snipe")
 
-        elif state.time_remaining <= 30:
-            if score_diff < 0:
-                # Behind with 30s - big push
-                spend = min(state.budget_remaining * 0.4, self.FINISH_SIZE)
-                return (PressureTactic.SHOW_STRENGTH, int(spend))
-            else:
-                # Ahead - maintain pressure
-                return (PressureTactic.PROBE, self.PROBE_SIZE)
+        elif diff < 10000:
+            # Close lead - stay alert
+            return (PressureTactic.PATIENCE, 0,
+                    f"Close lead ({diff:,}) - snipe defense ready")
 
-        else:  # 30-60 seconds
-            if score_diff < -10000:
-                # Way behind - need to close gap
-                spend = min(state.budget_remaining * 0.3, self.SHOW_SIZE)
-                return (PressureTactic.SHOW_STRENGTH, int(spend))
-            elif score_diff < 0:
-                # Slightly behind - measured catch-up
-                return (PressureTactic.TEMPO_BURST, self.MEDIUM_SIZE)
-            else:
-                # Ahead - control tempo
-                return (PressureTactic.PATIENCE, 0)
+        else:
+            # Comfortable lead - light maintenance
+            return (PressureTactic.PATIENCE, 0,
+                    f"Comfortable lead ({diff:,}) - maintaining")
 
-    def get_gift_recommendation(self, available_gifts: List[dict]) -> Optional[dict]:
+    def get_gift_for_tactic(self, tactic: PressureTactic, target_spend: int,
+                            available_gifts: List[dict]) -> Optional[dict]:
         """
-        Get specific gift recommendation based on current tactic.
+        Select appropriate gift for tactic.
 
-        available_gifts: List of dicts with 'name', 'cost', 'points' keys
-        Returns: Selected gift dict or None for PATIENCE tactic
+        available_gifts: List of dicts with 'name', 'cost', 'points'
         """
-        tactic, target_spend = self.decide_tactic()
-        self.tactic_history.append((time.time(), tactic, target_spend))
-
-        if tactic == PressureTactic.PATIENCE:
+        if tactic in (PressureTactic.PATIENCE, PressureTactic.RESERVE):
             return None
 
         if not available_gifts:
             return None
 
         # Filter by budget
-        affordable = [g for g in available_gifts if g['cost'] <= self.state.budget_remaining]
+        budget = self.state.budget_remaining
+        affordable = [g for g in available_gifts if g['cost'] <= budget]
+
         if not affordable:
             return None
 
-        # Select based on tactic
-        if tactic == PressureTactic.PROBE:
-            # Smallest affordable gift
-            return min(affordable, key=lambda g: g['cost'])
+        # For snipe tactics, use maximum available
+        if tactic in (PressureTactic.SNIPE_OFFENSIVE, PressureTactic.SNIPE_DEFENSIVE):
+            target_spend = min(target_spend, budget)
 
-        elif tactic == PressureTactic.TEMPO_BURST:
-            # Small-medium gift for rapid fire
-            mid_point = target_spend // 3
-            closest = min(affordable, key=lambda g: abs(g['cost'] - mid_point))
-            return closest
-
-        elif tactic in (PressureTactic.SHOW_STRENGTH, PressureTactic.COUNTER_PUNCH):
-            # Gift closest to target spend
-            closest = min(affordable, key=lambda g: abs(g['cost'] - target_spend))
-            return closest
-
-        elif tactic == PressureTactic.BAIT:
-            # Medium gift to provoke reaction
-            closest = min(affordable, key=lambda g: abs(g['cost'] - self.MEDIUM_SIZE))
-            return closest
-
-        elif tactic == PressureTactic.FINISH:
-            # Biggest affordable gift up to target
+        # Select closest to target
+        if target_spend > 0:
+            # Find gift closest to target (but not over for non-snipe)
             under_target = [g for g in affordable if g['cost'] <= target_spend]
             if under_target:
                 return max(under_target, key=lambda g: g['cost'])
-            return max(affordable, key=lambda g: g['cost'])
+            # If nothing under target, get smallest affordable
+            return min(affordable, key=lambda g: g['cost'])
 
-        return None
+        # Default to minimum probe
+        min_probe_gifts = [g for g in affordable if g['cost'] >= self.MIN_PROBE]
+        if min_probe_gifts:
+            return min(min_probe_gifts, key=lambda g: g['cost'])
 
-    def get_status_summary(self) -> str:
-        """Get human-readable status."""
-        state = self.state
-        return (
-            f"AI: {state.ai_score:,} | Opp: {state.opponent_score:,} "
-            f"(diff: {state.ai_score - state.opponent_score:+,})\n"
-            f"Budget: {state.budget_remaining:,}/{self.total_budget:,} "
-            f"({state.budget_remaining/self.total_budget*100:.0f}%)\n"
-            f"Opponent: {state.opponent_state.value} "
-            f"(avg gift: {state.opponent_avg_gift_size:,}, "
-            f"reaction: {state.opponent_reaction_time:.1f}s)\n"
-            f"Time: {state.time_remaining}s"
-        )
+        return min(affordable, key=lambda g: g['cost'])
+
+    def get_status(self) -> Dict:
+        """Get current status for display."""
+        boost_info = None
+        if self.state.current_boost and self.state.current_boost.is_active:
+            boost_info = {
+                'multiplier': self.state.current_boost.multiplier,
+                'time_remaining': self.state.current_boost.time_remaining
+            }
+
+        return {
+            'phase': self.phase.value,
+            'ai_score': self.state.ai_score,
+            'opponent_score': self.state.opponent_score,
+            'score_diff': self.score_diff,
+            'budget_remaining': self.state.budget_remaining,
+            'budget_pct': self.state.budget_remaining / self.total_budget * 100,
+            'snipe_reserve': self.state.snipe_reserve,
+            'time_remaining': self.state.time_remaining,
+            'opponent_state': self.state.opponent_state.value,
+            'boost': boost_info,
+            'ai_has_gloves': self.state.ai_has_gloves
+        }
