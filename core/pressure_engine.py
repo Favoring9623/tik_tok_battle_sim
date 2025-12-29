@@ -536,31 +536,45 @@ class StrategicPressureEngine:
         if not available_gifts:
             return None
 
-        # Filter by budget
-        budget = self.state.budget_remaining
-        affordable = [g for g in available_gifts if g['cost'] <= budget]
+        # Determine available budget based on phase
+        if self.phase == BattlePhase.SNIPE_WINDOW:
+            # Snipe window: use ALL remaining budget
+            budget = self.state.budget_remaining
+        else:
+            # Before snipe: respect snipe reserve
+            budget = self.available_budget
+            if budget < self.MIN_PROBE:
+                # Not enough budget outside reserve - wait for snipe
+                return None
 
+        # Filter by budget
+        affordable = [g for g in available_gifts if g['cost'] <= budget]
         if not affordable:
             return None
 
-        # For snipe tactics, use maximum available
+        # CRITICAL: Never send gifts smaller than MIN_PROBE (except in snipe window)
+        if self.phase != BattlePhase.SNIPE_WINDOW:
+            meaningful = [g for g in affordable if g['cost'] >= self.MIN_PROBE]
+            if not meaningful:
+                # Can't afford meaningful gift - save for snipe
+                return None
+            affordable = meaningful
+
+        # For snipe tactics, maximize spend
         if tactic in (PressureTactic.SNIPE_OFFENSIVE, PressureTactic.SNIPE_DEFENSIVE):
             target_spend = min(target_spend, budget)
+            # In snipe window, get biggest possible
+            return max(affordable, key=lambda g: g['cost'])
 
         # Select closest to target
         if target_spend > 0:
-            # Find gift closest to target (but not over for non-snipe)
             under_target = [g for g in affordable if g['cost'] <= target_spend]
             if under_target:
                 return max(under_target, key=lambda g: g['cost'])
-            # If nothing under target, get smallest affordable
+            # If nothing under target, get smallest meaningful affordable
             return min(affordable, key=lambda g: g['cost'])
 
-        # Default to minimum probe
-        min_probe_gifts = [g for g in affordable if g['cost'] >= self.MIN_PROBE]
-        if min_probe_gifts:
-            return min(min_probe_gifts, key=lambda g: g['cost'])
-
+        # Default: smallest meaningful gift
         return min(affordable, key=lambda g: g['cost'])
 
     def get_status(self) -> Dict:
