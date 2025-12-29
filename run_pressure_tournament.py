@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-Pressure-Based Tournament Runner
+Strategic Tournament Runner - Best of 3
 
-Best of 3 tournament using psychological warfare tactics.
-Dynamic budget allocation based on opponent behavior, not fixed phases.
+Uses StrategicPressureEngine with:
+- Boost window prioritization
+- Power-up tracking
+- Strategic 5-second snipe window
+- Snipe reserve (15% per battle)
+- Honor lap detection (2min58s)
 """
 
 import argparse
 import asyncio
-import sys
 import time
-from datetime import datetime
 from typing import Optional, List, Dict
 from dataclasses import dataclass, field
 
@@ -21,8 +23,24 @@ try:
 except ImportError:
     TIKTOK_AVAILABLE = False
 
-from core.pressure_engine import PressureEngine, PressureTactic, OpponentState
+from core.pressure_engine import (
+    StrategicPressureEngine, PressureTactic, BattlePhase,
+    OpponentState, PowerUpType
+)
 from core.gift_catalog import get_gift_catalog
+
+
+# Power-up detection
+POWER_UP_GIFTS = {
+    'Boxing Gloves': PowerUpType.GLOVES,
+    'Gloves': PowerUpType.GLOVES,
+    'Hammer': PowerUpType.HAMMER,
+    'Thor Hammer': PowerUpType.HAMMER,
+    'Frog': PowerUpType.FROG,
+    'Lucky Frog': PowerUpType.FROG,
+    'Time': PowerUpType.TIME_BONUS,
+    'Extra Time': PowerUpType.TIME_BONUS,
+}
 
 
 @dataclass
@@ -32,7 +50,7 @@ class BattleResult:
     ai_score: int
     opponent_score: int
     budget_used: int
-    budget_remaining: int
+    budget_allocated: int
     won: bool
     tactics_used: Dict[str, int] = field(default_factory=dict)
     opponent_final_state: str = "unknown"
@@ -53,22 +71,18 @@ class TournamentState:
         return self.ai_wins >= 2 or self.opponent_wins >= 2
 
     @property
-    def leader(self) -> str:
-        if self.ai_wins > self.opponent_wins:
-            return "AI"
-        elif self.opponent_wins > self.ai_wins:
-            return "Opponent"
-        return "Tied"
+    def status_str(self) -> str:
+        return f"AI {self.ai_wins} - {self.opponent_wins} Opponent"
 
 
-class PressureTournament:
+class StrategicTournament:
     """
-    Best of 3 tournament using pressure tactics.
+    Best of 3 tournament with strategic pressure tactics.
 
-    Budget allocation is dynamic based on:
-    - Current tournament standing
-    - Opponent behavior patterns learned from previous battles
-    - Time pressure
+    Budget allocation adapts based on tournament state:
+    - If ahead: can be more conservative
+    - If behind: must be more aggressive
+    - Must-win battles get more budget
     """
 
     BATTLE_DURATION = 300  # 5 minutes
@@ -77,27 +91,27 @@ class PressureTournament:
     def __init__(
         self,
         target_streamer: str,
-        total_budget: int = 500000
+        total_budget: int = 500000,
+        simulate: bool = False
     ):
         self.target_streamer = target_streamer
         self.total_budget = total_budget
+        self.simulate = simulate
 
-        # Tournament state
         self.tournament = TournamentState(
             total_budget=total_budget,
             budget_remaining=total_budget
         )
 
-        # Learned opponent patterns (persists across battles)
-        self.opponent_avg_reaction_time: float = 3.0
+        # Learned patterns across battles
+        self.opponent_avg_gift_size: int = 0
         self.opponent_typical_state: OpponentState = OpponentState.PASSIVE
-        self.opponent_endgame_aggression: float = 0.5
 
         # Gift catalog
         self.gifts = self._load_gifts()
 
     def _load_gifts(self) -> List[Dict]:
-        """Load available gifts from catalog."""
+        """Load available gifts."""
         catalog = get_gift_catalog()
         return [
             {"name": g.name, "cost": g.coins, "points": g.points}
@@ -108,80 +122,63 @@ class PressureTournament:
         """
         Calculate budget for next battle based on tournament state.
 
-        NOT a fixed allocation - adapts to situation.
+        Strategy:
+        - Battle 1: ~35% (establish position)
+        - Battle 2: ~35% or more if must-win
+        - Battle 3: All remaining
         """
         remaining = self.tournament.budget_remaining
         battles_left = 3 - self.tournament.battles_completed
-        battles_needed_to_win = 2 - self.tournament.ai_wins
 
         if battles_left == 0:
             return 0
 
-        # Base allocation
-        base = remaining // battles_left
+        if battles_left == 1:
+            # Final battle - use everything
+            return remaining
 
-        # Adjustments based on tournament state
-        if self.tournament.ai_wins == 1:
-            # One win away - can be more aggressive
-            if battles_left == 2:
-                # Battle 2 after winning battle 1 - push to close
-                return int(remaining * 0.55)
+        # Calculate base allocation
+        if self.tournament.battles_completed == 0:
+            # First battle: 35%
+            return int(remaining * 0.35)
+
+        elif self.tournament.battles_completed == 1:
+            # Second battle
+            if self.tournament.ai_wins == 1:
+                # Won first - can close it out, use 40%
+                return int(remaining * 0.40)
+            elif self.tournament.opponent_wins == 1:
+                # Lost first - MUST win, use 50%
+                return int(remaining * 0.50)
             else:
-                # Battle 3 - use what we have
-                return remaining
-        elif self.tournament.opponent_wins == 1:
-            # Must win this battle
-            if battles_left == 2:
-                # Can't afford to lose again - aggressive
-                return int(remaining * 0.55)
-            else:
-                # Final battle - all in
-                return remaining
+                # Tie (shouldn't happen in Bo3)
+                return int(remaining * 0.45)
 
-        # Even or first battle - balanced approach
-        return base
-
-    def _learn_from_battle(self, pressure: PressureEngine, result: BattleResult):
-        """Learn from battle for future reference."""
-        state = pressure.state
-
-        # Update reaction time estimate
-        if state.opponent_reaction_time > 0:
-            self.opponent_avg_reaction_time = (
-                self.opponent_avg_reaction_time * 0.6 +
-                state.opponent_reaction_time * 0.4
-            )
-
-        # Track typical opponent behavior
-        self.opponent_typical_state = state.opponent_state
-
-        # Track endgame aggression
-        # (Did they spend heavily in final minute?)
-        late_actions = [a for a in pressure.state.opponent_actions
-                        if hasattr(a, 'timestamp')]
-        if late_actions:
-            # Simple heuristic: higher avg gift in last 60s = aggressive
-            self.opponent_endgame_aggression = min(1.0,
-                state.opponent_avg_gift_size / 10000)
+        return remaining // battles_left
 
     async def run_tournament(self):
         """Run the full Best of 3 tournament."""
         print(f"\n{'='*70}")
-        print(f"🏆 PRESSURE TOURNAMENT - BEST OF 3")
+        print(f"🏆 STRATEGIC TOURNAMENT - BEST OF 3")
         print(f"{'='*70}")
         print(f"Opponent: @{self.target_streamer}")
         print(f"Total Budget: {self.total_budget:,} coins")
+        print(f"Battle Duration: {self.BATTLE_DURATION}s")
+        print(f"Honor Lap: {self.HONOR_LAP_DURATION}s (2min58s)")
         print(f"{'='*70}\n")
 
         while not self.tournament.is_complete:
             battle_num = self.tournament.battles_completed + 1
             battle_budget = self._calculate_battle_budget()
 
+            # Must-win indicator
+            must_win = (self.tournament.opponent_wins == 1 and
+                        self.tournament.ai_wins == 0)
+
             print(f"\n{'='*70}")
-            print(f"⚔️  BATTLE {battle_num}/3")
+            print(f"⚔️  BATTLE {battle_num}/3" + (" ⚠️ MUST WIN!" if must_win else ""))
             print(f"{'='*70}")
-            print(f"Tournament: AI {self.tournament.ai_wins} - "
-                  f"{self.tournament.opponent_wins} Opponent")
+            print(f"Tournament: {self.tournament.status_str}")
             print(f"Battle Budget: {battle_budget:,} coins")
             print(f"Reserve: {self.tournament.budget_remaining - battle_budget:,} coins")
             print(f"{'='*70}\n")
@@ -199,9 +196,9 @@ class PressureTournament:
                 print(f"\n😔 Battle {battle_num}: Opponent wins")
 
             print(f"Score: {result.ai_score:,} vs {result.opponent_score:,}")
-            print(f"Budget used: {result.budget_used:,} coins")
+            print(f"Budget used: {result.budget_used:,} / {result.budget_allocated:,}")
 
-            # Wait for honor lap if tournament continues
+            # Honor lap if tournament continues
             if not self.tournament.is_complete:
                 await self._wait_honor_lap()
 
@@ -212,13 +209,10 @@ class PressureTournament:
         battle_number: int,
         budget: int
     ) -> BattleResult:
-        """Run a single battle with pressure tactics."""
+        """Run a single battle with strategic pressure."""
 
-        # Initialize pressure engine for this battle
-        pressure = PressureEngine(budget)
-
-        # Apply learned patterns
-        pressure.state.opponent_reaction_time = self.opponent_avg_reaction_time
+        # Initialize engine for this battle
+        engine = StrategicPressureEngine(budget, self.BATTLE_DURATION)
 
         # Battle state
         ai_score = 0
@@ -226,35 +220,45 @@ class PressureTournament:
         battle_start = time.time()
         last_action_time = 0
         min_action_interval = 2.0
-        action_log = []
+        tactic_counts: Dict[str, int] = {}
 
-        if TIKTOK_AVAILABLE:
+        if not self.simulate and TIKTOK_AVAILABLE:
             client = TikTokLiveClient(unique_id=self.target_streamer)
+            connected = False
+
+            @client.on(ConnectEvent)
+            async def on_connect(event):
+                nonlocal connected
+                connected = True
+                print(f"✅ Connected to @{self.target_streamer}")
 
             @client.on(GiftEvent)
             async def on_gift(event):
                 nonlocal opponent_score
+                gift_name = event.gift.name
                 if event.gift.streakable and not event.streaking:
                     points = event.gift.diamond_count * event.combo_count
                 else:
                     points = event.gift.diamond_count
 
+                is_power_up = gift_name in POWER_UP_GIFTS
+                power_up_type = POWER_UP_GIFTS.get(gift_name)
+
                 opponent_score += points
-                pressure.record_opponent_action(points)
-                print(f"👤 Opponent: {event.gift.name} (+{points:,}) "
-                      f"→ {opponent_score:,}")
+                engine.record_opponent_gift(points, gift_name, is_power_up, power_up_type)
+
+                power_tag = " ⚡" if is_power_up else ""
+                print(f"👤 {gift_name} (+{points:,}){power_tag} → {opponent_score:,}")
 
             try:
-                await asyncio.wait_for(client.start(), timeout=10)
-                print(f"✅ Connected to @{self.target_streamer}")
+                asyncio.create_task(client.start())
+                await asyncio.sleep(3)
+                if not connected:
+                    print("⚠️ Could not connect - simulation mode")
             except Exception as e:
-                print(f"⚠️ Connection failed, running simulation: {e}")
-                TIKTOK_AVAILABLE_LOCAL = False
-        else:
-            TIKTOK_AVAILABLE_LOCAL = False
+                print(f"⚠️ Connection error: {e}")
 
-        print(f"\n🎮 Battle {battle_number} started!")
-        print(f"Budget: {budget:,} coins\n")
+        print(f"🎮 Battle {battle_number} started!\n")
 
         # Battle loop
         time_remaining = self.BATTLE_DURATION
@@ -264,87 +268,99 @@ class PressureTournament:
             time_remaining = max(0, self.BATTLE_DURATION - int(elapsed))
 
             # Simulate opponent in demo mode
-            if not TIKTOK_AVAILABLE:
-                if elapsed % 8 < 0.5 and elapsed > 5:
-                    import random
-                    if random.random() < 0.3:
+            if self.simulate or not TIKTOK_AVAILABLE:
+                import random
+                if random.random() < 0.12:
+                    phase = engine.phase
+                    if phase == BattlePhase.SNIPE_WINDOW:
+                        points = random.choice([5000, 10000, 20000]) if random.random() < 0.3 else random.choice([1000, 2000])
+                    elif phase == BattlePhase.ENDGAME:
+                        points = random.choice([2000, 5000, 10000])
+                    else:
                         points = random.choice([500, 1000, 2000, 5000])
-                        opponent_score += points
-                        pressure.record_opponent_action(points)
-                        print(f"👤 Opponent: simulated (+{points:,}) "
-                              f"→ {opponent_score:,}")
 
-            # Update pressure engine
-            pressure.update_scores(ai_score, opponent_score, time_remaining)
+                    opponent_score += points
+                    engine.record_opponent_gift(points, "simulated")
+                    print(f"👤 simulated (+{points:,}) → {opponent_score:,}")
 
-            # Decide action
-            if now - last_action_time >= min_action_interval:
-                tactic, target_spend = pressure.decide_tactic()
+            # Update engine
+            engine.update_time(time_remaining)
+            engine.update_scores(ai_score, opponent_score)
 
-                if tactic != PressureTactic.PATIENCE:
-                    gift = pressure.get_gift_recommendation(self.gifts)
-                    if gift:
-                        # Send gift
-                        points = gift["points"]
-                        ai_score += points
-                        pressure.record_our_action(points, gift["cost"])
-                        last_action_time = now
+            phase = engine.phase
 
-                        # Track tactic usage
-                        t_name = tactic.value
-                        action_log.append(t_name)
+            # Check action timing (faster in snipe window)
+            if now - last_action_time < min_action_interval:
+                if phase != BattlePhase.SNIPE_WINDOW:
+                    await asyncio.sleep(0.5)
+                    continue
 
-                        emoji = {
-                            PressureTactic.SHOW_STRENGTH: "💪",
-                            PressureTactic.PROBE: "🔍",
-                            PressureTactic.TEMPO_BURST: "⚡",
-                            PressureTactic.COUNTER_PUNCH: "🥊",
-                            PressureTactic.BAIT: "🎣",
-                            PressureTactic.FINISH: "🏁"
-                        }.get(tactic, "🎁")
+            # Get decision
+            tactic, target_spend, reason = engine.decide_action()
 
-                        print(f"{emoji} [{tactic.value}] {gift['name']} "
-                              f"({gift['cost']:,} → {points:,} pts) "
-                              f"| AI: {ai_score:,} vs {opponent_score:,}")
+            # Execute
+            if tactic not in (PressureTactic.PATIENCE, PressureTactic.RESERVE):
+                gift = engine.get_gift_for_tactic(tactic, target_spend, self.gifts)
+                if gift:
+                    points = gift["points"]
+                    boost = engine.state.current_boost
+                    if boost and boost.is_active:
+                        points = int(points * boost.multiplier)
 
-            # Status update every 30s
+                    ai_score += points
+                    engine.record_our_action(gift["cost"], points)
+                    last_action_time = now
+
+                    tactic_counts[tactic.value] = tactic_counts.get(tactic.value, 0) + 1
+
+                    emoji = {
+                        PressureTactic.SHOW_STRENGTH: "💪",
+                        PressureTactic.COUNTER_STRIKE: "🥊",
+                        PressureTactic.BOOST_MAXIMIZE: "🚀",
+                        PressureTactic.SNIPE_OFFENSIVE: "🎯",
+                        PressureTactic.SNIPE_DEFENSIVE: "🛡️",
+                        PressureTactic.PRESSURE_TEST: "🔍",
+                        PressureTactic.TEMPO_CONTROL: "⚡",
+                    }.get(tactic, "🎁")
+
+                    print(f"{emoji} [{tactic.value}] {gift['name']} "
+                          f"({gift['cost']:,} → {points:,} pts)")
+                    print(f"   └─ {reason}")
+
+            # Status updates
             if int(elapsed) % 30 == 0 and int(elapsed) > 0:
                 diff = ai_score - opponent_score
-                print(f"\n📊 {int(elapsed)}s | AI: {ai_score:,} vs {opponent_score:,} "
-                      f"(diff: {diff:+,}) | "
-                      f"Budget: {pressure.state.budget_remaining:,}\n")
+                print(f"\n📊 {int(elapsed)}s | {phase.value}")
+                print(f"   AI: {ai_score:,} vs Live: {opponent_score:,} (diff: {diff:+,})")
+                print(f"   Budget: {engine.state.budget_remaining:,} "
+                      f"({engine.state.budget_remaining/budget*100:.0f}%)\n")
+
+            # Phase announcements
+            if time_remaining == 60:
+                print(f"\n⚠️  ENDGAME - 60 seconds!")
+            elif time_remaining == 5:
+                print(f"\n🎯 SNIPE WINDOW!")
 
             await asyncio.sleep(0.5)
 
-        if TIKTOK_AVAILABLE:
-            await client.stop()
-
-        # Learn from this battle
-        tactic_counts = {}
-        for t in action_log:
-            tactic_counts[t] = tactic_counts.get(t, 0) + 1
-
-        result = BattleResult(
+        # Battle complete
+        return BattleResult(
             battle_number=battle_number,
             ai_score=ai_score,
             opponent_score=opponent_score,
-            budget_used=pressure.state.budget_spent,
-            budget_remaining=pressure.state.budget_remaining,
+            budget_used=engine.state.budget_spent,
+            budget_allocated=budget,
             won=ai_score > opponent_score,
             tactics_used=tactic_counts,
-            opponent_final_state=pressure.state.opponent_state.value
+            opponent_final_state=engine.state.opponent_state.value
         )
-
-        self._learn_from_battle(pressure, result)
-        return result
 
     async def _wait_honor_lap(self):
         """Wait for honor lap between battles."""
         print(f"\n{'='*70}")
-        print(f"🎖️  HONOR LAP - {self.HONOR_LAP_DURATION}s")
+        print(f"🎖️  HONOR LAP - {self.HONOR_LAP_DURATION}s (2min58s)")
         print(f"{'='*70}")
-        print(f"Tournament Standing: AI {self.tournament.ai_wins} - "
-              f"{self.tournament.opponent_wins} Opponent")
+        print(f"Tournament: {self.tournament.status_str}")
         print(f"Budget Remaining: {self.tournament.budget_remaining:,} coins")
         print()
 
@@ -353,58 +369,56 @@ class PressureTournament:
                 print(f"⏳ Next battle in {remaining}s...")
             await asyncio.sleep(1)
 
-        print(f"\n🔔 Honor lap complete - starting next battle!\n")
+        print(f"\n🔔 Honor lap complete!\n")
 
     def _print_tournament_summary(self):
         """Print final tournament summary."""
-        winner = "AI TEAM" if self.tournament.ai_wins >= 2 else "OPPONENT"
+        winner = "AI TEAM 🏆" if self.tournament.ai_wins >= 2 else "OPPONENT"
 
         print(f"\n{'='*70}")
         print(f"🏆 TOURNAMENT COMPLETE")
         print(f"{'='*70}")
         print(f"\nWINNER: {winner}")
-        print(f"\nFinal Score: AI {self.tournament.ai_wins} - "
-              f"{self.tournament.opponent_wins} Opponent")
+        print(f"Final Score: {self.tournament.status_str}")
 
         print(f"\n📊 Battle Breakdown:")
         for result in self.tournament.results:
             status = "✅ WIN" if result.won else "❌ LOSS"
+            margin = result.ai_score - result.opponent_score
             print(f"\n  Battle {result.battle_number}: {status}")
-            print(f"    Score: {result.ai_score:,} vs {result.opponent_score:,}")
-            print(f"    Budget: {result.budget_used:,} coins")
-            print(f"    Opponent state: {result.opponent_final_state}")
+            print(f"    Score: {result.ai_score:,} vs {result.opponent_score:,} "
+                  f"({margin:+,})")
+            print(f"    Budget: {result.budget_used:,} / {result.budget_allocated:,} "
+                  f"({result.budget_used/result.budget_allocated*100:.0f}%)")
             if result.tactics_used:
-                top_tactics = sorted(result.tactics_used.items(),
-                                     key=lambda x: -x[1])[:3]
-                print(f"    Top tactics: {', '.join(f'{t}({c})' for t, c in top_tactics)}")
+                top = sorted(result.tactics_used.items(), key=lambda x: -x[1])[:3]
+                print(f"    Tactics: {', '.join(f'{t}({c})' for t, c in top)}")
 
         total_spent = sum(r.budget_used for r in self.tournament.results)
         print(f"\n💰 Budget Summary:")
-        print(f"    Total: {self.total_budget:,} coins")
-        print(f"    Spent: {total_spent:,} coins ({total_spent/self.total_budget*100:.0f}%)")
-        print(f"    Remaining: {self.tournament.budget_remaining:,} coins")
-
-        print(f"\n🧠 Learned Opponent Patterns:")
-        print(f"    Avg reaction time: {self.opponent_avg_reaction_time:.1f}s")
-        print(f"    Typical behavior: {self.opponent_typical_state.value}")
-        print(f"    Endgame aggression: {self.opponent_endgame_aggression:.0%}")
+        print(f"    Total: {self.total_budget:,}")
+        print(f"    Spent: {total_spent:,} ({total_spent/self.total_budget*100:.0f}%)")
+        print(f"    Remaining: {self.tournament.budget_remaining:,}")
 
         print(f"{'='*70}\n")
 
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="Pressure-based Best of 3 Tournament"
+        description="Strategic Best of 3 Tournament"
     )
     parser.add_argument("streamer", help="Target streamer username")
     parser.add_argument("--budget", type=int, default=500000,
-                        help="Total tournament budget in coins")
+                        help="Total tournament budget")
+    parser.add_argument("--simulate", action="store_true",
+                        help="Force simulation mode")
 
     args = parser.parse_args()
 
-    tournament = PressureTournament(
+    tournament = StrategicTournament(
         target_streamer=args.streamer,
-        total_budget=args.budget
+        total_budget=args.budget,
+        simulate=args.simulate
     )
 
     try:
