@@ -167,12 +167,12 @@ class StrategicBattleEngine:
 
     async def _run_simulated_battle(self):
         """Run simulated battle for testing."""
-        print("📺 Running in SIMULATION mode\n")
+        print("📺 Running in PURE SIMULATION mode (no TikTok)\n")
         import random
 
         while self.is_running and self.time_remaining > 0:
-            # Simulate opponent gifts
-            if random.random() < 0.15:
+            # Simulate opponent gifts - only if explicitly in simulate mode
+            if self.simulate and random.random() < 0.15:
                 await self._simulate_opponent_gift()
 
             await self._battle_tick()
