@@ -196,6 +196,49 @@ class BudgetAwareKinetik(BaseAgent):
         self.coins_spent_by_phase[phase] += gift.coins
         self.gifts_sent_by_phase[phase] += 1
 
+    def _handle_deficit_snipe(self, battle, current_time: int, deficit: int, time_remaining: int):
+        """
+        Emergency snipe when behind in final minute.
+        Uses snipe budget aggressively to catch up.
+        """
+        # Fast cooldown during deficit
+        if current_time - self.last_gift_time < 2:
+            return
+
+        # Activate emergency snipe mode
+        if not self.snipe_mode:
+            self.snipe_mode = True
+            print(f"\n🎯 BudgetKinetik: EMERGENCY SNIPE! Behind by {deficit:,}, {time_remaining}s left!")
+
+        # Use all available budget
+        available = self.budget.remaining_coins
+
+        if available < 100:
+            return
+
+        # Get multiplier
+        multiplier = self.phase_manager.get_current_multiplier() if self.phase_manager else 1.0
+        if self.phase_manager and self.phase_manager.active_glove_x5:
+            multiplier = 5.0
+
+        # Select gift to cover deficit
+        gift = self._select_gift(available, prefer_efficiency=False)  # Go big
+
+        if gift:
+            effective = int(gift.points * multiplier)
+
+            if self.send_gift(battle, gift.name, gift.points):
+                self._spend_from_budget(gift, BattlePhase.EMERGENCY)
+                self.snipe_gifts += 1
+                self.snipe_total += effective
+                self.last_gift_time = current_time
+
+                new_deficit = deficit - effective
+                status = f"Still -{new_deficit:,}" if new_deficit > 0 else f"AHEAD +{-new_deficit:,}"
+
+                print(f"   🎯 DEFICIT SNIPE: {gift.name} ({gift.coins:,}) x{multiplier:.0f} = {effective:,} pts")
+                print(f"   {status} | Budget: {self.budget.remaining_coins:,}")
+
     def decide_action(self, battle):
         """Budget-conscious sniping with minimal maintenance."""
         time_remaining = battle.time_manager.time_remaining()
@@ -204,11 +247,21 @@ class BudgetAwareKinetik(BaseAgent):
         phase = self._get_current_phase(time_remaining)
         phase_budget = self._get_phase_budget(phase)
 
+        # Get current deficit
+        creator_score = getattr(battle.score_tracker, 'creator_score', 0)
+        opponent_score = getattr(battle.score_tracker, 'opponent_score', 0)
+        deficit = opponent_score - creator_score
+
         # Update budget manager state
         self.budget.update_battle_state(
             time_remaining,
-            battle.score_tracker.opponent_score - battle.score_tracker.creator_score
+            deficit
         )
+
+        # === PRIORITY 0: DEFICIT SNIPE (If behind and in final minute) ===
+        if deficit > 0 and time_remaining <= 60 and self.budget.remaining_coins >= 1000:
+            self._handle_deficit_snipe(battle, current_time, deficit, time_remaining)
+            return
 
         # === SNIPE MODE (Final seconds) ===
         if phase == BattlePhase.SNIPE and time_remaining <= self.params['snipe_window']:
@@ -443,6 +496,16 @@ class BudgetAwareBoostResponder(BaseAgent):
         current_time = battle.time_manager.current_time
         time_remaining = battle.time_manager.time_remaining()
 
+        # Get current deficit
+        creator_score = getattr(battle.score_tracker, 'creator_score', 0)
+        opponent_score = getattr(battle.score_tracker, 'opponent_score', 0)
+        deficit = opponent_score - creator_score
+
+        # === PRIORITY 0: CRITICAL DEFICIT RESPONSE ===
+        if deficit > 0 and self.budget.remaining_coins > 0:
+            self._handle_deficit_response(battle, current_time, deficit, time_remaining)
+            # Don't return - continue to check boosts
+
         # === PRIORITY 1: BOOST #2 THRESHOLD QUALIFICATION ===
         if self.phase_manager.boost2_threshold_window_active:
             if not self.phase_manager.boost2_creator_qualified:
@@ -525,6 +588,69 @@ class BudgetAwareBoostResponder(BaseAgent):
             if self.send_gift(battle, gift.name, gift.points):
                 self._spend_from_budget(gift, phase)
                 self.last_gift_time = current_time
+
+    def _handle_deficit_response(self, battle, current_time: int, deficit: int, time_remaining: int):
+        """
+        CRITICAL: Respond immediately when behind in score.
+        Prioritizes catching up over saving for later phases.
+        """
+        # Only respond if deficit is significant
+        if deficit < 100:
+            return
+
+        # Calculate urgency
+        urgency = "critical" if time_remaining <= 60 else "high" if time_remaining <= 120 else "normal"
+
+        # Dynamic cooldown based on urgency
+        if urgency == "critical":
+            cooldown = 1  # Very fast
+        elif urgency == "high":
+            cooldown = 2
+        else:
+            cooldown = 5
+
+        if current_time - self.last_gift_time < cooldown:
+            return
+
+        # Use emergency allocation for deficit response
+        available = self.budget.remaining_coins
+
+        if available < 100:
+            return
+
+        # Select gift based on deficit and urgency
+        if urgency == "critical":
+            # Go all-in to catch up
+            gift = self._select_gift_for_amount(deficit, available)
+        elif urgency == "high":
+            # Aggressive but leave some reserve
+            max_spend = min(available * 0.8, deficit)
+            gift = self._select_gift_for_amount(int(max_spend), int(max_spend))
+        else:
+            # Moderate response - don't blow the whole budget
+            max_spend = min(available * 0.3, deficit * 0.5)
+            gift = self._select_gift_for_amount(int(max_spend), int(max_spend))
+
+        if gift and gift.coins >= 100:  # Only send meaningful gifts
+            # Get current multiplier for effectiveness
+            multiplier = self.phase_manager.get_current_multiplier() if self.phase_manager else 1.0
+            if self.phase_manager and self.phase_manager.active_glove_x5:
+                multiplier = 5.0
+
+            effective = int(gift.points * multiplier)
+
+            if self.send_gift(battle, gift.name, gift.points):
+                phase = BattlePhase.EMERGENCY
+                self._spend_from_budget(gift, phase, multiplier)
+                self.last_gift_time = current_time
+
+                new_deficit = deficit - effective
+                status = f"Still -{new_deficit:,}" if new_deficit > 0 else f"CAUGHT UP! +{-new_deficit:,}"
+
+                print(f"\n🚨 BudgetBooster: DEFICIT RESPONSE!")
+                print(f"   {gift.name} ({gift.coins:,}) x{multiplier:.0f} = {effective:,} pts")
+                print(f"   Deficit: {deficit:,} → {status}")
+                print(f"   Budget: {self.budget.remaining_coins:,} | Urgency: {urgency.upper()}")
 
     def _handle_threshold_qualification(self, battle, current_time: int):
         """Handle Boost #2 threshold qualification - spend aggressively to qualify."""
