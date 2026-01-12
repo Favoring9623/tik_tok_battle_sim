@@ -203,7 +203,7 @@ class StrategicBattleEngine:
             await asyncio.sleep(0.5)
 
     async def _simulate_opponent_gift(self):
-        """Simulate opponent gift based on phase with BUDGET CONSTRAINT."""
+        """Simulate SMART opponent that snipes at end of boosts."""
         import random
 
         # Check if opponent has budget left
@@ -212,20 +212,32 @@ class StrategicBattleEngine:
             return  # Opponent exhausted
 
         phase = self.engine.phase
-        opp_state = self.engine.state.opponent_state
+        boost = self.engine.state.current_boost
 
-        # Determine gift size based on phase
+        # === SMART OPPONENT: Snipe at end of boost ===
+        if boost and boost.is_active and boost.time_remaining <= 5:
+            # 60% chance to snipe at end of boost (realistic smart opponent)
+            if random.random() < 0.6:
+                points = random.choice([15000, 20000, 30000, 45000])
+                points = min(points, remaining_budget)
+                if points > 0:
+                    self.simulated_opponent_spent += points
+                    self.opponent_score += points
+                    self.engine.record_opponent_gift(points, "BOOST_SNIPE", False, None)
+                    print(f"🎯 Opponent BOOST SNIPE: +{points:,} → {self.opponent_score:,}")
+                return
+
+        # === SMART OPPONENT: Snipe at end of battle ===
         if phase == BattlePhase.SNIPE_WINDOW:
-            # 30% chance of big snipe attempt
-            if random.random() < 0.3:
+            # 70% chance of big snipe in final seconds
+            if random.random() < 0.7:
                 points = random.choice([20000, 30000, 45000])
             else:
-                points = random.choice([1000, 2000, 5000])
+                points = random.choice([5000, 10000])
         elif phase == BattlePhase.ENDGAME:
             points = random.choice([2000, 5000, 10000, 15000])
-        elif opp_state == OpponentState.AGGRESSIVE:
-            points = random.choice([5000, 10000, 15000])
         else:
+            # Normal play - smaller gifts
             points = random.choice([500, 1000, 2000, 5000])
 
         # Respect budget constraint

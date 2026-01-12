@@ -162,6 +162,13 @@ class StrategicPressureEngine:
     NON_BOOST_SPEND_PCT = 0.05     # Only 5% outside boost (observation mode)
     PROBE_INTERVAL_SECONDS = 15    # Probe every 15s outside boost
 
+    # === COUNTER-SNIPE STRATEGY ===
+    # Key insight: Opponents snipe at END of boost and END of battle
+    # Strategy: Reserve coins for counter-sniping, react don't initiate
+    BOOST_END_RESERVE_PCT = 0.30   # Keep 30% of boost budget for last 5s of boost
+    BOOST_SNIPE_WINDOW = 5         # Last 5 seconds of boost = danger zone
+    COUNTER_SNIPE_MULTIPLIER = 1.2 # Counter with 120% of opponent's snipe
+
     def __init__(self, total_budget: int, battle_duration: int = 300):
         self.total_budget = total_budget
         self.battle_duration = battle_duration
@@ -448,41 +455,93 @@ class StrategicPressureEngine:
 
     def _boost_decision(self) -> Tuple[PressureTactic, int, str]:
         """
-        AGGRESSIVE boost window spending.
+        SMART boost window spending with COUNTER-SNIPE awareness.
 
-        This is where we spend our coins - they're worth 2-3x more!
-        Strategy: Spend up to BOOST_SPEND_PCT of remaining budget during boost.
+        Strategy:
+        - Early/mid boost: Build lead with moderate spending
+        - Last 5s of boost: WAIT for opponent snipe, then counter
+        - React to opponent moves, don't just spend blindly
         """
         boost = self.state.current_boost
         time_left = boost.time_remaining
         mult = boost.multiplier
         available = self.available_budget
+        diff = self.score_diff
 
-        # Calculate how much to spend based on boost phase
-        # More aggressive than before - this is our VALUE moment
+        # === BOOST SNIPE WINDOW (last 5 seconds) ===
+        if time_left <= self.BOOST_SNIPE_WINDOW:
+            return self._boost_snipe_decision(mult, available, diff)
+
+        # === EARLY/MID BOOST ===
+        # Build lead but keep reserve for counter-snipe at end
+        reserve_for_snipe = int(available * self.BOOST_END_RESERVE_PCT)
+        spendable = available - reserve_for_snipe
+
         if time_left > 15:
-            # Early boost - start strong
-            spend = min(available * 0.25, self.BIG_GIFT)
+            # Early boost - moderate start
+            spend = min(spendable * 0.20, self.MEDIUM_GIFT)
             return (PressureTactic.BOOST_MAXIMIZE, int(spend),
-                    f"🚀 BOOST x{mult} ({time_left:.0f}s) - SPENDING NOW!")
+                    f"🚀 BOOST x{mult} ({time_left:.0f}s) - building lead (reserve: {reserve_for_snipe:,})")
 
         elif time_left > 8:
-            # Mid boost - push hard
-            spend = min(available * 0.35, self.WHALE_GIFT)
+            # Mid boost - push harder
+            spend = min(spendable * 0.30, self.BIG_GIFT)
             return (PressureTactic.BOOST_MAXIMIZE, int(spend),
-                    f"🚀 BOOST x{mult} ({time_left:.0f}s) - MAXIMIZING VALUE!")
-
-        elif time_left > 3:
-            # Late boost - all-in
-            spend = min(available * 0.50, self.SNIPE_GIFT)
-            return (PressureTactic.BOOST_MAXIMIZE, int(spend),
-                    f"🚀 BOOST x{mult} ({time_left:.0f}s) - ALL-IN!")
+                    f"🚀 BOOST x{mult} ({time_left:.0f}s) - pushing (reserve: {reserve_for_snipe:,})")
 
         else:
-            # Boost ending - final burst
-            spend = min(available * 0.30, self.WHALE_GIFT)
+            # Late boost (before snipe window) - prepare for counter
+            spend = min(spendable * 0.25, self.MEDIUM_GIFT)
             return (PressureTactic.BOOST_MAXIMIZE, int(spend),
-                    f"🚀 BOOST x{mult} ENDING - FINAL BURST!")
+                    f"🚀 BOOST x{mult} ({time_left:.0f}s) - preparing counter-snipe")
+
+    def _boost_snipe_decision(self, mult: float, available: int, diff: int) -> Tuple[PressureTactic, int, str]:
+        """
+        Handle last 5 seconds of boost - COUNTER-SNIPE mode.
+
+        Strategy: Wait for opponent to snipe, then counter.
+        If opponent doesn't snipe and we're ahead, save coins.
+        """
+        # Check if opponent just sniped (big gift in last 3 seconds)
+        opponent_sniped = self._detect_recent_snipe(seconds=3)
+
+        if opponent_sniped:
+            # COUNTER-SNIPE: Respond with multiplied amount
+            snipe_amount = opponent_sniped
+            counter = int(snipe_amount * self.COUNTER_SNIPE_MULTIPLIER)
+            spend = min(available, counter)
+            return (PressureTactic.COUNTER_STRIKE, spend,
+                    f"⚡ COUNTER-SNIPE x{mult}! Opponent sent {snipe_amount:,}, countering with {spend:,}")
+
+        elif diff < 0:
+            # We're behind - need to push
+            spend = min(available * 0.50, self.WHALE_GIFT)
+            return (PressureTactic.BOOST_MAXIMIZE, int(spend),
+                    f"🚀 BOOST ending, behind by {abs(diff):,} - pushing!")
+
+        elif diff < 5000:
+            # Close lead - small defensive spend
+            spend = min(available * 0.20, self.MEDIUM_GIFT)
+            return (PressureTactic.BOOST_MAXIMIZE, int(spend),
+                    f"🚀 BOOST ending, close lead (+{diff:,}) - light defense")
+
+        else:
+            # Good lead - WAIT for opponent snipe, save coins
+            return (PressureTactic.PATIENCE, 0,
+                    f"⏳ BOOST ending, ahead +{diff:,} - WAITING for opponent snipe")
+
+    def _detect_recent_snipe(self, seconds: int = 3) -> int:
+        """Detect if opponent sent a big gift recently (potential snipe)."""
+        if not self.state.opponent_actions:
+            return 0
+
+        now = time.time()
+        recent_big_gifts = [
+            a.points for a in self.state.opponent_actions
+            if now - a.timestamp < seconds and a.points >= self.BIG_GIFT_THRESHOLD
+        ]
+
+        return sum(recent_big_gifts) if recent_big_gifts else 0
 
     def _should_counter(self) -> bool:
         """Check if we should counter opponent's recent big gift."""
