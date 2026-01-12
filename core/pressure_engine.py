@@ -1,12 +1,12 @@
 """
-Pressure Engine v2 - Strategic psychological warfare for TikTok battles.
+Pressure Engine v3 - Economic Efficiency Edition
 
 Key strategic elements:
-1. Boost periods (x2, x3) - maximize multiplied points
-2. Power-ups (gloves, hammer, frog, time) - tactical advantages
-3. Final 5-second snipe window - defensive or offensive
-4. Meaningful probes (2000+ coins) - not roses
-5. Context-aware counter-attacks
+1. WIN with MINIMUM spending - coins have real monetary value
+2. Secure victory threshold - stop spending when victory is assured
+3. Conditional snipe - only use reserve if opponent threatens
+4. ROI optimization - track coins saved as key metric
+5. Boost/power-up awareness when needed
 """
 
 from dataclasses import dataclass, field
@@ -127,14 +127,14 @@ class PressureState:
 
 class StrategicPressureEngine:
     """
-    Strategic pressure engine with boost/power-up awareness.
+    Strategic pressure engine with ECONOMIC EFFICIENCY focus.
 
     Key principles:
-    1. Boost windows are PRIORITY - maximize multiplied points
-    2. Power-ups change the game - track and respond
-    3. Final 5 seconds are CRITICAL - always have snipe reserve
-    4. Probes must be meaningful - 2000+ coins minimum
-    5. Counter-attacks are contextual - timing matters
+    1. WIN with MINIMUM coins - every coin has real value
+    2. Stop spending when victory is SECURE
+    3. Snipe reserve is CONDITIONAL - only if opponent threatens
+    4. Track ROI and coins saved
+    5. Boost/power-up awareness when actively needed
     """
 
     # Gift thresholds (meaningful amounts)
@@ -149,6 +149,18 @@ class StrategicPressureEngine:
 
     # Snipe reserve percentage
     SNIPE_RESERVE_PCT = 0.15   # Reserve 15% for final 5s
+
+    # === ECONOMIC EFFICIENCY THRESHOLDS ===
+    SECURE_LEAD_MULTIPLIER = 10    # Victory secure if lead > 10x opponent score
+    MIN_SECURE_MARGIN = 5000       # Minimum absolute margin to consider secure
+    SNIPE_THREAT_THRESHOLD = 0.8   # Only snipe if opponent within 80% of our score
+
+    # === BOOST-CENTRIC STRATEGY ===
+    # Key insight: Coins spent during boost are worth 2-3x more
+    # Strategy: CONSERVE outside boost, SPEND AGGRESSIVELY during boost
+    BOOST_SPEND_PCT = 0.50         # Spend up to 50% of remaining budget during boost
+    NON_BOOST_SPEND_PCT = 0.05     # Only 5% outside boost (observation mode)
+    PROBE_INTERVAL_SECONDS = 15    # Probe every 15s outside boost
 
     def __init__(self, total_budget: int, battle_duration: int = 300):
         self.total_budget = total_budget
@@ -185,6 +197,70 @@ class StrategicPressureEngine:
         if self.phase == BattlePhase.SNIPE_WINDOW:
             return self.state.budget_remaining
         return max(0, self.state.budget_remaining - self.state.snipe_reserve)
+
+    @property
+    def is_victory_secure(self) -> bool:
+        """
+        Check if victory is economically secure.
+
+        Victory is secure when:
+        1. We're ahead by at least MIN_SECURE_MARGIN, AND
+        2. Our lead is > SECURE_LEAD_MULTIPLIER times opponent score
+        OR
+        3. Opponent is EXHAUSTED and we're ahead
+
+        When secure, we STOP spending to maximize ROI.
+        """
+        diff = self.score_diff
+        opp_score = self.state.opponent_score
+        opp_state = self.state.opponent_state
+
+        # Must be ahead
+        if diff <= 0:
+            return False
+
+        # If opponent is exhausted and we're ahead, victory is secure
+        if opp_state == OpponentState.EXHAUSTED and diff > 0:
+            return True
+
+        # Must have minimum margin
+        if diff < self.MIN_SECURE_MARGIN:
+            return False
+
+        # Lead must be > 10x opponent score (or opponent has 0)
+        if opp_score > 0 and diff < opp_score * self.SECURE_LEAD_MULTIPLIER:
+            return False
+
+        return True
+
+    @property
+    def is_snipe_needed(self) -> bool:
+        """
+        Check if snipe defense is actually needed.
+
+        Only snipe if opponent is a real threat (within SNIPE_THREAT_THRESHOLD).
+        """
+        ai_score = self.state.ai_score
+        opp_score = self.state.opponent_score
+
+        # If we're behind, always need snipe
+        if ai_score <= opp_score:
+            return True
+
+        # If opponent is within threat threshold, need snipe
+        if ai_score > 0 and opp_score / ai_score >= self.SNIPE_THREAT_THRESHOLD:
+            return True
+
+        # If margin is small, need snipe
+        if ai_score - opp_score < self.MIN_SECURE_MARGIN:
+            return True
+
+        return False
+
+    @property
+    def coins_saved(self) -> int:
+        """Calculate coins saved vs full budget usage."""
+        return self.state.budget_remaining
 
     def update_time(self, time_remaining: int):
         """Update time remaining."""
@@ -292,7 +368,11 @@ class StrategicPressureEngine:
 
     def decide_action(self) -> Tuple[PressureTactic, int, str]:
         """
-        Decide next action based on strategic context.
+        Decide next action based on BOOST-CENTRIC strategy.
+
+        Key principle: Coins are 2-3x more valuable during boost.
+        - BOOST ACTIVE → Spend aggressively
+        - NO BOOST → Conserve, observe, minimal probes
 
         Returns: (tactic, recommended_spend, reason)
         """
@@ -303,28 +383,37 @@ class StrategicPressureEngine:
         if phase == BattlePhase.SNIPE_WINDOW:
             return self._snipe_decision()
 
-        # === BOOST PRIORITY ===
+        # === ECONOMIC EFFICIENCY: Stop if victory is secure ===
+        if self.is_victory_secure:
+            diff = self.score_diff
+            saved = self.coins_saved
+            return (PressureTactic.RESERVE, 0,
+                    f"Victory SECURE (+{diff:,} lead) - saving {saved:,} coins")
+
+        # === BOOST PRIORITY - THIS IS WHERE WE SPEND ===
         if boost and boost.is_active:
             return self._boost_decision()
 
-        # === RESPOND TO OPPONENT BIG GIFT ===
-        if self._should_counter():
+        # === NO BOOST - CONSERVATION MODE ===
+        # Only respond to critical situations or probe occasionally
+
+        # Critical: We're way behind and need to act
+        if self.score_diff < -20000:
+            return self._emergency_decision()
+
+        # Counter only if opponent sent a VERY big gift (20k+)
+        if self._should_counter_critical():
             return self._counter_decision()
 
-        # === PHASE-BASED TACTICS ===
-        if phase == BattlePhase.OPENING:
-            return self._opening_decision()
-        elif phase == BattlePhase.MID_BATTLE:
-            return self._mid_battle_decision()
-        elif phase == BattlePhase.LATE_GAME:
-            return self._late_game_decision()
-        elif phase == BattlePhase.ENDGAME:
-            return self._endgame_decision()
-
-        return (PressureTactic.PATIENCE, 0, "Default patience")
+        # Otherwise: Patience - wait for boost
+        return self._conservation_decision()
 
     def _snipe_decision(self) -> Tuple[PressureTactic, int, str]:
-        """Critical final 5 seconds decision."""
+        """
+        Critical final 5 seconds decision - ECONOMIC EFFICIENCY.
+
+        Only spend if snipe is actually needed!
+        """
         diff = self.score_diff
         budget = self.state.budget_remaining
 
@@ -335,48 +424,65 @@ class StrategicPressureEngine:
             return (PressureTactic.SNIPE_OFFENSIVE, spend,
                     f"Behind by {abs(diff):,} - offensive snipe")
 
+        # === ECONOMIC: Check if snipe is actually needed ===
+        if not self.is_snipe_needed:
+            saved = self.coins_saved
+            return (PressureTactic.RESERVE, 0,
+                    f"Lead SECURE (+{diff:,}) - NO SNIPE needed, saving {saved:,} coins")
+
         elif diff < 5000:
-            # CLOSE - Defensive snipe ready
-            # Wait and watch, respond if opponent attacks
-            return (PressureTactic.SNIPE_DEFENSIVE, min(budget, self.SNIPE_GIFT),
-                    f"Close lead ({diff:,}) - defensive snipe ready")
+            # CLOSE - Defensive snipe but minimal spend
+            # Only spend enough to maintain small buffer
+            spend = min(budget, 5000)  # Minimal defensive spend
+            return (PressureTactic.SNIPE_DEFENSIVE, spend,
+                    f"Close lead ({diff:,}) - minimal defense")
 
         else:
-            # COMFORTABLE LEAD - Still defend
-            return (PressureTactic.SNIPE_DEFENSIVE, min(budget, diff + 5000),
-                    f"Comfortable lead ({diff:,}) - snipe defense ready")
+            # Moderate lead but opponent threatening
+            # Spend proportionally to threat, not max
+            opp_score = self.state.opponent_score
+            threat_ratio = opp_score / max(self.state.ai_score, 1)
+            spend = min(budget, int(diff * threat_ratio) + 2000)
+            return (PressureTactic.SNIPE_DEFENSIVE, spend,
+                    f"Lead ({diff:,}) with threat ({threat_ratio:.0%}) - proportional defense")
 
     def _boost_decision(self) -> Tuple[PressureTactic, int, str]:
-        """Maximize boost window value."""
+        """
+        AGGRESSIVE boost window spending.
+
+        This is where we spend our coins - they're worth 2-3x more!
+        Strategy: Spend up to BOOST_SPEND_PCT of remaining budget during boost.
+        """
         boost = self.state.current_boost
         time_left = boost.time_remaining
         mult = boost.multiplier
         available = self.available_budget
 
-        # Calculate optimal spend based on remaining boost time
+        # Calculate how much to spend based on boost phase
+        # More aggressive than before - this is our VALUE moment
         if time_left > 15:
-            # Early boost - ramp up
-            spend = min(available * 0.2, self.MEDIUM_GIFT)
-            return (PressureTactic.BOOST_MAXIMIZE, int(spend),
-                    f"Boost x{mult} ({time_left:.0f}s left) - ramping up")
-
-        elif time_left > 8:
-            # Mid boost - push harder
-            spend = min(available * 0.3, self.BIG_GIFT)
-            return (PressureTactic.BOOST_MAXIMIZE, int(spend),
-                    f"Boost x{mult} ({time_left:.0f}s left) - pushing")
-
-        elif time_left > 3:
-            # Late boost - maximize
-            spend = min(available * 0.4, self.WHALE_GIFT)
-            return (PressureTactic.BOOST_MAXIMIZE, int(spend),
-                    f"Boost x{mult} ({time_left:.0f}s left) - maximizing")
-
-        else:
-            # Boost ending - final push
+            # Early boost - start strong
             spend = min(available * 0.25, self.BIG_GIFT)
             return (PressureTactic.BOOST_MAXIMIZE, int(spend),
-                    f"Boost x{mult} ending - final push")
+                    f"🚀 BOOST x{mult} ({time_left:.0f}s) - SPENDING NOW!")
+
+        elif time_left > 8:
+            # Mid boost - push hard
+            spend = min(available * 0.35, self.WHALE_GIFT)
+            return (PressureTactic.BOOST_MAXIMIZE, int(spend),
+                    f"🚀 BOOST x{mult} ({time_left:.0f}s) - MAXIMIZING VALUE!")
+
+        elif time_left > 3:
+            # Late boost - all-in
+            spend = min(available * 0.50, self.SNIPE_GIFT)
+            return (PressureTactic.BOOST_MAXIMIZE, int(spend),
+                    f"🚀 BOOST x{mult} ({time_left:.0f}s) - ALL-IN!")
+
+        else:
+            # Boost ending - final burst
+            spend = min(available * 0.30, self.WHALE_GIFT)
+            return (PressureTactic.BOOST_MAXIMIZE, int(spend),
+                    f"🚀 BOOST x{mult} ENDING - FINAL BURST!")
 
     def _should_counter(self) -> bool:
         """Check if we should counter opponent's recent big gift."""
@@ -388,6 +494,19 @@ class StrategicPressureEngine:
 
         # Counter if opponent sent big gift in last 5 seconds
         return (last_action.points >= self.BIG_GIFT_THRESHOLD and
+                time_since < 5 and
+                self.score_diff < 0)
+
+    def _should_counter_critical(self) -> bool:
+        """Check if we should counter a CRITICAL opponent gift (20k+)."""
+        if not self.state.opponent_actions:
+            return False
+
+        last_action = self.state.opponent_actions[-1]
+        time_since = time.time() - last_action.timestamp
+
+        # Only counter VERY big gifts (20k+) outside of boost
+        return (last_action.points >= 20000 and
                 time_since < 5 and
                 self.score_diff < 0)
 
@@ -523,6 +642,40 @@ class StrategicPressureEngine:
             return (PressureTactic.PATIENCE, 0,
                     f"Comfortable lead ({diff:,}) - maintaining")
 
+    def _emergency_decision(self) -> Tuple[PressureTactic, int, str]:
+        """Emergency: We're way behind (20k+) and need to act even without boost."""
+        diff = self.score_diff
+        available = self.available_budget
+
+        # Spend minimally to close the gap - save rest for boost
+        spend = min(available * 0.15, self.MEDIUM_GIFT)
+        return (PressureTactic.SHOW_STRENGTH, int(spend),
+                f"EMERGENCY: Behind {abs(diff):,} - minimal recovery (waiting for boost)")
+
+    def _conservation_decision(self) -> Tuple[PressureTactic, int, str]:
+        """
+        Conservation mode: No boost active, save coins.
+
+        Only send occasional small probes to observe opponent.
+        """
+        diff = self.score_diff
+        saved = self.coins_saved
+        time_since_last = time.time() - self.state.last_action_time
+
+        # If we're ahead, just wait
+        if diff > 0:
+            return (PressureTactic.RESERVE, 0,
+                    f"Leading +{diff:,} - CONSERVING for boost (saved {saved:,})")
+
+        # If we're slightly behind, occasional probe every 15s
+        if time_since_last > self.PROBE_INTERVAL_SECONDS and diff > -10000:
+            return (PressureTactic.PRESSURE_TEST, self.MIN_PROBE,
+                    f"Behind {abs(diff):,} - light probe (conserving for boost)")
+
+        # Otherwise, patience - wait for boost
+        return (PressureTactic.PATIENCE, 0,
+                f"No boost - WAITING (saved {saved:,} coins for boost)")
+
     def get_gift_for_tactic(self, tactic: PressureTactic, target_spend: int,
                             available_gifts: List[dict]) -> Optional[dict]:
         """
@@ -597,5 +750,10 @@ class StrategicPressureEngine:
             'time_remaining': self.state.time_remaining,
             'opponent_state': self.state.opponent_state.value,
             'boost': boost_info,
-            'ai_has_gloves': self.state.ai_has_gloves
+            'ai_has_gloves': self.state.ai_has_gloves,
+            # Economic metrics
+            'coins_saved': self.coins_saved,
+            'coins_saved_pct': self.coins_saved / self.total_budget * 100,
+            'victory_secure': self.is_victory_secure,
+            'snipe_needed': self.is_snipe_needed,
         }

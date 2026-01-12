@@ -79,6 +79,10 @@ class StrategicBattleEngine:
         self.last_action_time = 0
         self.min_action_interval = 2.0
 
+        # Simulated opponent budget (realistic constraint)
+        self.simulated_opponent_budget = total_budget  # Same budget as AI
+        self.simulated_opponent_spent = 0
+
         # Logging
         self.action_log: List[Dict] = []
 
@@ -170,7 +174,27 @@ class StrategicBattleEngine:
         print("📺 Running in PURE SIMULATION mode (no TikTok)\n")
         import random
 
+        # Simulate boost windows at realistic intervals
+        boost_times = [60, 150, 240]  # Boosts at 60s, 150s, 240s into battle
+        boost_active_until = 0
+
         while self.is_running and self.time_remaining > 0:
+            elapsed = self.battle_duration - self.time_remaining
+
+            # Simulate boost activation
+            for bt in boost_times:
+                if elapsed >= bt and elapsed < bt + 2 and boost_active_until < elapsed:
+                    multiplier = random.choice([2.0, 3.0])
+                    duration = random.choice([15, 20])
+                    self.engine.start_boost(multiplier, duration)
+                    boost_active_until = elapsed + duration
+                    print(f"\n🚀 BOOST ACTIVATED x{multiplier} ({duration}s)")
+
+            # End boost if expired
+            if self.engine.state.current_boost and not self.engine.state.current_boost.is_active:
+                self.engine.end_boost()
+                print(f"⏹️ Boost ended\n")
+
             # Simulate opponent gifts - only if explicitly in simulate mode
             if self.simulate and random.random() < 0.15:
                 await self._simulate_opponent_gift()
@@ -179,8 +203,13 @@ class StrategicBattleEngine:
             await asyncio.sleep(0.5)
 
     async def _simulate_opponent_gift(self):
-        """Simulate opponent gift based on phase."""
+        """Simulate opponent gift based on phase with BUDGET CONSTRAINT."""
         import random
+
+        # Check if opponent has budget left
+        remaining_budget = self.simulated_opponent_budget - self.simulated_opponent_spent
+        if remaining_budget <= 0:
+            return  # Opponent exhausted
 
         phase = self.engine.phase
         opp_state = self.engine.state.opponent_state
@@ -198,6 +227,14 @@ class StrategicBattleEngine:
             points = random.choice([5000, 10000, 15000])
         else:
             points = random.choice([500, 1000, 2000, 5000])
+
+        # Respect budget constraint
+        points = min(points, remaining_budget)
+        if points <= 0:
+            return
+
+        # Track opponent spending
+        self.simulated_opponent_spent += points
 
         # Occasionally send power-ups
         if random.random() < 0.05:
@@ -326,17 +363,18 @@ class StrategicBattleEngine:
               f"→ {self.opponent_score:,}")
 
     def _print_status(self):
-        """Print current status."""
+        """Print current status with economic metrics."""
         status = self.engine.get_status()
         diff = status['score_diff']
+        secure = "✅ SECURE" if status['victory_secure'] else ""
 
         print(f"\n📊 {self.battle_duration - self.time_remaining}s | "
-              f"Phase: {status['phase']}")
+              f"Phase: {status['phase']} {secure}")
         print(f"   AI: {status['ai_score']:,} vs Live: {status['opponent_score']:,} "
               f"(diff: {diff:+,})")
         print(f"   Budget: {status['budget_remaining']:,} "
               f"({status['budget_pct']:.0f}%) | "
-              f"Snipe reserve: {status['snipe_reserve']:,}")
+              f"Saved: {status['coins_saved']:,} ({status['coins_saved_pct']:.0f}%)")
         print(f"   Opponent: {status['opponent_state']}")
 
         if status['boost']:
@@ -346,19 +384,23 @@ class StrategicBattleEngine:
         print()
 
     def _print_summary(self):
-        """Print battle summary."""
+        """Print battle summary with economic metrics."""
         diff = self.ai_score - self.opponent_score
         result = "WIN" if diff > 0 else "LOSE" if diff < 0 else "TIE"
         status = self.engine.get_status()
+        coins_saved = status['coins_saved']
+        coins_saved_pct = status['coins_saved_pct']
 
         print(f"\n{'='*70}")
         print(f"🏆 BATTLE COMPLETE - {result}")
         print(f"{'='*70}")
         print(f"Final Score: AI {self.ai_score:,} vs Live {self.opponent_score:,}")
         print(f"Margin: {abs(diff):,} points")
-        print(f"Budget Used: {self.engine.state.budget_spent:,}/"
+        print(f"\n💰 ECONOMIC EFFICIENCY:")
+        print(f"   Budget Used: {self.engine.state.budget_spent:,}/"
               f"{self.engine.total_budget:,} "
               f"({self.engine.state.budget_spent/self.engine.total_budget*100:.0f}%)")
+        print(f"   💵 COINS SAVED: {coins_saved:,} ({coins_saved_pct:.0f}%)")
 
         # Tactic breakdown
         tactic_counts = {}
