@@ -1,0 +1,178 @@
+============================================================
+LIVE API ACCESS REQUEST - TIKTOK DEVELOPER PORTAL
+============================================================
+
+ENGLISH VERSION
+============================================================
+
+Subject: Live API Access Request - TikTok Battle Simulator
+
+Dear TikTok Developer Relations Team,
+
+We are requesting access to the Live API for our application "TikTok Battle Simulator".
+
+--- APPLICATION OVERVIEW ---
+
+TikTok Battle Simulator is a real-time competitive platform that gamifies TikTok Live streams by tracking gifts and creating interactive battles between creators. Our platform enhances creator engagement, increases viewer participation, and drives monetization through gift-based competitions.
+
+Website: https://orionlabs.live
+Demo Video: Available upon request
+
+--- REQUESTED SCOPES ---
+
+1. live.room.info
+   Purpose: Detect if TikTok creators are currently live streaming and retrieve their room IDs to establish connections.
+   Use Case: Users enter two creator usernames, and our platform checks their live status to enable real-time battle tracking.
+
+2. live.gift.info
+   Purpose: Track gift events in real-time during live battles to calculate scores and display analytics.
+   Use Case:
+   - Calculate battle scores based on gift coin values
+   - Display real-time gift animations and notifications
+   - Build leaderboards of top gifters
+   - Generate post-battle analytics and replays
+
+--- HOW IT BENEFITS THE TIKTOK ECOSYSTEM ---
+
+For Creators:
+- Increases engagement during live streams through gamification
+- Drives gift-based monetization with competitive battles
+- Provides analytics to understand gifting patterns
+- OBS integration for professional streaming
+
+For Viewers:
+- Interactive participation through gift-based voting
+- Real-time leaderboards and recognition
+- Enhanced entertainment value during lives
+
+For TikTok:
+- Increases time spent on live streams
+- Drives gift purchases and platform revenue
+- Creates unique content opportunities
+- Strengthens creator-viewer relationships
+
+--- TECHNICAL IMPLEMENTATION ---
+
+- OAuth 2.0 authentication via Login Kit
+- WebSocket connections for real-time gift tracking
+- Secure data handling (no financial data stored)
+- Privacy-compliant design (GDPR ready)
+
+--- DATA PRIVACY ---
+
+We only access:
+- Room status and IDs (live.room.info)
+- Gift events: gift name, coin value, sender username (live.gift.info)
+
+We do NOT access or store:
+- Personal financial information
+- Private messages
+- Follower/following lists
+- Access tokens (session-only)
+
+--- CONTACT INFORMATION ---
+
+Company: Orion Labs
+Website: https://orionlabs.live
+Email: support@orionlabs.live
+Privacy Policy: https://orionlabs.live/privacy
+
+We appreciate your consideration and look forward to your response.
+
+Best regards,
+Orion Labs Team
+
+
+============================================================
+CHINESE VERSION (中文版本)
+============================================================
+
+主题：Live API 访问申请 - TikTok Battle Simulator
+
+尊敬的 TikTok 开发者关系团队：
+
+我们申请为我们的应用程序"TikTok Battle Simulator"获取 Live API 的访问权限。
+
+--- 应用概述 ---
+
+TikTok Battle Simulator 是一个实时竞技平台，通过追踪礼物并在创作者之间创建互动对战，将 TikTok 直播游戏化。我们的平台增强创作者参与度，提高观众互动，并通过基于礼物的竞争推动变现。
+
+网站：https://orionlabs.live
+演示视频：可按要求提供
+
+--- 申请的权限范围 ---
+
+1. live.room.info
+   用途：检测 TikTok 创作者是否正在直播，并获取其房间 ID 以建立连接。
+   使用场景：用户输入两个创作者的用户名，我们的平台检查其直播状态以启用实时对战追踪。
+
+2. live.gift.info
+   用途：实时追踪直播对战期间的礼物事件，以计算得分并显示分析。
+   使用场景：
+   - 根据礼物币值计算对战得分
+   - 显示实时礼物动画和通知
+   - 建立顶级送礼者排行榜
+   - 生成赛后分析和回放
+
+--- 对 TIKTOK 生态系统的益处 ---
+
+对创作者：
+- 通过游戏化增加直播期间的参与度
+- 通过竞技对战推动基于礼物的变现
+- 提供分析以了解送礼模式
+- OBS 集成用于专业直播
+
+对观众：
+- 通过基于礼物的投票进行互动参与
+- 实时排行榜和认可
+- 增强直播的娱乐价值
+
+对 TikTok：
+- 增加直播观看时长
+- 推动礼物购买和平台收入
+- 创造独特的内容机会
+- 加强创作者与观众的关系
+
+--- 技术实现 ---
+
+- 通过 Login Kit 进行 OAuth 2.0 认证
+- WebSocket 连接用于实时礼物追踪
+- 安全的数据处理（不存储财务数据）
+- 隐私合规设计（符合 GDPR）
+
+--- 数据隐私 ---
+
+我们仅访问：
+- 房间状态和 ID（live.room.info）
+- 礼物事件：礼物名称、币值、发送者用户名（live.gift.info）
+
+我们不访问或存储：
+- 个人财务信息
+- 私信
+- 关注/粉丝列表
+- 访问令牌（仅限会话）
+
+--- 联系信息 ---
+
+公司：Orion Labs
+网站：https://orionlabs.live
+邮箱：support@orionlabs.live
+隐私政策：https://orionlabs.live/privacy
+
+感谢您的考虑，期待您的回复。
+
+此致，
+Orion Labs 团队
+
+
+============================================================
+SHORT VERSION (For form fields with character limits)
+============================================================
+
+ENGLISH (500 chars):
+TikTok Battle Simulator gamifies live streams by tracking gifts for competitive creator battles. We need live.room.info to detect live status and room IDs, and live.gift.info to track gifts in real-time for scoring and analytics. This increases creator engagement, viewer participation, and gift-based monetization. Privacy-compliant: we only access gift events and room status, no personal financial data stored.
+
+中文 (500字符):
+TikTok Battle Simulator 通过追踪礼物进行创作者竞技对战，将直播游戏化。我们需要 live.room.info 检测直播状态和房间ID，需要 live.gift.info 实时追踪礼物用于计分和分析。这增加了创作者参与度、观众互动和礼物变现。隐私合规：我们仅访问礼物事件和房间状态，不存储个人财务数据。
+
+============================================================

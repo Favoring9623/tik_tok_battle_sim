@@ -1,0 +1,32 @@
+============================================================
+TIKTOK DEVELOPER PORTAL - SCOPE JUSTIFICATIONS
+(Copy-paste ready for form fields)
+============================================================
+
+--- SCOPE: user.info.basic ---
+
+We use this scope to authenticate users via TikTok Login and display their username and profile picture in our dashboard. This enables personalized features like battle history and leaderboard rankings. We only access display_name and avatar_url for identification purposes.
+
+--- SCOPE: live.room.info ---
+
+We use this scope to detect if TikTok creators are currently live streaming and retrieve their room_id to connect to the stream. This is essential for our live battle feature - users enter two creator usernames, and we check their live status to enable real-time battle tracking.
+
+--- SCOPE: live.gift.info ---
+
+We use this scope to track gifts sent during live battles in real-time. Gift values determine battle scores, and we display gift animations, build gifter leaderboards, and generate post-battle analytics. This is the core functionality of our application - without gift tracking, we cannot calculate battle scores or provide meaningful analytics.
+
+============================================================
+CHINESE TRANSLATIONS (中文翻译)
+============================================================
+
+--- 权限: user.info.basic ---
+
+我们使用此权限通过 TikTok 登录验证用户身份，并在仪表板中显示用户名和头像。这可以实现个性化功能，如对战历史和排行榜排名。我们仅访问 display_name 和 avatar_url 用于身份识别。
+
+--- 权限: live.room.info ---
+
+我们使用此权限检测 TikTok 创作者是否正在直播，并获取其 room_id 以连接到直播。这对于我们的直播对战功能至关重要 - 用户输入两个创作者的用户名，我们检查其直播状态以启用实时对战追踪。
+
+--- 权限: live.gift.info ---
+
+我们使用此权限实时追踪直播对战期间发送的礼物。礼物价值决定对战得分，我们显示礼物动画、建立送礼者排行榜并生成赛后分析。这是我们应用程序的核心功能 - 没有礼物追踪，我们无法计算对战得分或提供有意义的分析。
