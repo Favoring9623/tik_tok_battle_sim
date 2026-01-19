@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TikTok Battle Simulator - Strategic AI System</title>
+    <title>TikTok Battle Simulator - Real-time Live Battle Platform</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -11,88 +11,256 @@
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             color: #fff;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
         }
-        .container {
-            max-width: 800px;
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background: rgba(0,0,0,0.2);
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        nav a {
+            color: #a0a0a0;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        nav a:hover {
+            color: #fff;
+        }
+        .hero {
             text-align: center;
+            padding: 80px 20px;
         }
         h1 {
-            font-size: 2.5rem;
+            font-size: 3rem;
             margin-bottom: 1rem;
             background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         .subtitle {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             color: #a0a0a0;
             margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .btn {
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            color: #1a1a2e;
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
         }
         .features {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin: 2rem 0;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            padding: 60px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         .feature {
-            background: rgba(255,255,255,0.1);
-            padding: 20px;
-            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+            padding: 30px;
+            border-radius: 16px;
             backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
         }
         .feature h3 {
             color: #48dbfb;
             margin-bottom: 10px;
+            font-size: 1.2rem;
         }
-        .badge {
-            display: inline-block;
-            background: #ff6b6b;
-            padding: 5px 15px;
-            border-radius: 20px;
+        .feature p {
+            color: #a0a0a0;
+            line-height: 1.6;
+        }
+        .scopes {
+            background: rgba(0,0,0,0.2);
+            padding: 60px 40px;
+            text-align: center;
+        }
+        .scopes h2 {
+            margin-bottom: 40px;
+            font-size: 2rem;
+        }
+        .scope-list {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        .scope-item {
+            background: rgba(255,255,255,0.05);
+            padding: 20px 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .scope-item code {
+            color: #feca57;
+            font-size: 1.1rem;
+        }
+        .scope-item p {
+            color: #a0a0a0;
+            margin-top: 10px;
             font-size: 0.9rem;
-            margin-top: 2rem;
         }
         footer {
-            margin-top: 3rem;
+            background: rgba(0,0,0,0.3);
+            padding: 40px;
+            text-align: center;
+        }
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .footer-links a {
+            color: #a0a0a0;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .footer-links a:hover {
+            color: #48dbfb;
+        }
+        .contact {
+            margin-top: 20px;
+            color: #666;
+        }
+        .contact a {
+            color: #48dbfb;
+            text-decoration: none;
+        }
+        .copyright {
             color: #666;
             font-size: 0.9rem;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>TikTok Battle Simulator</h1>
-        <p class="subtitle">Strategic AI-Powered Battle System</p>
+    <nav>
+        <div class="logo">TikTok Battle Simulator</div>
+        <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#api">API</a></li>
+            <li><a href="privacy.html">Privacy</a></li>
+            <li><a href="terms.html">Terms</a></li>
+        </ul>
+    </nav>
 
-        <div class="features">
-            <div class="feature">
-                <h3>Strategic Engine</h3>
-                <p>Pressure-based psychological warfare tactics</p>
+    <section class="hero">
+        <h1>TikTok Battle Simulator</h1>
+        <p class="subtitle">
+            A real-time live battle platform that gamifies TikTok Live streams
+            through gift-based competitions between creators.
+        </p>
+        <div class="cta-buttons">
+            <a href="#features" class="btn btn-primary">Learn More</a>
+            <a href="mailto:orion.intelligence@protonmail.com" class="btn btn-secondary">Contact Us</a>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="feature">
+            <div class="feature-icon">🎮</div>
+            <h3>Live Battle Tracking</h3>
+            <p>Track gifts in real-time between two TikTok creators during live streams. Every gift counts towards the battle score.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🏆</div>
+            <h3>Tournaments</h3>
+            <p>Organize multi-round tournaments with brackets, eliminations, and championship battles between top creators.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">📊</div>
+            <h3>Analytics & Leaderboards</h3>
+            <p>Comprehensive analytics, gifter leaderboards, and post-battle statistics to understand engagement patterns.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🤖</div>
+            <h3>AI Strategic Agents</h3>
+            <p>Intelligent AI agents that simulate strategic gifting behaviors for testing and demonstration purposes.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">📺</div>
+            <h3>OBS Integration</h3>
+            <p>Browser source overlays for OBS Studio. Display live scores, gift alerts, and battle status on your stream.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🔄</div>
+            <h3>Replay System</h3>
+            <p>Review past battles with full replay functionality. Analyze key moments and share highlights.</p>
+        </div>
+    </section>
+
+    <section class="scopes" id="api">
+        <h2>TikTok API Integration</h2>
+        <div class="scope-list">
+            <div class="scope-item">
+                <code>user.info.basic</code>
+                <p>Secure TikTok Login</p>
             </div>
-            <div class="feature">
-                <h3>Best of 3 Tournament</h3>
-                <p>Adaptive budget allocation across battles</p>
+            <div class="scope-item">
+                <code>live.room.info</code>
+                <p>Live Stream Detection</p>
             </div>
-            <div class="feature">
-                <h3>Real-time Analysis</h3>
-                <p>Opponent behavior tracking & counter-strikes</p>
-            </div>
-            <div class="feature">
-                <h3>Snipe Window</h3>
-                <p>Strategic 5-second offensive/defensive plays</p>
+            <div class="scope-item">
+                <code>live.gift.info</code>
+                <p>Real-time Gift Tracking</p>
             </div>
         </div>
+    </section>
 
-        <div class="badge">Powered by AI</div>
-
-        <footer>
-            <p>&copy; 2024 TikTok Battle Simulator</p>
-        </footer>
-    </div>
+    <footer>
+        <div class="footer-links">
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms.html">Terms of Service</a>
+            <a href="mailto:orion.intelligence@protonmail.com">Contact</a>
+        </div>
+        <div class="contact">
+            <p>Email: <a href="mailto:orion.intelligence@protonmail.com">orion.intelligence@protonmail.com</a></p>
+        </div>
+        <p class="copyright">&copy; 2026 Orion Labs - TikTok Battle Simulator</p>
+    </footer>
 </body>
 </html>
