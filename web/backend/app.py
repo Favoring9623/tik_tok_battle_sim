@@ -2039,6 +2039,153 @@ def auth_status():
 
 
 # =============================================================================
+# TikTok OAuth Authentication
+# =============================================================================
+
+# TikTok OAuth Configuration (set these in environment variables)
+TIKTOK_CLIENT_KEY = os.environ.get('TIKTOK_CLIENT_KEY', '')
+TIKTOK_CLIENT_SECRET = os.environ.get('TIKTOK_CLIENT_SECRET', '')
+TIKTOK_REDIRECT_URI = os.environ.get('TIKTOK_REDIRECT_URI', 'https://orionlabs.live/auth/callback')
+
+@app.route('/auth/tiktok')
+def auth_tiktok():
+    """Initiate TikTok OAuth flow."""
+    if not TIKTOK_CLIENT_KEY:
+        return jsonify({'error': 'TikTok OAuth not configured'}), 500
+
+    # Generate state for CSRF protection
+    import secrets
+    state = secrets.token_urlsafe(32)
+    session['oauth_state'] = state
+
+    # TikTok OAuth authorization URL
+    # Scopes: user.info.basic, live.room.info, live.gift.info
+    auth_url = (
+        f"https://www.tiktok.com/v2/auth/authorize/"
+        f"?client_key={TIKTOK_CLIENT_KEY}"
+        f"&scope=user.info.basic"
+        f"&response_type=code"
+        f"&redirect_uri={TIKTOK_REDIRECT_URI}"
+        f"&state={state}"
+    )
+
+    return redirect(auth_url)
+
+
+@app.route('/auth/callback')
+def auth_callback():
+    """Handle TikTok OAuth callback."""
+    import requests
+
+    # Get authorization code from TikTok
+    code = request.args.get('code')
+    state = request.args.get('state')
+    error = request.args.get('error')
+
+    # Handle errors
+    if error:
+        error_description = request.args.get('error_description', 'Unknown error')
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Login Failed - TikTok Battle Simulator</title>
+            <style>
+                body {{ font-family: -apple-system, sans-serif; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }}
+                .error-box {{ background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; text-align: center; }}
+                h1 {{ color: #ef4444; margin-bottom: 20px; }}
+                p {{ color: #6b7280; }}
+                a {{ color: #3b82f6; text-decoration: none; }}
+            </style>
+        </head>
+        <body>
+            <div class="error-box">
+                <h1>Login Failed</h1>
+                <p>{error_description}</p>
+                <p><a href="/">Return to Home</a></p>
+            </div>
+        </body>
+        </html>
+        '''
+
+    # Verify state to prevent CSRF
+    if state != session.get('oauth_state'):
+        return jsonify({'error': 'Invalid state parameter'}), 400
+
+    if not code:
+        return jsonify({'error': 'No authorization code received'}), 400
+
+    # Exchange code for access token
+    token_url = "https://open.tiktokapis.com/v2/oauth/token/"
+    token_data = {
+        'client_key': TIKTOK_CLIENT_KEY,
+        'client_secret': TIKTOK_CLIENT_SECRET,
+        'code': code,
+        'grant_type': 'authorization_code',
+        'redirect_uri': TIKTOK_REDIRECT_URI
+    }
+
+    try:
+        token_response = requests.post(token_url, data=token_data)
+        token_json = token_response.json()
+
+        if 'access_token' not in token_json:
+            error_msg = token_json.get('error_description', 'Failed to get access token')
+            return jsonify({'error': error_msg}), 400
+
+        access_token = token_json['access_token']
+
+        # Get user info
+        user_info_url = "https://open.tiktokapis.com/v2/user/info/"
+        headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
+        params = {
+            'fields': 'open_id,display_name,avatar_url'
+        }
+
+        user_response = requests.get(user_info_url, headers=headers, params=params)
+        user_json = user_response.json()
+
+        if 'data' in user_json and 'user' in user_json['data']:
+            user_data = user_json['data']['user']
+
+            # Store user info in session
+            session['user_id'] = user_data.get('open_id')
+            session['username'] = user_data.get('display_name', 'TikTok User')
+            session['avatar_url'] = user_data.get('avatar_url', '')
+            session['access_token'] = access_token
+            session['is_tiktok_user'] = True
+
+            # Clear OAuth state
+            session.pop('oauth_state', None)
+
+            # Redirect to home page
+            return redirect(url_for('index'))
+        else:
+            return jsonify({'error': 'Failed to get user info'}), 400
+
+    except Exception as e:
+        return jsonify({'error': f'OAuth error: {str(e)}'}), 500
+
+
+@app.route('/auth/tiktok/status')
+def tiktok_auth_status():
+    """Check TikTok authentication status."""
+    if session.get('is_tiktok_user'):
+        return jsonify({
+            'authenticated': True,
+            'username': session.get('username'),
+            'avatar_url': session.get('avatar_url'),
+            'user_id': session.get('user_id')
+        })
+    return jsonify({
+        'authenticated': False,
+        'login_url': url_for('auth_tiktok', _external=True)
+    })
+
+
+# =============================================================================
 # API v1 - Versioned Public API
 # =============================================================================
 
