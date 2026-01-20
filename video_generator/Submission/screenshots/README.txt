@@ -41,7 +41,19 @@ TIKTOK BATTLE SIMULATOR - SCREENSHOTS
   Control center for managing battles and settings
   Scope demonstrated: All scopes (unified interface)
 
+11_replay.png
+  Battle replay system - rewatch past battles
+  Scope demonstrated: Data persistence, battle history
+
+12_ai_vs_live.png
+  AI vs Live mode - AI team battles real TikTok audience
+  Scope demonstrated: live.room.info, live.gift.info (hybrid mode)
+
+13_obs_overlay.png
+  OBS streaming overlay - browser source for streamers
+  Scope demonstrated: Streaming integration (live.gift.info display)
+
 =====================================
-Total: 10 screenshots
+Total: 13 screenshots
 Format: PNG, 1920x1080
 =====================================

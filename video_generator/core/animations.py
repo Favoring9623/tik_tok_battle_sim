@@ -5,8 +5,7 @@ from typing import Callable, Tuple
 import math
 
 try:
-    from moviepy.editor import VideoClip
-    from moviepy.video.fx.all import fadein, fadeout
+    from moviepy import VideoClip, vfx
     MOVIEPY_AVAILABLE = True
 except ImportError:
     MOVIEPY_AVAILABLE = False
@@ -21,13 +20,13 @@ class Animations:
     def fade_in(clip: 'VideoClip', duration: float = None) -> 'VideoClip':
         """Apply fade in effect."""
         duration = duration or AnimationTimings.FADE_IN
-        return clip.fx(fadein, duration)
+        return clip.with_effects([vfx.FadeIn(duration)])
 
     @staticmethod
     def fade_out(clip: 'VideoClip', duration: float = None) -> 'VideoClip':
         """Apply fade out effect."""
         duration = duration or AnimationTimings.FADE_OUT
-        return clip.fx(fadeout, duration)
+        return clip.with_effects([vfx.FadeOut(duration)])
 
     @staticmethod
     def slide_up(start_y: int = 100, duration: float = None) -> Callable:

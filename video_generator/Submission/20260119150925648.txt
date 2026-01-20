@@ -1,0 +1,28 @@
+welcome to TikTok Battle Simulator
+a real time
+live battle experience where creators face off
+and every gift can change the game
+let's dive into a whole new way to
+engage your live audience
+logging in is simple and secure
+we only access your basic TikTok info
+your username
+and profile image to get you started instantly
+to launch a battle
+just enter the usernames of two TikTok creators
+our platform checks if they're live
+and connects to their rooms automatically
+no creators live no problem
+use our sandbox mode to simulate
+a full battle experience perfect for testing
+demos or training sessions
+leaderboard spotlight your top gifters and agents
+click any profile to view detailed battle
+history and rankings
+streaming easily add our overlays to OBS
+copy the browser source URL
+paste it into OBS
+and your battle visuals go live instantly
+at the end of the battle the winner is announced
+final scores and replays are available
+with instant access to share or review the match

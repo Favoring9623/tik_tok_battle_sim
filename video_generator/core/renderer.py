@@ -1,19 +1,21 @@
 """
 Scene Renderer - Generates video frames for each scene
 """
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Any
 from dataclasses import dataclass
 import os
 
 try:
-    from moviepy.editor import (
+    # MoviePy 2.x imports
+    from moviepy import (
         VideoClip, ColorClip, TextClip, ImageClip,
         CompositeVideoClip, concatenate_videoclips
     )
-    from moviepy.video.fx.all import fadein, fadeout, resize
+    from moviepy import vfx
     MOVIEPY_AVAILABLE = True
 except ImportError:
     MOVIEPY_AVAILABLE = False
+    VideoClip = Any  # Type hint fallback
     print("MoviePy not installed. Run: pip install moviepy")
 
 from ..config import (
@@ -69,12 +71,12 @@ class SceneRenderer:
         # Composite all elements
         clips = [bg]
         for elem in sorted(elements, key=lambda e: e.z_index):
-            clip = elem.clip.set_start(elem.start_time)
+            clip = elem.clip.with_start(elem.start_time)
             if elem.position:
-                clip = clip.set_position(elem.position)
+                clip = clip.with_position(elem.position)
             clips.append(clip)
 
-        return CompositeVideoClip(clips, size=(self.width, self.height)).set_duration(scene["duration"])
+        return CompositeVideoClip(clips, size=(self.width, self.height)).with_duration(scene["duration"])
 
     def _create_background(self, scene: dict) -> VideoClip:
         """Create background clip for scene."""
@@ -91,7 +93,7 @@ class SceneRenderer:
             return ColorClip(
                 size=(self.width, self.height),
                 color=self._hex_to_rgb(Colors.BACKGROUND)
-            ).set_duration(scene["duration"])
+            ).with_duration(scene["duration"])
 
     def _create_gradient_background(self, duration: float) -> VideoClip:
         """Create a gradient background."""
@@ -100,7 +102,7 @@ class SceneRenderer:
         return ColorClip(
             size=(self.width, self.height),
             color=self._hex_to_rgb(Colors.BACKGROUND)
-        ).set_duration(duration)
+        ).with_duration(duration)
 
     def _render_element(self, config: dict, scene_duration: float) -> Optional[Element]:
         """Render a single element based on config."""
@@ -160,15 +162,15 @@ class SceneRenderer:
         color = color or Colors.TEXT
 
         clip = TextClip(
-            text,
-            fontsize=font_size,
+            text=text,
+            font_size=font_size,
             color=color,
             font=Fonts.TITLE
-        ).set_duration(duration)
+        ).with_duration(duration)
 
         # Apply animation
         if animation == "fade_in":
-            clip = clip.fx(fadein, AnimationTimings.FADE_IN)
+            clip = clip.with_effects([vfx.FadeIn(AnimationTimings.FADE_IN)])
         elif animation == "slide_up":
             clip = self._apply_slide_up(clip)
 
@@ -178,15 +180,15 @@ class SceneRenderer:
         """Render logo element."""
         # Create a simple text logo for now
         clip = TextClip(
-            "ORION",
-            fontsize=FontSizes.H1,
+            text="ORION",
+            font_size=FontSizes.H1,
             color=Colors.PRIMARY,
             font=Fonts.TITLE
-        ).set_duration(duration)
+        ).with_duration(duration)
 
         animation = config.get("animation")
         if animation == "fade_in":
-            clip = clip.fx(fadein, AnimationTimings.FADE_IN)
+            clip = clip.with_effects([vfx.FadeIn(AnimationTimings.FADE_IN)])
 
         return Element(clip=clip, position=("center", "center"))
 
@@ -196,23 +198,32 @@ class SceneRenderer:
 
         # Create URL bar text
         url_clip = TextClip(
-            f"  {url}",
-            fontsize=FontSizes.CAPTION,
+            text=f"  {url}",
+            font_size=FontSizes.CAPTION,
             color=Colors.TEXT,
             font=Fonts.MONO,
             bg_color=Colors.BACKGROUND_ALT
-        ).set_duration(duration)
+        ).with_duration(duration)
 
         return Element(clip=url_clip, position=("center", 50))
 
     def _render_screenshot(self, config: dict, duration: float) -> Element:
         """Render screenshot image."""
         source = config.get("source", "")
-        # Placeholder - would load actual image
-        clip = ColorClip(
-            size=(self.width - 100, self.height - 200),
-            color=self._hex_to_rgb(Colors.BACKGROUND_ALT)
-        ).set_duration(duration)
+        asset_path = os.path.join("video_generator/assets", source)
+
+        if source and os.path.exists(asset_path):
+            # Load actual image and resize to fit
+            clip = ImageClip(asset_path)
+            # Scale to fit width while maintaining aspect ratio
+            scale = (self.width - 100) / clip.size[0]
+            clip = clip.resized(scale).with_duration(duration)
+        else:
+            # Fallback placeholder
+            clip = ColorClip(
+                size=(self.width - 100, self.height - 200),
+                color=self._hex_to_rgb(Colors.BACKGROUND_ALT)
+            ).with_duration(duration)
 
         return Element(clip=clip, position=("center", "center"))
 
@@ -222,12 +233,12 @@ class SceneRenderer:
         position = config.get("position", "bottom_right")
 
         clip = TextClip(
-            f" {text} ",
-            fontsize=FontSizes.BODY,
+            text=f" {text} ",
+            font_size=FontSizes.BODY,
             color=Colors.TEXT,
             font=Fonts.BODY,
             bg_color=Colors.PRIMARY
-        ).set_duration(duration).fx(fadein, 0.3)
+        ).with_duration(duration).with_effects([vfx.FadeIn(0.3)])
 
         # Convert position name to coordinates
         pos = self._get_position_coords(position)
@@ -243,7 +254,7 @@ class SceneRenderer:
                 return ("center", self.height // 2 + y_offset)
             return ("center", "center")
 
-        return clip.set_position(position_func)
+        return clip.with_position(position_func)
 
     def _get_position_coords(self, position_name: str) -> tuple:
         """Convert position name to coordinates."""

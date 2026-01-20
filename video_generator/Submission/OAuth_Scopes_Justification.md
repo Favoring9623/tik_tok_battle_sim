@@ -113,7 +113,7 @@ Gift tracking is the fundamental feature of TikTok Battle Simulator. The entire 
 
 - **Website:** https://orionlabs.live
 - **Privacy Policy:** https://orionlabs.live/privacy
-- **Support:** support@orionlabs.live
+- **Support:** orion.intelligence@protonmail.com
 
 ---
 

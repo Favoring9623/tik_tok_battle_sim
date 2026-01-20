@@ -13,7 +13,7 @@ import sys
 
 # Check dependencies
 try:
-    from moviepy.editor import VideoClip
+    from moviepy import VideoClip
     MOVIEPY_OK = True
 except ImportError:
     MOVIEPY_OK = False

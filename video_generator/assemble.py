@@ -19,8 +19,9 @@ SCENE_ORDER = [
     "all_gifts",        # 8s
     "analytics",        # 12s
     "leaderboard",      # 10s
-    "obs_overlay",      # 10s
+    # "obs_overlay",    # REMOVED - transparent background renders as blank
     "control_center",   # 10s
+    "live_battle_demo", # 30s - Final live strategic battle
     "closing",          # 15s
 ]
 
@@ -69,7 +70,8 @@ def assemble_video(output_filename="demo_video_final.mp4"):
         codec="libx264",
         audio=False,
         preset="medium",
-        bitrate="8000k"
+        bitrate="8000k",
+        ffmpeg_params=["-pix_fmt", "yuv420p"]  # Ensure compatibility
     )
 
     # Close clips to free memory

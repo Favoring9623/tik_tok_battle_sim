@@ -28,13 +28,13 @@ class Colors:
     WARNING = "#FFD93D"
     ERROR = "#FF6B6B"
 
-# === FONTS ===
+# === FONTS (System fonts) ===
 @dataclass
 class Fonts:
-    TITLE = "Montserrat-Bold"
-    SUBTITLE = "Montserrat-SemiBold"
-    BODY = "Inter-Regular"
-    MONO = "JetBrainsMono-Regular"
+    TITLE = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    SUBTITLE = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    BODY = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    MONO = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 
 @dataclass
 class FontSizes:
@@ -73,7 +73,7 @@ SCENES = [
     {
         "id": "intro",
         "name": "Introduction",
-        "duration": SceneDurations.INTRO,
+        "duration": 8,
         "scope": None,
         "elements": [
             {"type": "background", "style": "gradient"},
@@ -85,88 +85,154 @@ SCENES = [
     {
         "id": "dashboard",
         "name": "Dashboard Overview",
-        "duration": SceneDurations.DASHBOARD,
+        "duration": 10,
         "scope": None,
         "elements": [
             {"type": "browser_frame", "url": "https://orionlabs.live"},
-            {"type": "screenshot", "source": "dashboard.png", "animation": "pan_down"},
+            {"type": "screenshot", "source": "captures/01_intro/dashboard_main.png"},
             {"type": "callout", "text": "Real-time tracking", "position": "bottom_right"},
         ]
     },
     {
         "id": "oauth",
         "name": "TikTok OAuth Login",
-        "duration": SceneDurations.OAUTH,
+        "duration": 15,
         "scope": "user.info.basic",
         "elements": [
             {"type": "browser_frame", "url": "https://orionlabs.live/login"},
-            {"type": "click", "target": "login_button"},
-            {"type": "screenshot", "source": "oauth_consent.png", "duration": 5},
-            {"type": "click", "target": "authorize_button"},
-            {"type": "screenshot", "source": "profile_loaded.png"},
+            {"type": "screenshot", "source": "captures/02_login/before_login.png"},
+            {"type": "callout", "text": "Secure OAuth Login", "position": "top_right"},
         ]
     },
     {
-        "id": "start_battle",
-        "name": "Start Battle",
-        "duration": SceneDurations.START_BATTLE,
+        "id": "live_tracking",
+        "name": "Live Battle Tracking",
+        "duration": 12,
         "scope": "live.room.info",
         "elements": [
-            {"type": "browser_frame", "url": "https://orionlabs.live/battle"},
-            {"type": "typing", "target": "creator1_input", "text": "@streamer_one"},
-            {"type": "typing", "target": "creator2_input", "text": "@streamer_two"},
-            {"type": "click", "target": "start_button"},
-            {"type": "status", "text": "Connected", "style": "success"},
+            {"type": "browser_frame", "url": "https://orionlabs.live/live"},
+            {"type": "screenshot", "source": "captures/live/live_tracking.png"},
+            {"type": "callout", "text": "Enter Streamer ID", "position": "bottom_right"},
+        ]
+    },
+    {
+        "id": "strategic_battle",
+        "name": "Strategic Battle Dashboard",
+        "duration": 15,
+        "scope": "live.room.info",
+        "elements": [
+            {"type": "browser_frame", "url": "https://orionlabs.live/strategic-battle"},
+            {"type": "screenshot", "source": "captures/strategic/strategic_battle.png"},
+            {"type": "callout", "text": "AI-Powered Strategy", "position": "top_right"},
+        ]
+    },
+    {
+        "id": "tournament",
+        "name": "Tournament Simulation",
+        "duration": 12,
+        "scope": None,
+        "elements": [
+            {"type": "browser_frame", "url": "https://orionlabs.live/tournament"},
+            {"type": "screenshot", "source": "captures/tournament/tournament_main.png"},
+            {"type": "callout", "text": "8-Team Brackets", "position": "bottom_right"},
         ]
     },
     {
         "id": "gift_tracking",
         "name": "Live Gift Tracking",
-        "duration": SceneDurations.GIFT_TRACKING,
+        "duration": 20,
         "scope": "live.gift.info",
         "elements": [
-            {"type": "battle_screen"},
-            {"type": "gift_event", "gift": "Rose", "value": 1, "sender": "@viewer1", "side": "left"},
-            {"type": "gift_event", "gift": "Galaxy", "value": 1000, "sender": "@whale", "side": "right"},
-            {"type": "gift_event", "gift": "Lion", "value": 29999, "sender": "@big_spender", "side": "left"},
-            {"type": "score_update"},
-            {"type": "leaderboard_update"},
+            {"type": "browser_frame", "url": "https://orionlabs.live/battle"},
+            {"type": "screenshot", "source": "captures/live_gifts/battle_live_score.png"},
+            {"type": "callout", "text": "88,956 vs 58,370 - LIVE", "position": "top_right"},
+        ]
+    },
+    {
+        "id": "gift_panel",
+        "name": "Gift Panel",
+        "duration": 10,
+        "scope": "live.gift.info",
+        "elements": [
+            {"type": "screenshot", "source": "captures/live_gifts/gift_panel.png"},
+            {"type": "callout", "text": "Send Gifts Live", "position": "bottom_right"},
+        ]
+    },
+    {
+        "id": "all_gifts",
+        "name": "Gift Catalog",
+        "duration": 8,
+        "scope": "live.gift.info",
+        "elements": [
+            {"type": "screenshot", "source": "captures/live_gifts/all_gifts_catalog.png"},
+            {"type": "callout", "text": "All TikTok Gifts", "position": "top_right"},
         ]
     },
     {
         "id": "analytics",
         "name": "Battle Analytics",
-        "duration": SceneDurations.ANALYTICS,
+        "duration": 12,
         "scope": None,
         "elements": [
             {"type": "browser_frame", "url": "https://orionlabs.live/analytics"},
-            {"type": "chart", "chart_type": "line", "animation": "draw"},
-            {"type": "stats_card", "label": "Win Rate", "value": "68%"},
-            {"type": "stats_card", "label": "Total Gifts", "value": "247"},
+            {"type": "screenshot", "source": "captures/05_analytics/analytics_main.png"},
+            {"type": "callout", "text": "Performance Analytics", "position": "bottom_right"},
         ]
     },
     {
-        "id": "winner",
-        "name": "Winner Announcement",
-        "duration": SceneDurations.WINNER,
+        "id": "leaderboard",
+        "name": "Leaderboards",
+        "duration": 10,
         "scope": None,
         "elements": [
-            {"type": "overlay", "style": "victory"},
-            {"type": "confetti"},
-            {"type": "winner_card", "winner": "@streamer_one", "score": "156,780"},
+            {"type": "browser_frame", "url": "https://orionlabs.live/leaderboard"},
+            {"type": "screenshot", "source": "captures/06_leaderboards/leaderboard_main.png"},
+            {"type": "callout", "text": "Top Gifters", "position": "top_right"},
+        ]
+    },
+    {
+        "id": "obs_overlay",
+        "name": "OBS Integration",
+        "duration": 10,
+        "scope": None,
+        "elements": [
+            {"type": "browser_frame", "url": "https://orionlabs.live/overlay"},
+            {"type": "screenshot", "source": "captures/07_obs/obs_overlay.png"},
+            {"type": "callout", "text": "Stream Overlay", "position": "bottom_right"},
+        ]
+    },
+    {
+        "id": "control_center",
+        "name": "Control Center",
+        "duration": 10,
+        "scope": None,
+        "elements": [
+            {"type": "browser_frame", "url": "https://orionlabs.live/control-center"},
+            {"type": "screenshot", "source": "captures/control_center/control_center.png"},
+            {"type": "callout", "text": "Admin Dashboard", "position": "top_right"},
+        ]
+    },
+    {
+        "id": "live_battle_demo",
+        "name": "Live Strategic Battle",
+        "duration": 30,
+        "scope": "live.gift.info",
+        "elements": [
+            {"type": "browser_frame", "url": "https://orionlabs.live/demo"},
+            {"type": "screenshot", "source": "captures/demo_battle/demo_battle.png"},
+            {"type": "callout", "text": "AI vs AI Battle Demo", "position": "top_right"},
         ]
     },
     {
         "id": "closing",
         "name": "Closing",
-        "duration": SceneDurations.CLOSING,
+        "duration": 15,
         "scope": None,
         "elements": [
             {"type": "browser_frame", "url": "https://orionlabs.live/privacy"},
-            {"type": "scroll", "direction": "down", "duration": 10},
-            {"type": "logo", "animation": "fade_in"},
-            {"type": "text", "text": "orionlabs.live", "style": "url"},
-            {"type": "fade_out"},
+            {"type": "screenshot", "source": "captures/09_privacy/privacy_page.png"},
+            {"type": "logo", "animation": "fade_in", "delay": 8},
+            {"type": "text", "text": "orionlabs.live", "style": "url", "delay": 10},
         ]
     },
 ]
